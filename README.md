@@ -22,7 +22,7 @@ The graphical mode is the most intuitive way of interacting with Cytomine from I
 4. Exploring images of a project.
 5. Viewing images.
 
-####Using the command line
+#### Using the command line
 
 The command line is the most powerful way to use Cytomine with Icy as tasks can be chained and automatized to perform multiple processes without user supervision.
 
