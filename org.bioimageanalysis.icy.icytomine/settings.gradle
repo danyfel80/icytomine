@@ -1,0 +1,3 @@
+rootProject.name = 'org.bioimageanalysis.icy.icytomine'
+include 'org.bioimageanalysis.icy.icytomine.core'
+include 'org.bioimageanalysis.icy.icytomine.batch'

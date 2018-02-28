@@ -1,0 +1,6 @@
+dependencies {
+	implementation project(':org.bioimageanalysis.icy.icytomine.core')
+	implementation files("${System.env.ICY_HOME}/plugins/adufour/ezplug/EzPlug.jar") // EzPlug
+	implementation files("${System.env.ICY_HOME}/plugins/adufour/blocks/Blocks.jar") // Blocks
+	implementation files("${System.env.ICY_HOME}/plugins/adufour/protocols/Protocols.jar") // Protocols
+}
