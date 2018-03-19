@@ -21,7 +21,7 @@ public class DefineRectangle2 extends Plugin implements PluginLibrary, Block {
 	@Override
 	public void declareInput(VarList inputMap) {
 		varX = new VarInteger("X", 0);
-		varX = new VarInteger("Y", 0);
+		varY = new VarInteger("Y", 0);
 		varW = new VarInteger("Width", 0);
 		varH = new VarInteger("Height", 0);
 

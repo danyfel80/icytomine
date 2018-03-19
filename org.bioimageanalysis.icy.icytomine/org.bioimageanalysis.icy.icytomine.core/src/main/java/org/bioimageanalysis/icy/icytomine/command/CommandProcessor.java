@@ -49,7 +49,7 @@ public class CommandProcessor implements Callable<Void> {
 	}
 
 	private void loadCommandProcessList() throws IOException, ClassNotFoundException {
-		InputStream in = CommandProcess.class.getResourceAsStream("/commandProcessList.txt");
+		InputStream in = CommandProcessor.class.getResourceAsStream("/commandProcessList.txt");
 		if (in == null)
 			throw new IOException("Could not find process list file");
 
@@ -115,8 +115,10 @@ public class CommandProcessor implements Callable<Void> {
 			process.setPreviousResult(previousResult);
 			// Add cytomine client if it's a connected process
 			if (process instanceof ConnectedCommandProcess) {
-				if (connection == null)
+				if (connection == null) {
 					System.err.println("No cytomine server has been established.");
+					continue;
+				}
 				((ConnectedCommandProcess<?>) process).setCytomineClient(connection);
 			}
 

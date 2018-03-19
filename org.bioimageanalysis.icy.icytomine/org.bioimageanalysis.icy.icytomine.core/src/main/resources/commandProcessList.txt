@@ -1,3 +1,5 @@
 org.bioimageanalysis.icy.icytomine.command.process.ConnectionCommand
 org.bioimageanalysis.icy.icytomine.command.process.ExitCommand
 org.bioimageanalysis.icy.icytomine.command.process.connected.ProjectsCommandProcess
+org.bioimageanalysis.icy.icytomine.command.process.connected.ImagesCommandProcess
+org.bioimageanalysis.icy.icytomine.command.process.connected.AnnotationsCommandProcess

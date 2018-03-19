@@ -18,20 +18,20 @@
  */
 package org.bioimageanalysis.icy.icytomine.command.process.connected;
 
-import org.bioimageanalysis.icy.icytomine.core.model.Project;
+import org.bioimageanalysis.icy.icytomine.core.model.Image;
 
-import be.cytomine.client.collections.ProjectCollection;
+import be.cytomine.client.collections.ImageInstanceCollection;
 
 /**
  * @author Daniel Felipe Gonzalez Obando
  *
  */
-public class ProjectsCommandProcess extends ConnectedCommandProcess<String> {
+public class ImagesCommandProcess extends ConnectedCommandProcess<String> {
 
-	private static final String COMMAND = "projects";
-	private static final String NAME = "List projects";
-	private static final String[] ARGS_DESCRIPTION = new String[0];
-	private static final String DESCRIPTION = "Lists all projects associated to the connected user.";
+	private static final String COMMAND = "images";
+	private static final String NAME = "List images";
+	private static final String[] ARGS_DESCRIPTION = new String[] { "projectID" };
+	private static final String DESCRIPTION = "Lists all images associated to a project.";
 
 	@Override
 	public String getCommand() {
@@ -55,17 +55,23 @@ public class ProjectsCommandProcess extends ConnectedCommandProcess<String> {
 
 	@Override
 	public String call() throws Exception {
-		StringBuffer projectList = new StringBuffer();
-
-		ProjectCollection projs = client.getProjects();
-		projectList.append("Projects (ID, Name, Description, # Images, # Annotations):\n");
-		for (int i = 0; i < projs.size(); i++) {
-			Project proj = new Project(projs.get(i), client);
-			projectList.append(proj.getId() + " " + proj.getName() + " " + proj.getDescription() + " "
-					+ proj.getNumberOfImages() + " " + proj.getNumberOfAnnotations() + "\n");
+		if (args.length < 1)
+			throw new IllegalArgumentException("Expected at least 1 argument but got 0");
+		StringBuffer imageList = new StringBuffer();
+		
+		for (int p = 0; p < args.length; p++) {
+			Long projectId = Long.parseLong(args[p]);
+	
+			
+			ImageInstanceCollection imgs = client.getImageInstances(projectId);
+			imageList.append("Projects (ID, Name, # User annotations, # Algorithm annotations ):\n");
+			for (int i = 0; i < imgs.size(); i++) {
+				Image img = new Image(imgs.get(i), client);
+				imageList.append(
+						img.getId() + " " + img.getName() + " " + img.getAnnotationsUser() + " " + img.getAnnotationsAlgo() + "\n");
+			}
 		}
-
-		return projectList.toString();
+		return imageList.toString();
 	}
 
 }

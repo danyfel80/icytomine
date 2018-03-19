@@ -30,6 +30,25 @@ import be.cytomine.client.Cytomine;
  * @param <T>
  *          Type of result for the execution
  */
-public interface ConnectedCommandProcess<T> extends CommandProcess<T> {
-	void setCytomineClient(Cytomine client);
+public abstract class ConnectedCommandProcess<T> implements CommandProcess<T> {
+
+	protected Cytomine client;
+	protected String[] args;
+	protected Object previousResult;
+
+	public void setCytomineClient(Cytomine client) {
+		this.client = client;
+	}
+
+	@Override
+	public ConnectedCommandProcess<T> setArguments(String[] args) {
+		this.args = args;
+		return this;
+	}
+
+	@Override
+	public ConnectedCommandProcess<T> setPreviousResult(Object result) {
+		this.previousResult = result;
+		return this;
+	}
 }

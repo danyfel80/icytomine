@@ -19,19 +19,29 @@
 package plugins.danyfel80.icytomine.protocol.batch;
 
 import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.bioimageanalysis.icy.icytomine.core.IcytomineImporter;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 
+import com.vividsolutions.jts.io.ParseException;
+
+import be.cytomine.client.CytomineException;
 import icy.common.exception.UnsupportedFormatException;
+import icy.roi.ROI;
+import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.system.IcyHandledException;
 import plugins.adufour.blocks.lang.Loop;
 import plugins.adufour.blocks.util.VarList;
 import plugins.adufour.vars.lang.Var;
+import plugins.adufour.vars.lang.VarBoolean;
 import plugins.adufour.vars.lang.VarEnum;
 import plugins.adufour.vars.lang.VarInteger;
 import plugins.adufour.vars.lang.VarSequence;
@@ -57,6 +67,7 @@ public class CytomineImageBatch extends Loop {
 	private VarEnum<ProcessingType> varProcessingType;
 	private VarRectangle varLoadedArea;
 	private VarDimension varTileDimension;
+	private VarBoolean varLoadROIs;
 
 	// iteration variables
 	private Image image;
@@ -64,9 +75,10 @@ public class CytomineImageBatch extends Loop {
 	private ProcessingType processingType;
 	private Rectangle loadedArea;
 	private Dimension tileSize;
+	private boolean loadROIs;
 
 	private IcytomineImporter importer;
-	private Rectangle loadedAreaInResolutionR;
+	private Rectangle loadedAreaInTargetResolution;
 	private Double pixelResolutionInResolution;
 	private Dimension tileSizeInResolution0;
 	private Dimension tileGridSize;
@@ -79,19 +91,32 @@ public class CytomineImageBatch extends Loop {
 	@Override
 	public void declareInput(VarList inputMap) {
 		super.declareInput(inputMap);
-		this.inputMap = inputMap;
+		setInputVariablesMap(inputMap);
+		initializeInputVariables();
+		addInputVariables();
+	}
 
+	private void setInputVariablesMap(VarList inputMap) {
+		this.inputMap = inputMap;
+	}
+
+	private void initializeInputVariables() {
 		this.varImage = new VarCytomineImage("Image");
 		this.varResolutionLevel = new VarInteger("Resolution level", 0);
-		this.varProcessingType = new VarEnum<CytomineImageBatch.ProcessingType>("Processing type", ProcessingType.EntireArea);
+		this.varProcessingType = new VarEnum<CytomineImageBatch.ProcessingType>("Processing type",
+				ProcessingType.EntireArea);
 		this.varLoadedArea = new VarRectangle("Loaded Area");
 		this.varTileDimension = new VarDimension("Tile dimension", new Dimension(256, 256));
+		this.varLoadROIs = new VarBoolean("Load ROIs", true);
+	}
 
+	private void addInputVariables() {
 		inputMap.add(varImage.getName(), varImage);
 		inputMap.add(varResolutionLevel.getName(), varResolutionLevel);
 		inputMap.add(varProcessingType.getName(), varProcessingType);
 		inputMap.add(varLoadedArea.getName(), varLoadedArea);
 		inputMap.add(varTileDimension.getName(), varTileDimension);
+		inputMap.add(varLoadROIs.getName(), varLoadROIs);
 	}
 
 	@Override
@@ -117,37 +142,65 @@ public class CytomineImageBatch extends Loop {
 	public void initializeLoop() {
 		this.currentTile = 0;
 
+		recoverVariableValues();
+		setImageImporter();
+		setAndLimitLoadedArea();
+
+		if (loadedArea.isEmpty()) {
+			totalTiles = 0;
+			return;
+		}
+
+		setupTileSize();
+		setupResolutionSizes();
+		setupTileGridSize();
+	}
+
+	private void recoverVariableValues() {
 		this.image = varImage.getValue(true);
 		this.resolutionLevel = varResolutionLevel.getValue(true);
 		this.processingType = varProcessingType.getValue(true);
 		this.loadedArea = varLoadedArea.getValue(true);
 		this.tileSize = varTileDimension.getValue(true);
+		this.loadROIs = varLoadROIs.getValue(true);
+	}
 
+	private void setImageImporter() {
 		this.importer = new IcytomineImporter(image.getClient());
 		try {
 			this.importer.open(image.getId().toString(), 0);
 		} catch (UnsupportedFormatException | IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
 
+	private void setAndLimitLoadedArea() {
+		setupLoadedArea();
+		limitLoadedArea();
+	}
+
+	private void setupLoadedArea() {
 		this.loadedArea = (!loadedArea.isEmpty()) ? loadedArea : new Rectangle(image.getSize());
+	}
+
+	private void limitLoadedArea() {
 		this.loadedArea = loadedArea.intersection(new Rectangle(image.getSize()));
-		if (loadedArea.isEmpty()) {
-			totalTiles = 0;
-			return;
-		}
+	}
 
-		this.loadedAreaInResolutionR = new Rectangle(loadedArea);
-
+	private void setupTileSize() {
 		this.tileSize = (tileSize.width != 0 && tileSize.height != 0) ? new Dimension(tileSize) : image.getTileSize();
+	}
+
+	private void setupResolutionSizes() {
+		this.loadedAreaInTargetResolution = new Rectangle(loadedArea);
 		this.tileSizeInResolution0 = new Dimension(tileSize);
-		this.pixelResolutionInResolution = importer.getImageInformation().getResolution();
+		this.pixelResolutionInResolution = getPixelResolutionOrDefaultTo1();
 
 		for (int lvl = 0; lvl < resolutionLevel; lvl++) {
-			this.loadedAreaInResolutionR.width /= 2;
-			this.loadedAreaInResolutionR.height /= 2;
-			this.loadedAreaInResolutionR.x /= 2;
-			this.loadedAreaInResolutionR.y /= 2;
+			this.loadedAreaInTargetResolution.width /= 2;
+			this.loadedAreaInTargetResolution.height /= 2;
+			this.loadedAreaInTargetResolution.x /= 2;
+			this.loadedAreaInTargetResolution.y /= 2;
 			this.tileSizeInResolution0.width *= 2;
 			this.tileSizeInResolution0.height *= 2;
 			if (pixelResolutionInResolution != null) {
@@ -156,53 +209,133 @@ public class CytomineImageBatch extends Loop {
 		}
 
 		if (processingType == ProcessingType.EntireArea) {
-			this.tileSizeInResolution0.width = image.getSizeX();
-			this.tileSizeInResolution0.height = image.getSizeY();
-			this.tileSize.width = loadedAreaInResolutionR.width;
-			this.tileSize.height = loadedAreaInResolutionR.height;
+			adjustTileSizeToEntireArea();
 		}
+		limitTileSizeToLoadedArea();
+	}
 
-		this.tileSize.width = Math.min(loadedAreaInResolutionR.width, tileSize.width);
-		this.tileSize.height = Math.min(loadedAreaInResolutionR.height, tileSize.height);
-		this.tileSizeInResolution0.width = Math.min(loadedArea.width, tileSizeInResolution0.width);
-		this.tileSizeInResolution0.height = Math.min(loadedArea.height, tileSizeInResolution0.height);
-
+	private Double getPixelResolutionOrDefaultTo1() {
+		Double resolution = importer.getImageInformation().getResolution();
 		if (pixelResolutionInResolution == null) {
 			this.pixelResolutionInResolution = 1d;
 		}
-		this.tileGridSize = new Dimension((loadedAreaInResolutionR.width + tileSize.width - 1) / tileSize.width,
-				(loadedAreaInResolutionR.height + tileSize.height - 1) / tileSize.height);
+		return resolution;
+	}
+
+	private void adjustTileSizeToEntireArea() {
+		this.tileSizeInResolution0.width = image.getSizeX();
+		this.tileSizeInResolution0.height = image.getSizeY();
+		this.tileSize.width = loadedAreaInTargetResolution.width;
+		this.tileSize.height = loadedAreaInTargetResolution.height;
+	}
+
+	private void limitTileSizeToLoadedArea() {
+		this.tileSize.width = Math.min(loadedAreaInTargetResolution.width, tileSize.width);
+		this.tileSize.height = Math.min(loadedAreaInTargetResolution.height, tileSize.height);
+		this.tileSizeInResolution0.width = Math.min(loadedArea.width, tileSizeInResolution0.width);
+		this.tileSizeInResolution0.height = Math.min(loadedArea.height, tileSizeInResolution0.height);
+	}
+
+	private void setupTileGridSize() {
+		this.tileGridSize = new Dimension((loadedAreaInTargetResolution.width + tileSize.width - 1) / tileSize.width,
+				(loadedAreaInTargetResolution.height + tileSize.height - 1) / tileSize.height);
 
 		this.totalTiles = tileGridSize.width * tileGridSize.height;
-
 	}
 
 	@Override
 	public void beforeIteration() {
 		try {
-			int posX = currentTile % tileGridSize.width;
-			int posY = currentTile / tileGridSize.width;
-			// import image
-			Rectangle region = new Rectangle(loadedArea.x + posX * tileSizeInResolution0.width,
-					loadedArea.y + posY * tileSizeInResolution0.height, tileSizeInResolution0.width,
-					tileSizeInResolution0.height);
-			region = region.intersection(loadedArea);
-			Sequence seq = new Sequence(importer.getImage(0, varResolutionLevel.getValue(), region, 0, 0));
-
-			// set some metadata
-			seq.setName(image.getName() + String.format("(%f, %f; %f, %f)", region.x * pixelResolutionInResolution,
-					region.y * pixelResolutionInResolution, region.width * pixelResolutionInResolution,
-					region.height * pixelResolutionInResolution));
-			seq.setPositionX(region.x * pixelResolutionInResolution);
-			seq.setPositionY(region.y * pixelResolutionInResolution);
-			seq.setPixelSizeX(pixelResolutionInResolution);
-			seq.setPixelSizeY(pixelResolutionInResolution);
-
-			// send to output var
+			Point tilePosition = getCurrentTilePosition();
+			Rectangle tileRegion = getTileRegionInResolution0(tilePosition);
+			Sequence seq = importTile(tileRegion);
 			varSequence.setValue(seq);
 		} catch (UnsupportedFormatException | IOException e) {
 			throw new IcyHandledException(e);
 		}
+	}
+
+	private Sequence importTile(Rectangle tileRegion)
+			throws IllegalArgumentException, UnsupportedFormatException, IOException {
+		Sequence seq = new Sequence(importer.getImage(0, resolutionLevel, tileRegion, 0, 0));
+		setSequenceMetadata(seq, tileRegion);
+
+		if (loadROIs) {
+			addROIsToSeq(seq, tileRegion);
+		}
+		return seq;
+	}
+
+	private void setSequenceMetadata(Sequence seq, Rectangle tileRegion) {
+		seq.setName(image.getName() + String.format("(%f, %f; %f, %f)", tileRegion.x * pixelResolutionInResolution,
+				tileRegion.y * pixelResolutionInResolution, tileRegion.width * pixelResolutionInResolution,
+				tileRegion.height * pixelResolutionInResolution));
+		seq.setPositionX(tileRegion.x * pixelResolutionInResolution);
+		seq.setPositionY(tileRegion.y * pixelResolutionInResolution);
+		seq.setPixelSizeX(pixelResolutionInResolution);
+		seq.setPixelSizeY(pixelResolutionInResolution);
+	}
+
+	private void addROIsToSeq(Sequence seq, Rectangle tileRegion) throws IOException {
+		Rectangle regionInResolution = getRegionInTargetResolution(tileRegion);
+		List<ROI2D> annotations = getAnnotationsAsROIs(regionInResolution);
+		// Add rois to sequence
+		seq.addROIs(annotations.stream().map(r -> (ROI) r).collect(Collectors.toList()), true);
+	}
+
+	private List<ROI2D> getAnnotationsAsROIs(Rectangle regionInResolution) throws IOException {
+		List<ROI2D> annotations = new ArrayList<>(0);
+		try {
+			// ROIs inside the loaded area with global coordinates
+			annotations = this.image.getAnnotations().stream().filter(a -> {
+				// Check annotation intersects loaded image
+				try {
+					return a.getROI(resolutionLevel).intersects(regionInResolution);
+				} catch (ParseException | CytomineException e) {
+					throw new RuntimeException(e);
+				}
+			}).map(a -> {
+				// convert to roi
+				try {
+					return a.getROI(resolutionLevel);
+				} catch (ParseException | CytomineException e) {
+					throw new RuntimeException(e);
+				}
+			}).collect(Collectors.toList());
+		} catch (CytomineException | RuntimeException e) {
+			throw new IOException(e);
+		}
+
+		convertAnnotationCoordinatesToTargetRegion(annotations, regionInResolution);
+
+		return annotations;
+	}
+
+	private void convertAnnotationCoordinatesToTargetRegion(List<ROI2D> annotations, Rectangle regionInResolution) {
+		annotations.stream().forEach(r -> r.translate(-regionInResolution.x, -regionInResolution.y));
+	}
+
+	private Rectangle getRegionInTargetResolution(Rectangle tileRegion) {
+		Rectangle region = new Rectangle(tileRegion);
+		IntStream.range(0, resolutionLevel).forEach(i -> {
+			region.x /= 2;
+			region.y /= 2;
+			region.width /= 2;
+			region.height /= 2;
+		});
+		return region;
+	}
+
+	private Rectangle getTileRegionInResolution0(Point tilePosition) {
+		Rectangle region = new Rectangle(loadedArea.x + tilePosition.x * tileSizeInResolution0.width,
+				loadedArea.y + tilePosition.y * tileSizeInResolution0.height, tileSizeInResolution0.width,
+				tileSizeInResolution0.height);
+		region = region.intersection(loadedArea);
+		return region;
+	}
+
+	private Point getCurrentTilePosition() {
+		return new Point(currentTile % tileGridSize.width, currentTile / tileGridSize.width);
 	}
 
 	@Override

@@ -13,6 +13,14 @@ import be.cytomine.client.collections.UserCollection;
  * 
  * @author Daniel Felipe Gonzalez Obando
  */
+/**
+ * @author Daniel Felipe Gonzalez Obando
+ *
+ */
+/**
+ * @author Daniel Felipe Gonzalez Obando
+ *
+ */
 public class Project {
 
 	private Cytomine cytomine;
@@ -27,18 +35,22 @@ public class Project {
 		return this.cytomine;
 	}
 
+	public be.cytomine.client.models.Project getInternalProject() {
+		return internalProject;
+	}
+
 	/**
 	 * @return The project identifier
 	 */
 	public Long getId() {
-		return internalProject.getId();
+		return getInternalProject().getId();
 	}
 
 	/**
 	 * @return The project name
 	 */
 	public String getName() {
-		return internalProject.getStr("name");
+		return getInternalProject().getStr("name");
 	}
 
 	/**
@@ -47,7 +59,8 @@ public class Project {
 	 */
 	public String getDescription() throws CytomineException {
 		try {
-			return cytomine.getDescription(internalProject.getId(), internalProject.getDomainName()).getStr("data");
+			return getClient().getDescription(getInternalProject().getId(), getInternalProject().getDomainName())
+					.getStr("data");
 		} catch (CytomineException e) {
 			if (e.getHttpCode() == 500)
 				return "N/A";
@@ -57,31 +70,38 @@ public class Project {
 	}
 
 	/**
+	 * @return The id of the ontology used for this project.
+	 */
+	public Long getOntologyId() {
+		return getInternalProject().getLong("ontology");
+	}
+
+	/**
 	 * @return The ontology name used for this project
 	 */
 	public String getOntologyName() {
-		return internalProject.getStr("ontologyName");
+		return getInternalProject().getStr("ontologyName");
 	}
 
 	/**
 	 * @return The amount of images available for this project
 	 */
 	public Long getNumberOfImages() {
-		return internalProject.getLong("numberOfImages");
+		return getInternalProject().getLong("numberOfImages");
 	}
 
 	/**
 	 * @return The amount of human user made annotations
 	 */
 	public Long getNumberOfAnnotations() {
-		return internalProject.getLong("numberOfAnnotations");
+		return getInternalProject().getLong("numberOfAnnotations");
 	}
 
 	/**
 	 * @return The amount of annotations created by software
 	 */
 	public Long getNumberOfJobAnnotations() {
-		return internalProject.getLong("numberOfJobAnnotations");
+		return getInternalProject().getLong("numberOfJobAnnotations");
 	}
 
 	/**
@@ -97,7 +117,7 @@ public class Project {
 	 *           if the users cannot be retrieved from the server.
 	 */
 	public List<User> getUsers() throws CytomineException {
-		UserCollection userCollection = cytomine.getProjectUsers(getId());
+		UserCollection userCollection = getClient().getProjectUsers(getId());
 		List<User> users = new ArrayList<>(userCollection.size());
 		for (int i = 0; i < userCollection.size(); i++) {
 			users.add(new User(userCollection.get(i)));
@@ -125,8 +145,8 @@ public class Project {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((cytomine == null) ? 0 : cytomine.getHost().hashCode());
-		result = prime * result + ((internalProject == null) ? 0 : getId().hashCode());
+		result = prime * result + ((getClient() == null) ? 0 : getClient().getHost().hashCode());
+		result = prime * result + ((getInternalProject() == null) ? 0 : getId().hashCode());
 		return result;
 	}
 
@@ -147,15 +167,15 @@ public class Project {
 			return false;
 		}
 		Project other = (Project) obj;
-		if (cytomine == null) {
-			if (other.cytomine != null) {
+		if (getClient() == null) {
+			if (other.getClient() != null) {
 				return false;
 			}
-		} else if (!cytomine.getHost().equals(other.cytomine.getHost())) {
+		} else if (!getClient().getHost().equals(other.getClient().getHost())) {
 			return false;
 		}
-		if (internalProject == null) {
-			if (other.internalProject != null) {
+		if (getInternalProject() == null) {
+			if (other.getInternalProject() != null) {
 				return false;
 			}
 		} else if (!getId().equals(other.getId())) {

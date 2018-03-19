@@ -30,49 +30,87 @@ public class Image {
 		this.cytomine = cytomine;
 	}
 
+	/**
+	 * @return Internal Cytomine image object.
+	 */
+	public ImageInstance getInternalImage() {
+		return this.internalImage;
+	}
+
+	/**
+	 * @return Cytomine client.
+	 */
 	public Cytomine getClient() {
 		return this.cytomine;
 	}
 
+	/**
+	 * @return Image ID.
+	 */
 	public Long getId() {
-		return internalImage.getId();
+		return getInternalImage().getId();
 	}
 
+	/**
+	 * @return ID of the abstract image this image is associated with.
+	 */
 	public Long getAbstractImageId() {
-		return internalImage.getLong("baseImage");
+		return getInternalImage().getLong("baseImage");
 	}
 
+	/**
+	 * @return Name of this image.
+	 */
 	public String getName() {
-		return internalImage.getStr("originalFilename");
+		return getInternalImage().getStr("originalFilename");
 	}
 
+	/**
+	 * @return Magnification used when capturing this image.
+	 */
 	public Integer getMagnification() {
-		return internalImage.getInt("magnification");
+		return getInternalImage().getInt("magnification");
 	}
 
+	/**
+	 * @return Resolution of each pixel in x and y directions expressed in
+	 *         microns.
+	 */
 	public Double getResolution() {
-		return internalImage.getDbl("resolution");
+		return getInternalImage().getDbl("resolution");
 	}
 
 	/**
 	 * @return The maximum resolution that can be requested.
 	 */
 	public Long getDepth() {
-		return internalImage.getLong("depth");
+		return getInternalImage().getLong("depth");
 	}
 
+	/**
+	 * @return Size of the image expressed in pixels in x direction.
+	 */
 	public Integer getSizeX() {
-		return internalImage.getInt("width");
+		return getInternalImage().getInt("width");
 	}
 
+	/**
+	 * @return Size of the image expressed in pixels in y direction.
+	 */
 	public Integer getSizeY() {
-		return internalImage.getInt("height");
+		return getInternalImage().getInt("height");
 	}
 
+	/**
+	 * @return Size of the image expressed in pixels in x and y directions.
+	 */
 	public Dimension getSize() {
 		return new Dimension(getSizeX(), getSizeY());
 	}
 
+	/**
+	 * @return Size of the image expressed in microns in x direction.
+	 */
 	public Double getDimensionX() {
 		Double resolution = getResolution();
 		Integer size = getSizeX();
@@ -84,6 +122,9 @@ public class Image {
 		return resolution * size;
 	}
 
+	/**
+	 * @return Size of the image expressed in microns in y direction.
+	 */
 	public Double getDimensionY() {
 		Double resolution = getResolution();
 		Integer size = getSizeY();
@@ -95,28 +136,47 @@ public class Image {
 		return resolution * size;
 	}
 
+	/**
+	 * @return Size of the tile in x direction.
+	 */
 	public int getTileWidth() {
 		return defaultTileSize;
 	}
 
+	/**
+	 * @return Size of the tile in y direction.
+	 */
 	public int getTileHeight() {
 		return defaultTileSize;
 	}
 
+	/**
+	 * @return Size of the tile in x and y directions.
+	 */
 	public Dimension getTileSize() {
 		return new Dimension(getTileWidth(), getTileHeight());
 	}
 
+	/**
+	 * @return Number of annotations users have associated to this image.
+	 */
 	public Long getAnnotationsUser() {
-		return internalImage.getLong("numberOfAnnotations");
+		return getInternalImage().getLong("numberOfAnnotations");
 	}
 
+	/**
+	 * @return Number of annotations associated to this image produced by
+	 *         algorithms.
+	 */
 	public Long getAnnotationsAlgo() {
-		return internalImage.getLong("numberOfJobAnnotations");
+		return getInternalImage().getLong("numberOfJobAnnotations");
 	}
 
+	/**
+	 * @return Date of creation for this image.
+	 */
 	public Calendar getCreationDate() {
-		Long date = internalImage.getLong("created");
+		Long date = getInternalImage().getLong("created");
 		if (date == null)
 			return null;
 		Calendar c = GregorianCalendar.getInstance();
@@ -124,10 +184,26 @@ public class Image {
 		return c;
 	}
 
+	/**
+	 * @return Format used to store this image.
+	 */
 	public String getMimeType() {
-		return internalImage.getStr("mime");
+		return getInternalImage().getStr("mime");
 	}
 
+	/**
+	 * Retrieves the URL used to retrieve a given tile at a given resolution.
+	 * 
+	 * @param resolution
+	 *          Resolution of the image to retrieve.
+	 * @param x
+	 *          Tile index in x direction.
+	 * @param y
+	 *          Tile index in y direction.
+	 * @return URL used to retrieve the tile from the server.
+	 * @throws CytomineException
+	 *           If no image server has been declared for this image.
+	 */
 	public String getUrl(long resolution, int x, int y) throws CytomineException {
 		List<String> servers = getImageServers();
 		if (servers.size() == 0)
@@ -136,12 +212,29 @@ public class Image {
 		return String.format("%s&z=%d&x=%d&y=%d&mimeType=%s", servers.get(0), getDepth() - resolution, x, y, getMimeType());
 	}
 
+	/**
+	 * Retrieves a thumbnail of this image.
+	 * 
+	 * @param maxSize
+	 *          Maximum size of the retrieved thumbnail.
+	 * @return Thumbnail.
+	 * @throws CytomineException
+	 *           If the thumbnail fails to be downloaded.
+	 */
 	public BufferedImage getThumbnail(int maxSize) throws CytomineException {
 		return getClient().downloadAbstractImageAsBufferedImage(getAbstractImageId(), maxSize);
 	}
 
+	/**
+	 * Annotations associated to this image.
+	 * 
+	 * @return Annotation collection for this image.
+	 * @throws CytomineException
+	 *           If annotations for this image cannot be retrieved from the
+	 *           server.
+	 */
 	public List<Annotation> getAnnotations() throws CytomineException {
-		AnnotationCollection annotationsNative = getClient().getAnnotationsByImage(internalImage.getId());
+		AnnotationCollection annotationsNative = getClient().getAnnotationsByImage(getInternalImage().getId());
 		List<Annotation> annotations = new ArrayList<>();
 
 		ThreadPoolExecutor tp = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
@@ -166,36 +259,55 @@ public class Image {
 		return annotations;
 	}
 
+	/**
+	 * @return Collection with image servers available for this image.
+	 * @throws CytomineException
+	 *           If servers cannot be retrieved from the main server.
+	 */
+	public List<String> getImageServers() throws CytomineException {
+		if (servers == null) {
+			servers = getClient().getImageInstanceServers(getInternalImage()).getServerList();
+		}
+		return servers;
+	}
+
+	/**
+	 * @return Id of the project this image is associated with.
+	 */
+	public Long getProjectId() {
+		return getInternalImage().getLong("project");
+	}
+
+	/**
+	 * @return The project this image is associated with.
+	 * @throws CytomineException
+	 *           If the project cannot be retreived from the server.
+	 */
+	public Project getProject() throws CytomineException {
+		return new Project(getClient().getProject(getProjectId()), getClient());
+	}
+
+	@Override
 	public String toString() {
 		return getName();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 
-		if (cytomine != null) {
-			result = prime * result + (cytomine.getHost() == null ? 0 : cytomine.getHost().hashCode());
-			result = prime * result + (cytomine.getPublicKey() == null ? 0 : cytomine.getPublicKey().hashCode());
-			result = prime * result + (cytomine.getPrivateKey() == null ? 0 : cytomine.getPrivateKey().hashCode());
+		if (getClient() != null) {
+			result = prime * result + (getClient().getHost() == null ? 0 : getClient().getHost().hashCode());
+			result = prime * result + (getClient().getPublicKey() == null ? 0 : getClient().getPublicKey().hashCode());
+			result = prime * result + (getClient().getPrivateKey() == null ? 0 : getClient().getPrivateKey().hashCode());
 		} else {
 			result = prime * result;
 		}
-		result = prime * result + ((internalImage == null) ? 0 : internalImage.getId().hashCode());
+		result = prime * result + ((getInternalImage() == null) ? 0 : getInternalImage().getId().hashCode());
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) {
@@ -208,30 +320,23 @@ public class Image {
 			return false;
 		}
 		Image other = (Image) obj;
-		if (cytomine == null) {
-			if (other.cytomine != null) {
+		if (getClient() == null) {
+			if (other.getClient() != null) {
 				return false;
 			}
-		} else if (!cytomine.getHost().equals(other.cytomine.getHost())
-				|| !cytomine.getPublicKey().equals(other.cytomine.getPublicKey())
-				|| !cytomine.getPrivateKey().equals(other.cytomine.getPrivateKey())) {
+		} else if (!getClient().getHost().equals(other.getClient().getHost())
+				|| !getClient().getPublicKey().equals(other.getClient().getPublicKey())
+				|| !getClient().getPrivateKey().equals(other.getClient().getPrivateKey())) {
 			return false;
 		}
-		if (internalImage == null) {
-			if (other.internalImage != null) {
+		if (getInternalImage() == null) {
+			if (other.getInternalImage() != null) {
 				return false;
 			}
-		} else if (!internalImage.equals(other.internalImage)) {
+		} else if (!getInternalImage().equals(other.getInternalImage())) {
 			return false;
 		}
 		return true;
-	}
-
-	public List<String> getImageServers() throws CytomineException {
-		if (servers == null) {
-			servers = cytomine.getImageInstanceServers(internalImage).getServerList();
-		}
-		return servers;
 	}
 
 }
