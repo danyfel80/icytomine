@@ -67,9 +67,58 @@ public class Term {
 		final Color termColor = new Color(red, green, blue);
 		return termColor;
 	}
-	
+
 	@Override
 	public String toString() {
 		return getId() + " " + getName();
 	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((client == null) ? 0 : client.getHost().hashCode());
+		result = prime * result + ((internalTerm == null) ? 0 : internalTerm.getId().hashCode());
+		return result;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof Term)) {
+			return false;
+		}
+		Term other = (Term) obj;
+		if (client == null) {
+			if (other.client != null) {
+				return false;
+			}
+		} else if (!client.getHost().equals(other.client.getHost())) {
+			return false;
+		}
+		if (internalTerm == null) {
+			if (other.internalTerm != null) {
+				return false;
+			}
+		} else if (!internalTerm.getId().equals(other.internalTerm.getId())) {
+			return false;
+		}
+		return true;
+	}
+
 }

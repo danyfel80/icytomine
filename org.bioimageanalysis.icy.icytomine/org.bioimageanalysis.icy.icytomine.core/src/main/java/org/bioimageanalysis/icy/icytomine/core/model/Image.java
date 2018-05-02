@@ -14,6 +14,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import be.cytomine.client.Cytomine;
 import be.cytomine.client.CytomineException;
 import be.cytomine.client.collections.AnnotationCollection;
+import be.cytomine.client.collections.TermCollection;
 import be.cytomine.client.models.ImageInstance;
 
 public class Image {
@@ -337,6 +338,39 @@ public class Image {
 			return false;
 		}
 		return true;
+	}
+
+	public List<User> getAnnotationUsers() throws CytomineException, InterruptedException, ExecutionException {
+		List<Annotation> annotations = getAnnotations();
+
+		ThreadPoolExecutor tp = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
+		ExecutorCompletionService<User> cs = new ExecutorCompletionService<>(tp);
+
+		int userCount = (int) (annotations.stream().map(annotation -> annotation.getUserId())
+				.filter(userId -> userId != null).distinct()
+				.map((Long userId) -> cs.submit(() -> new User(getClient().getUser(userId.longValue())))).count());
+
+		tp.shutdown();
+
+		List<User> users = new ArrayList<>(userCount);
+		for (long i = 0; i < userCount; i++) {
+			if (Thread.interrupted())
+				throw new InterruptedException();
+
+			users.add(cs.take().get());
+		}
+
+		return users;
+	}
+
+	public List<Term> getAvailableTerms() throws CytomineException {
+		Long ontologyId = getProject().getOntologyId();
+		TermCollection termCollection = getClient().getTermsByOntology(ontologyId);
+		List<Term> terms = new ArrayList<>(termCollection.size());
+		for (int i = 0; i < termCollection.size(); i++) {
+			terms.add(new Term(getClient(), termCollection.get(i)));
+		}
+		return terms;
 	}
 
 }

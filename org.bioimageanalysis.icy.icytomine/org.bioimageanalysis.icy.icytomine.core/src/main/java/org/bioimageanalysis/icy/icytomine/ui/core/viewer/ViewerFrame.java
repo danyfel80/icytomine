@@ -1,93 +1,69 @@
-/*
- * Copyright 2010-2018 Institut Pasteur.
- * 
- * This file is part of Icy.
- * 
- * Icy is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * Icy is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with Icy. If not, see <http://www.gnu.org/licenses/>.
- */
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer;
 
-import javax.swing.JFrame;
+import java.awt.EventQueue;
 
-import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import javax.swing.JFrame;
+import javax.swing.UIManager;
+
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.ViewerController;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.NullViewProvider;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.ViewProvider;
+import org.pushingpixels.substance.api.skin.SubstanceOfficeBlack2007LookAndFeel;
 
 import icy.gui.frame.IcyFrame;
+import icy.gui.frame.IcyFrameAdapter;
 import icy.gui.frame.IcyFrameEvent;
-import icy.gui.frame.IcyFrameListener;
 
-/**
- * @author Daniel Felipe Gonzalez Obando
- */
 public class ViewerFrame extends IcyFrame {
-	private ViewPanel viewerPanel;
+
+	private ViewerComponentContainer viewerComponentContainer;
+	private ViewerController viewerController;
 
 	/**
-	 * Creates a frame containing a {@link ViewPanel} that displays the given
-	 * {@code image}.
-	 * 
-	 * @param imageInformation
-	 *          Information of the image to be shown.
+	 * Launch the application.
 	 */
-	public ViewerFrame(Image imageInformation) {
-		super(imageInformation.getName() + " - Icytomine", true, true, true, false);
-
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		viewerPanel = new ViewPanel(imageInformation);
-		setSize(viewerPanel.getPreferredSize());
-		setMinimumSize(viewerPanel.getMinimumSize());
-		setContentPane(viewerPanel);
-		addFrameListener(new IcyFrameListener() {
-
-			@Override
-			public void icyFrameOpened(IcyFrameEvent e) {}
-
-			@Override
-			public void icyFrameInternalized(IcyFrameEvent e) {}
-
-			@Override
-			public void icyFrameIconified(IcyFrameEvent e) {}
-
-			@Override
-			public void icyFrameExternalized(IcyFrameEvent e) {}
-
-			@Override
-			public void icyFrameDeiconified(IcyFrameEvent e) {}
-
-			@Override
-			public void icyFrameDeactivated(IcyFrameEvent e) {}
-
-			@Override
-			public void icyFrameClosing(IcyFrameEvent e) {}
-
-			@Override
-			public void icyFrameClosed(IcyFrameEvent e) {
-				viewerPanel.close();
-			}
-
-			@Override
-			public void icyFrameActivated(IcyFrameEvent e) {
-				getViewerPanel().gainFocus();
+	public static void main(String[] args) {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					UIManager.setLookAndFeel(new SubstanceOfficeBlack2007LookAndFeel());
+					ViewerFrame frame = new ViewerFrame();
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		});
-		addToDesktopPane();
-		center();
 	}
 
-	/**
-	 * @return The viewer panel.
-	 */
-	public ViewPanel getViewerPanel() {
-		return viewerPanel;
+	public ViewerFrame() {
+		this(new NullViewProvider());
 	}
+
+	public ViewerFrame(ViewProvider viewProvider) {
+		super("Viewer - Icytomine", true, true, true, false);
+		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+		viewerComponentContainer = new ViewerComponentContainer(viewProvider);
+		viewerController = new ViewerController(viewerComponentContainer);
+		this.addFrameListener(new IcyFrameAdapter() {
+			@Override
+			public void icyFrameOpened(IcyFrameEvent e) {
+				viewerController.startViewer();
+			}
+			
+			@Override
+			public void icyFrameClosed(IcyFrameEvent e) {
+				System.out.println("frame closed");
+				viewerController.stopViewer();
+			}
+		});
+		setSize(viewerComponentContainer.getPreferredSize());
+		setMinimumSize(viewerComponentContainer.getMinimumSize());
+		setContentPane(viewerComponentContainer);
+		addToDesktopPane();
+		center();
+
+	}
+
 }

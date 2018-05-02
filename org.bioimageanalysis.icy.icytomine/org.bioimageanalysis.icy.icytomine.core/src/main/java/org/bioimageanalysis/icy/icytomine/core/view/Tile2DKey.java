@@ -16,7 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with Icy. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.bioimageanalysis.icy.icytomine.core.cache;
+package org.bioimageanalysis.icy.icytomine.core.view;
+
+import java.awt.Point;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 
@@ -25,10 +27,10 @@ import org.bioimageanalysis.icy.icytomine.core.model.Image;
  */
 public class Tile2DKey {
 
-	private final Image	image;
-	private final long	resolution;
-	private final int		x;
-	private final int		y;
+	private final Image image;
+	private final long resolution;
+	private final int x;
+	private final int y;
 
 	private final int hashCode;
 
@@ -52,7 +54,7 @@ public class Tile2DKey {
 	private int computeHashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((image == null)? 0: image.hashCode());
+		result = prime * result + ((image == null) ? 0 : image.hashCode());
 		result = prime * result + (int) (resolution ^ (resolution >>> 32));
 		result = prime * result + x;
 		result = prime * result + y;
@@ -87,8 +89,16 @@ public class Tile2DKey {
 		return y;
 	}
 
+	/**
+	 * @return The tile position.
+	 */
+	public Point getPosition() {
+		return new Point(x, y);
+	}
+
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -98,6 +108,7 @@ public class Tile2DKey {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override
@@ -133,6 +144,7 @@ public class Tile2DKey {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#toString()
 	 */
 	@Override

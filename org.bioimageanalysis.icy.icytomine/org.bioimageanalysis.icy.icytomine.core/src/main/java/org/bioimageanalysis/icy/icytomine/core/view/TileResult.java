@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with Icy. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.bioimageanalysis.icy.icytomine.core.cache;
+package org.bioimageanalysis.icy.icytomine.core.view;
 
 import java.awt.image.BufferedImage;
 

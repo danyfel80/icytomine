@@ -43,9 +43,11 @@ subprojects {
 		implementation 'javax.cache:cache-api:1.1.0' // JCache
 		implementation 'org.ehcache:ehcache:3.4.0' // Ehcache (JCache implementation)
 		implementation 'com.github.kirill-grouchnikov:flamingo:v5.1.01' // Ribbon UI
+		implementation files("${System.env.ICY_HOME}/lib/substance.jar") // substance UI
 		implementation group: 'org.geotools', name: 'gt-main', version: '18.2' // GeoTools
 		
 		implementation files("${System.env.ICY_HOME}/icy.jar") // Icy core
+		
 		
 	}
 	

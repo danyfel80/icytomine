@@ -20,7 +20,10 @@ package org.bioimageanalysis.icy.icytomine.ui.core.explorer;
 
 import javax.swing.JFrame;
 
+import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerFrame;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.CachedViewProvider;
 
 import be.cytomine.client.Cytomine;
 import icy.gui.frame.IcyFrame;
@@ -29,21 +32,35 @@ import icy.gui.frame.IcyFrame;
  * @author Daniel Felipe Gonzalez Obando
  */
 public class ExplorerFrame extends IcyFrame {
+
+	private Cytomine cytomineClient;
+
 	private ExplorerPanel explorerPanel;
 
 	public ExplorerFrame(Cytomine cytomine) {
 		super("Explorer - Icytomine", true, true, true, false);
+		this.cytomineClient = cytomine;
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		explorerPanel = new ExplorerPanel(cytomine);
-		explorerPanel.setOpenViewerListener(i->{
-			ViewerFrame viewer = new ViewerFrame(i);
-			viewer.setVisible(true);
-		});
+		createExplorerPanel();
+		addToDesktopPane();
+		center();
+	}
+
+	private void createExplorerPanel() {
+		explorerPanel = new ExplorerPanel(cytomineClient);
+		explorerPanel.setOpenViewerListener(imageInformation -> openViewer(imageInformation));
 		setSize(explorerPanel.getPreferredSize());
 		setMinimumSize(explorerPanel.getMinimumSize());
 		setContentPane(explorerPanel);
-		addToDesktopPane();
-		center();
+	}
+
+	private void openViewer(Image imageInformation) {
+		ViewerFrame viewer = getViewerFrame(imageInformation);
+		viewer.setVisible(true);
+	}
+
+	private ViewerFrame getViewerFrame(Image imageInformation) {
+		return new ViewerFrame(new CachedViewProvider(new CachedView(imageInformation)));
 	}
 
 	/**

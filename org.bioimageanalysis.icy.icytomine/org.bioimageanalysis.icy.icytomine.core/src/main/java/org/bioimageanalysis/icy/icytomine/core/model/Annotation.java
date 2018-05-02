@@ -174,4 +174,8 @@ public class Annotation {
 				.collect(Collectors.toList());
 	}
 
+	public Long getUserId() {
+		return internalAnnotation.getLong("user");
+	}
+
 }
