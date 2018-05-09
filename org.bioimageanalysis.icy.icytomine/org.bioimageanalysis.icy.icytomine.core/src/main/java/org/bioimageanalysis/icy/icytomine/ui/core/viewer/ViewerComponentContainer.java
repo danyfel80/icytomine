@@ -30,9 +30,11 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.menu.AnnotationsMenu;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.menu.AnnotationsMenu.TermFilterListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.menu.AnnotationsMenu.UserFilterListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.NullViewProvider;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.ViewProvider;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.NullViewProvider;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
 
 @SuppressWarnings("serial")
 public class ViewerComponentContainer extends JPanel {
@@ -71,7 +73,6 @@ public class ViewerComponentContainer extends JPanel {
 	private JLabel cursorPixelColorLabel;
 
 	private Set<ZoomEventListener> zoomLevelListeners;
-
 
 	public ViewerComponentContainer() {
 		this(new NullViewProvider());
@@ -304,11 +305,19 @@ public class ViewerComponentContainer extends JPanel {
 		zoomLevelButton.setText(String.format("%.1f X", zoomLevel));
 	}
 
-	public void setCropImageButtonActionListener(ActionListener actionListener) {
+	public void addUserFilterListener(UserFilterListener listener) {
+		this.menuAnnotations.addUserFilterListener(listener);
+	}
+
+	public void addTermFilterListener(TermFilterListener listener) {
+		this.menuAnnotations.addTermFilterListener(listener);
+	}
+
+	public void addImageCropListener(ActionListener actionListener) {
 		cropImageMenuItem.addActionListener(actionListener);
 	}
 
-	public void setImportFromSequenceButtonActionListener(ActionListener actionListener) {
+	public void addImportFromSequenceListener(ActionListener actionListener) {
 		importFromSequenceMenuItem.addActionListener(actionListener);
 	}
 }

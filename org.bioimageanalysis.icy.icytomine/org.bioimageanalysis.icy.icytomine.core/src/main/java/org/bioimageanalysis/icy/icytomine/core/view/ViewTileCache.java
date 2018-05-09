@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,62 +36,74 @@ public class ViewTileCache {
 	private ThreadPoolExecutor tileRequestThreadPool;
 	private ExecutorCompletionService<TileResult> tileRequestCompletionService;
 	private List<Future<TileResult>> tileRequests;
+	private ExecutorService requestHandlingService;
 
 	public ViewTileCache(Image imageInformation) {
 		this.imageInformation = imageInformation;
 		this.tileLoadListeners = new HashSet<>();
 		startTileCache();
-		this.tileRequestThreadPool = (ThreadPoolExecutor) Executors
-				.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
-		this.tileRequestCompletionService = new ExecutorCompletionService<>(tileRequestThreadPool);
-		this.tileRequests = new LinkedList<>();
-		startCompletedRequestHandlingService();
+		startRequestHandlingService();
 	}
 
 	private void startTileCache() {
 		String cacheName = "ViewCache" + this.hashCode();
 		this.tileCache = cacheManager.getCache(cacheName, Tile2DKey.class, BufferedImage.class);
 		if (tileCache == null) {
-			tileCache = cacheManager.createCache(cacheName,
-					CacheConfigurationBuilder
-							.newCacheConfigurationBuilder(Tile2DKey.class, BufferedImage.class, ResourcePoolsBuilder.heap(500))
-							.build());
+			tileCache = cacheManager.createCache(cacheName, CacheConfigurationBuilder
+					.newCacheConfigurationBuilder(Tile2DKey.class, BufferedImage.class, ResourcePoolsBuilder.heap(500)).build());
 		}
 	}
 
-	private void startCompletedRequestHandlingService() {
-		ExecutorService executor = Executors.newSingleThreadExecutor();
-		Future<Void> executionResult = executor.submit(new Callable<Void>() {
-			@Override
-			public Void call() throws Exception {
-				while (!tileRequestThreadPool.isTerminated()) {
-					try {
-						Future<TileResult> futureResult = tileRequestCompletionService.take();
+	private void startRequestHandlingService() {
+		tileRequestThreadPool = (ThreadPoolExecutor) Executors
+				.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2);
+		tileRequestCompletionService = new ExecutorCompletionService<>(tileRequestThreadPool);
+		tileRequests = new LinkedList<>();
+
+		requestHandlingService = Executors.newSingleThreadExecutor();
+		requestHandlingService.submit(getRequestLoopHandlingTask());
+		requestHandlingService.shutdown();
+	}
+
+	private Runnable getRequestLoopHandlingTask() {
+		return () -> {
+			ExecutorService loopHandlingService = null;
+			try {
+				loopHandlingService = Executors.newSingleThreadExecutor();
+				Future<Void> loopHandlingResult = loopHandlingService.submit(getLoopTask());
+				loopHandlingService.shutdown();
+				loopHandlingResult.get();
+			} catch (InterruptedException e) {
+				// Nothing to do
+			} catch (Exception e) {
+				e.printStackTrace();
+			} finally {
+				stopExecutor(loopHandlingService);
+				System.out.println("Stopped receiving cache events.");
+			}
+		};
+	}
+
+	private Callable<Void> getLoopTask() {
+		return () -> {
+			while (!tileRequestThreadPool.isTerminated()) {
+				try {
+					Future<TileResult> futureResult = tileRequestCompletionService.take();
+					if (!futureResult.isCancelled()) {
 						TileResult result = futureResult.get();
 						notifyTileLoaded(result);
-					} catch (CancellationException e) {
-						continue;
-					} catch (InterruptedException e) {
-						break;
-					} catch (Exception e) {
-						e.printStackTrace();
 					}
+				} catch (CancellationException e) {
+					continue;
+				} catch (InterruptedException e) {
+					break;
+				} catch (Exception e) {
+					throw new RuntimeException(e);
 				}
-				System.out.println("Stopped receiving cache events.");
-				return null;
 			}
-		});
-		executor.shutdown();
 
-		ExecutorService executor2 = Executors.newSingleThreadExecutor();
-		executor2.submit(() -> {
-			try {
-				executionResult.get();
-			} catch (InterruptedException | ExecutionException e) {
-				e.printStackTrace();
-			}
-		});
-		executor2.shutdown();
+			return null;
+		};
 	}
 
 	protected void notifyTileLoaded(TileResult result) {
@@ -104,7 +115,9 @@ public class ViewTileCache {
 	}
 
 	public void cancelPreviousRequest() {
-		tileRequests.forEach(future -> future.cancel(true));
+		tileRequests.forEach(future -> {
+			future.cancel(true);
+		});
 		tileRequestThreadPool.purge();
 		tileRequests.clear();
 	}
@@ -113,6 +126,8 @@ public class ViewTileCache {
 		Tile2DKey key = new Tile2DKey(imageInformation, resolutionLevel, x, y);
 		Future<TileResult> request = tileRequestCompletionService.submit(() -> {
 			BufferedImage tileImage = tileCache.get(key);
+			if (Thread.interrupted())
+				throw new InterruptedException();
 			if (tileImage == null) {
 				tileImage = imageInformation.getClient()
 						.downloadPictureAsBufferedImage(imageInformation.getUrl(resolutionLevel, x, y), "ndpi");
@@ -134,12 +149,25 @@ public class ViewTileCache {
 	}
 
 	public void stop() {
-		this.tileRequestThreadPool.shutdownNow();
-		try {
-			this.tileRequestThreadPool.awaitTermination(1, TimeUnit.SECONDS);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+		stopExecutor(requestHandlingService);
+		stopExecutor(tileRequestThreadPool);
+		stopCache();
+
+	}
+
+	private void stopExecutor(ExecutorService service) {
+		if (service != null) {
+			service.shutdownNow();
+			try {
+				service.awaitTermination(1, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
+	}
+
+	private void stopCache() {
+		cacheManager.removeCache("ViewCache" + this.hashCode());
 	}
 
 	public boolean isProcessing() {

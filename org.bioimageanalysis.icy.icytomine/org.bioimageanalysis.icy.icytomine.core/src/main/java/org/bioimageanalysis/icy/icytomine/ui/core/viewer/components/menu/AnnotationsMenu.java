@@ -75,9 +75,9 @@ public class AnnotationsMenu extends JMenu {
 		});
 	}
 
-	private void userFilterChanged(User user, boolean isSelected) {
-		// TODO notify user filter listeners
-		System.out.println("User " + user.getUserName() + " has been " + (isSelected ? "selected" : "unselected"));
+	private void userFilterChanged(User user, boolean selected) {
+		userListeners.forEach(listener -> listener.userSelectionChange(user, selected));
+		System.out.println("User " + user.getUserName() + " has been " + (selected ? "selected" : "unselected"));
 	}
 
 	private void addAllUserFilterMenuItem() {
@@ -126,9 +126,9 @@ public class AnnotationsMenu extends JMenu {
 		});
 	}
 
-	private void termFilterChanged(Term term, boolean isSelected) {
-		// TODO notify term filter listeners
-		System.out.println("Term " + term.getName() + " has been " + (isSelected ? "selected" : "unselected"));
+	private void termFilterChanged(Term term, boolean selected) {
+		termListeners.forEach(listener->listener.termSelectionChange(term, selected));
+		System.out.println("Term " + term.getName() + " has been " + (selected ? "selected" : "unselected"));
 	}
 
 	private void addAllTermFilterMenuItem() {

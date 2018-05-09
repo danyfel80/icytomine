@@ -14,7 +14,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import be.cytomine.client.Cytomine;
 import be.cytomine.client.CytomineException;
 import be.cytomine.client.collections.AnnotationCollection;
-import be.cytomine.client.collections.TermCollection;
 import be.cytomine.client.models.ImageInstance;
 
 public class Image {
@@ -364,13 +363,7 @@ public class Image {
 	}
 
 	public List<Term> getAvailableTerms() throws CytomineException {
-		Long ontologyId = getProject().getOntologyId();
-		TermCollection termCollection = getClient().getTermsByOntology(ontologyId);
-		List<Term> terms = new ArrayList<>(termCollection.size());
-		for (int i = 0; i < termCollection.size(); i++) {
-			terms.add(new Term(getClient(), termCollection.get(i)));
-		}
-		return terms;
+		return getProject().getAvailableTerms();
 	}
 
 }

@@ -1,4 +1,4 @@
-package org.bioimageanalysis.icy.icytomine.ui.core.viewer.view;
+package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view;
 
 import java.awt.Dimension;
 import java.awt.Point;
@@ -14,6 +14,8 @@ import java.util.Collection;
 import java.util.HashSet;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.core.model.Term;
+import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
 
@@ -22,7 +24,7 @@ public class CachedViewController implements ViewController {
 	public class RepaintOnResizeListener extends ComponentAdapter {
 		@Override
 		public void componentResized(ComponentEvent e) {
-			viewCanvasPanel.refreshCanvas();
+			viewCanvasPanel.updateCanvas();
 			viewCanvasPanel.invalidate();
 		}
 
@@ -248,12 +250,24 @@ public class CachedViewController implements ViewController {
 	public void refreshView() {
 		viewCanvasPanel.getViewProvider().setPosition(viewPositionAt0Resolution);
 		viewCanvasPanel.getViewProvider().setResolutionLevel(resolutionLevel);
-		viewCanvasPanel.refreshCanvas();
+		viewCanvasPanel.updateCanvas();
 		resolutionListeners.stream().forEach(l -> l.resolutionChanged(resolutionLevel));
 	}
 
 	@Override
 	public void stopView() {
 		viewCanvasPanel.getViewProvider().stop();
+	}
+
+	@Override
+	public void setUserAnnotationVisibility(User user, boolean visible) {
+		viewCanvasPanel.getViewProvider().setUserAnnotationVisibility(user, visible);
+		viewCanvasPanel.updateCanvas();
+	}
+
+	@Override
+	public void setTermAnnotationVisibility(Term term, boolean visible) {
+		viewCanvasPanel.getViewProvider().setTermAnnotationVisibility(term, visible);
+		viewCanvasPanel.updateCanvas();
 	}
 }

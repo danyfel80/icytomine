@@ -1,4 +1,4 @@
-package org.bioimageanalysis.icy.icytomine.ui.core.viewer.view;
+package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view;
 
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
@@ -9,9 +9,11 @@ import java.util.List;
 
 import org.bioimageanalysis.icy.icytomine.core.model.DummyImage;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.core.model.Term;
+import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.view.CachedViewController.PositionListener;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.view.CachedViewController.ResolutionListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.PositionListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.ResolutionListener;
 
 public class NullViewController implements ViewController {
 
@@ -118,6 +120,18 @@ public class NullViewController implements ViewController {
 	@Override
 	public void setResolution(double resolutionLevel) {
 		System.out.println("resolution set to " + resolutionLevel);
+	}
+
+	@Override
+	public void setUserAnnotationVisibility(User user, boolean selected) {
+		// Not used
+		
+	}
+
+	@Override
+	public void setTermAnnotationVisibility(Term term, boolean selected) {
+		// Not used
+		
 	}
 
 }

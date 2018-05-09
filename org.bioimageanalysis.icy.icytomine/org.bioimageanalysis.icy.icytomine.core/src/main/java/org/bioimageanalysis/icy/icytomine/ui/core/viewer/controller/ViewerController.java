@@ -3,8 +3,10 @@ package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller;
 import java.awt.event.ActionEvent;
 import java.awt.geom.Point2D;
 
+import org.bioimageanalysis.icy.icytomine.core.model.Term;
+import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerComponentContainer;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.view.ViewController;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.ViewController;
 
 public class ViewerController {
 
@@ -62,6 +64,8 @@ public class ViewerController {
 		});
 		viewerContainer
 				.addZoomLevelSelectedListener(zoomLevel -> viewController.setResolution(getResolutionLevel(zoomLevel)));
+		viewerContainer.addUserFilterListener((User user, boolean selected) -> viewController.setUserAnnotationVisibility(user, selected));
+		viewerContainer.addTermFilterListener((Term term, boolean selected) -> viewController.setTermAnnotationVisibility(term, selected));
 	}
 
 	public void stopViewer() {

@@ -15,16 +15,11 @@ import java.util.Set;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.ViewTileCache.ViewTileLoadListener;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.ViewProvider.ViewProcessListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider.ViewProcessListener;
 
 import be.cytomine.client.CytomineException;
 
 public class CachedView implements ViewTileLoadListener {
-
-	@FunctionalInterface
-	public interface ViewListener {
-		public void onViewChanged(BufferedImage newView);
-	}
 
 	private Image imageInformation;
 	private BufferedImage currentView;
@@ -48,12 +43,18 @@ public class CachedView implements ViewTileLoadListener {
 	private Dimension2D tileSizeAtTargetResolution;
 
 	private BufferedImage lowResImage;
+	@SuppressWarnings("unused")
+	private BufferedImage previousView;
+	@SuppressWarnings("unused")
+	private double previousResolution;
+	private Rectangle2D previousViewBoundsAtTargetResolution;
 
 	public CachedView(Image imageInformation) {
 		this.imageInformation = imageInformation;
 		this.targetResolution = 0;
 		this.viewBoundsAtZeroResolution = new Rectangle2D.Double(0, 0, 10, 10);
 		this.viewBoundsAtTargetResolution = new Rectangle2D.Double(0, 0, 10, 10);
+		this.previousViewBoundsAtTargetResolution = new Rectangle2D.Double(0, 0, 0, 0);
 		this.constrainedViewBoundsAtZeroResolution = new Rectangle2D.Double(0, 0, 1, 1);
 		this.constrainedViewBoundsAtRequestedResolution = new Rectangle2D.Double(0, 0, 1, 1);
 		startCache();
@@ -106,6 +107,7 @@ public class CachedView implements ViewTileLoadListener {
 		if (isNewRequest(newViewBoundsAtZeroResolution, targetResolution)) {
 			tileCache.cancelPreviousRequest();
 			notifyProcessListeners(true);
+			setPreviousViewValues();
 			setCurrentParameters(newViewBoundsAtZeroResolution, canvasSize, targetResolution);
 			requestView();
 		}
@@ -129,12 +131,16 @@ public class CachedView implements ViewTileLoadListener {
 		viewProcessListeners.forEach(l -> l.onViewProcessEvent(isProcessing));
 	}
 
+	private void setPreviousViewValues() {
+		this.previousResolution = this.targetResolution;
+		this.previousViewBoundsAtTargetResolution.setFrame(this.viewBoundsAtTargetResolution);
+		this.previousView = this.currentView;
+	}
+
 	private void setCurrentParameters(Rectangle2D newViewBoundsAtZeroResolution, Dimension canvasSize,
 			double targetResolution) {
 		this.targetResolution = targetResolution;
-
 		this.viewBoundsAtZeroResolution.setRect(newViewBoundsAtZeroResolution);
-
 		Point2D viewPositionAtTargetResolution = MagnitudeResolutionConverter.convertPoint2D(
 				new Point2D.Double(newViewBoundsAtZeroResolution.getX(), newViewBoundsAtZeroResolution.getY()), 0d,
 				targetResolution);
@@ -213,16 +219,42 @@ public class CachedView implements ViewTileLoadListener {
 	private void initializeCurrentView() {
 		currentView = new BufferedImage((int) viewBoundsAtTargetResolution.getWidth(),
 				(int) viewBoundsAtTargetResolution.getHeight(), BufferedImage.TYPE_INT_ARGB);
+		paintLowResolutionViewInCurrentView();
 		paintPreviousViewInCurrentView();
 		notifyTileLoaded();
 	}
 
-	private void paintPreviousViewInCurrentView() {
+	private void paintLowResolutionViewInCurrentView() {
 		Graphics2D painter = currentView.createGraphics();
 		Dimension2D imageSizeAtTargetResolution = getImageSizeAtTargetResolution();
 		painter.drawImage(lowResImage, (int) -viewBoundsAtTargetResolution.getX(),
 				(int) -viewBoundsAtTargetResolution.getY(), (int) imageSizeAtTargetResolution.getWidth(),
 				(int) imageSizeAtTargetResolution.getHeight(), null);
+		painter.dispose();
+	}
+
+	private void paintPreviousViewInCurrentView() {
+		// TODO NOT WORKING BECAUSE MULTIPLE REQUESTS CANCELLED ARE STILL PRINTED
+		// if (previousView != null &&
+		// !previousViewBoundsAtTargetResolution.isEmpty()) {
+		// Rectangle2D previousViewBoundsAtNewResolution =
+		// MagnitudeResolutionConverter
+		// .convertRectangle2D(previousViewBoundsAtTargetResolution,
+		// previousResolution, targetResolution);
+		// Point2D previousViewPositionAtNewView = new Point2D.Double(
+		// previousViewBoundsAtNewResolution.getX() -
+		// viewBoundsAtTargetResolution.getX(),
+		// previousViewBoundsAtNewResolution.getY() -
+		// viewBoundsAtTargetResolution.getY());
+		//
+		// Graphics2D painter = currentView.createGraphics();
+		// painter.drawImage(previousView, (int)
+		// previousViewPositionAtNewView.getX(),
+		// (int) previousViewPositionAtNewView.getY(), (int)
+		// previousViewBoundsAtNewResolution.getWidth(),
+		// (int) previousViewBoundsAtNewResolution.getHeight(), null);
+		// painter.dispose();
+		// }
 	}
 
 	private Dimension2D getImageSizeAtTargetResolution() {

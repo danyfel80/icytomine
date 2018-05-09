@@ -21,11 +21,13 @@ package org.bioimageanalysis.icy.icytomine.ui.core.explorer;
 import javax.swing.JFrame;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.core.view.AnnotationView;
 import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerFrame;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.CachedViewProvider;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.CachedViewProvider;
 
 import be.cytomine.client.Cytomine;
+import be.cytomine.client.CytomineException;
 import icy.gui.frame.IcyFrame;
 
 /**
@@ -48,19 +50,25 @@ public class ExplorerFrame extends IcyFrame {
 
 	private void createExplorerPanel() {
 		explorerPanel = new ExplorerPanel(cytomineClient);
-		explorerPanel.setOpenViewerListener(imageInformation -> openViewer(imageInformation));
+		explorerPanel.setOpenViewerListener(imageInformation -> {
+			try {
+				openViewer(imageInformation);
+			} catch (CytomineException e) {
+				throw new RuntimeException(e);
+			}
+		});
 		setSize(explorerPanel.getPreferredSize());
 		setMinimumSize(explorerPanel.getMinimumSize());
 		setContentPane(explorerPanel);
 	}
 
-	private void openViewer(Image imageInformation) {
+	private void openViewer(Image imageInformation) throws CytomineException {
 		ViewerFrame viewer = getViewerFrame(imageInformation);
 		viewer.setVisible(true);
 	}
 
-	private ViewerFrame getViewerFrame(Image imageInformation) {
-		return new ViewerFrame(new CachedViewProvider(new CachedView(imageInformation)));
+	private ViewerFrame getViewerFrame(Image imageInformation) throws CytomineException {
+		return new ViewerFrame(new CachedViewProvider(new CachedView(imageInformation), new AnnotationView(imageInformation)));
 	}
 
 	/**

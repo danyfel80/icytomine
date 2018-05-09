@@ -19,9 +19,15 @@
 package org.bioimageanalysis.icy.icytomine.core.model;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -56,7 +62,8 @@ public class Annotation {
 
 	private int resolution;
 	private List<Point2D> points;
-	private ROI2D roi;
+	private ROI2DShape roi;
+	private List<Term> terms;
 
 	public Annotation(be.cytomine.client.models.Annotation internalAnnotation, Image image, Cytomine cytomine) {
 		this.internalAnnotation = internalAnnotation;
@@ -103,12 +110,9 @@ public class Annotation {
 		List<Anchor2D> points = new ArrayList<>(shape.getControlPoints());
 		points.add(points.get(0));
 
-		
-
 		StringBuffer buffer = new StringBuffer();
 		buffer.append(shape instanceof ROI2DPoint ? "POINT(" : "POLYGON ((");
-		buffer.append(points.stream()
-				.map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
+		buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
 				.collect(Collectors.joining(",")));
 		buffer.append(shape instanceof ROI2DPoint ? ")" : "))");
 		return buffer.toString();
@@ -127,7 +131,7 @@ public class Annotation {
 	 * @throws CytomineException
 	 *           If terms for this annotation cannot be retrieved.
 	 */
-	public ROI2D getROI(int resolution) throws ParseException, CytomineException {
+	public ROI2DShape getROI(int resolution) throws ParseException, CytomineException {
 
 		// Create points just once
 		if (this.points == null) {
@@ -169,13 +173,34 @@ public class Annotation {
 	}
 
 	public List<Term> getTerms() throws CytomineException {
-		TermCollection nativeTerms = getClient().getTermsByAnnotation(getId());
-		return IntStream.range(0, nativeTerms.size()).mapToObj(i -> nativeTerms.get(i)).map(t -> new Term(getClient(), t))
-				.collect(Collectors.toList());
+		if (terms == null) {
+			TermCollection nativeAnnotationTerms = getClient().getTermsByAnnotation(getId());
+			ThreadPoolExecutor tp = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
+			CompletionService<Term> cs = new ExecutorCompletionService<>(tp);
+			IntStream.range(0, nativeAnnotationTerms.size()).mapToObj(i -> nativeAnnotationTerms.get(i))
+					.forEach(aTerm -> cs.submit(() -> new Term(getClient(), getClient().getTerm(aTerm.getLong("term")))));
+			tp.shutdown();
+			terms = new ArrayList<>(nativeAnnotationTerms.size());
+			for (int i = 0; i < nativeAnnotationTerms.size(); i++) {
+				try {
+					terms.add(cs.take().get());
+				} catch (ExecutionException | InterruptedException e) {
+					e.printStackTrace();
+					return new ArrayList<>(0);
+				}
+			}
+		}
+		return terms;
 	}
 
 	public Long getUserId() {
 		return internalAnnotation.getLong("user");
+	}
+
+	public Rectangle2D getBounds() throws ParseException, CytomineException {
+		ROI2D roi = getROI(0);
+		Rectangle2D bounds = roi.getBounds2D();
+		return bounds;
 	}
 
 }

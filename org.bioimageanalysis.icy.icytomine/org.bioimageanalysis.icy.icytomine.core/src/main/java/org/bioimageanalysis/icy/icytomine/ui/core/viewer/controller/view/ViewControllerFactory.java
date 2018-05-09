@@ -1,8 +1,8 @@
-package org.bioimageanalysis.icy.icytomine.ui.core.viewer.view;
+package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view;
 
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.CachedViewProvider;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.ViewProvider;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.CachedViewProvider;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
 
 public class ViewControllerFactory {
 

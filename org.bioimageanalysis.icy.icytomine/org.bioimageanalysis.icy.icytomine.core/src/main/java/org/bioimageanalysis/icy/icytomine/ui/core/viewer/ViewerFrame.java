@@ -6,8 +6,8 @@ import javax.swing.JFrame;
 import javax.swing.UIManager;
 
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.ViewerController;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.NullViewProvider;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider.ViewProvider;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.NullViewProvider;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
 import org.pushingpixels.substance.api.skin.SubstanceOfficeBlack2007LookAndFeel;
 
 import icy.gui.frame.IcyFrame;

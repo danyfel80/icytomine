@@ -5,6 +5,7 @@ import java.util.List;
 
 import be.cytomine.client.Cytomine;
 import be.cytomine.client.CytomineException;
+import be.cytomine.client.collections.TermCollection;
 import be.cytomine.client.collections.UserCollection;
 
 /**
@@ -25,6 +26,8 @@ public class Project {
 
 	private Cytomine cytomine;
 	private be.cytomine.client.models.Project internalProject;
+	
+	private ArrayList<Term> terms;
 
 	public Project(be.cytomine.client.models.Project internalProject, Cytomine cytomine) {
 		this.internalProject = internalProject;
@@ -182,6 +185,18 @@ public class Project {
 			return false;
 		}
 		return true;
+	}
+
+	public List<Term> getAvailableTerms() throws CytomineException {
+		if (terms == null) {
+			Long ontologyId = getOntologyId();
+			TermCollection termCollection = getClient().getTermsByOntology(ontologyId);
+			terms = new ArrayList<>(termCollection.size());
+			for (int i = 0; i < termCollection.size(); i++) {
+				terms.add(new Term(getClient(), termCollection.get(i)));
+			}
+		}
+		return terms;
 	}
 
 }

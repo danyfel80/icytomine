@@ -61,11 +61,15 @@ public class Term {
 
 	public Color getColor() {
 		String hexColor = getHexColor();
-		final int red = Integer.parseInt(hexColor.substring(1, 3), 16);
-		final int green = Integer.parseInt(hexColor.substring(3, 5), 16);
-		final int blue = Integer.parseInt(hexColor.substring(5, 7), 16);
-		final Color termColor = new Color(red, green, blue);
-		return termColor;
+		if (hexColor == null) {
+			return Color.DARK_GRAY;
+		} else {
+			final int red = Integer.parseInt(hexColor.substring(1, 3), 16);
+			final int green = Integer.parseInt(hexColor.substring(3, 5), 16);
+			final int blue = Integer.parseInt(hexColor.substring(5, 7), 16);
+			final Color termColor = new Color(red, green, blue);
+			return termColor;
+		}
 	}
 
 	@Override

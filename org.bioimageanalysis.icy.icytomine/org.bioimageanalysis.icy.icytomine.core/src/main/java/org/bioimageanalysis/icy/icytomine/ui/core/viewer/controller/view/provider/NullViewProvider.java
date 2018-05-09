@@ -1,11 +1,14 @@
-package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.viewProvider;
+package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider;
 
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-import org.bioimageanalysis.icy.icytomine.core.view.CachedView.ViewListener;
+import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.core.model.Term;
+import org.bioimageanalysis.icy.icytomine.core.model.User;
+import org.bioimageanalysis.icy.icytomine.core.view.ViewListener;
 
 public class NullViewProvider extends ViewProvider {
 
@@ -54,6 +57,24 @@ public class NullViewProvider extends ViewProvider {
 	@Override
 	public void addViewProcessListener(ViewProcessListener listener) {
 		// doing nothing
+		
+	}
+
+	@Override
+	public Image getImageInformation() {
+		// Not used
+		return null;
+	}
+
+	@Override
+	public void setUserAnnotationVisibility(User user, boolean visible) {
+		// Not used
+		
+	}
+
+	@Override
+	public void setTermAnnotationVisibility(Term term, boolean visible) {
+		// Not used
 		
 	}
 
