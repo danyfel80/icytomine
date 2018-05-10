@@ -17,6 +17,15 @@ import be.cytomine.client.collections.AnnotationCollection;
 import be.cytomine.client.models.ImageInstance;
 
 public class Image {
+	
+	private static final ImageInstance INTERNAL_NO_IMAGE = new ImageInstance();
+	{
+		INTERNAL_NO_IMAGE.set("id", 0L);
+	}
+	
+	public static Image getNoImage(Cytomine client) {
+		return new Image(INTERNAL_NO_IMAGE, client);
+	}
 
 	private static int defaultTileSize = 256;
 

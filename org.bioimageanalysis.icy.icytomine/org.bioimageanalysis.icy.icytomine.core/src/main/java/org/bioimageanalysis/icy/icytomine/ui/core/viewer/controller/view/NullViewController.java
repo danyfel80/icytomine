@@ -7,7 +7,6 @@ import java.awt.geom.Point2D;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.bioimageanalysis.icy.icytomine.core.model.DummyImage;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
@@ -75,7 +74,7 @@ public class NullViewController implements ViewController {
 
 	@Override
 	public Image getImageInformation() {
-		return new DummyImage();
+		return Image.getNoImage(null);
 	}
 
 	@Override

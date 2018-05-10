@@ -24,6 +24,7 @@ package org.bioimageanalysis.icy.icytomine.core.model;
  * @author Daniel Felipe Gonzalez Obando
  */
 public class User {
+	private static final String UNKNOWN_USERNAME = "unknown";
 
 	private be.cytomine.client.models.User internalUser;
 
@@ -36,7 +37,11 @@ public class User {
 	}
 
 	public String getUserName() {
-		return internalUser.getStr("username");
+		String username = internalUser.getStr("username");
+		if (username == null) {
+			username = UNKNOWN_USERNAME;
+		}
+		return username;
 	}
 
 	public String toString() {
@@ -45,6 +50,7 @@ public class User {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#hashCode()
 	 */
 	@Override
@@ -54,6 +60,7 @@ public class User {
 
 	/*
 	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Object#equals(java.lang.Object)
 	 */
 	@Override

@@ -54,9 +54,10 @@ import plugins.kernel.roi.roi2d.ROI2DShape;
  */
 public class Annotation {
 
-	private be.cytomine.client.models.Annotation internalAnnotation;
-	private Image image;
 	private Cytomine cytomine;
+	private Image image;
+	private be.cytomine.client.models.Annotation internalAnnotation;
+	private User user;
 
 	private String location;
 
@@ -189,6 +190,7 @@ public class Annotation {
 					return new ArrayList<>(0);
 				}
 			}
+			if (terms.size() == 0) terms.add(Term.getNoTerm(getClient()));
 		}
 		return terms;
 	}
@@ -201,6 +203,20 @@ public class Annotation {
 		ROI2D roi = getROI(0);
 		Rectangle2D bounds = roi.getBounds2D();
 		return bounds;
+	}
+
+	public User getUser() {
+		if (user == null) {
+			try {
+				user = new User(getClient().getUser(getUserId()));
+			} catch (CytomineException e) {
+				e.printStackTrace();
+				be.cytomine.client.models.User dummyUser = new be.cytomine.client.models.User();
+				dummyUser.set("id", 0L);
+				user = new User(dummyUser);
+			}
+		}
+		return user;
 	}
 
 }

@@ -26,7 +26,7 @@ public class Project {
 
 	private Cytomine cytomine;
 	private be.cytomine.client.models.Project internalProject;
-	
+
 	private ArrayList<Term> terms;
 
 	public Project(be.cytomine.client.models.Project internalProject, Cytomine cytomine) {
@@ -195,6 +195,7 @@ public class Project {
 			for (int i = 0; i < termCollection.size(); i++) {
 				terms.add(new Term(getClient(), termCollection.get(i)));
 			}
+			terms.add(Term.getNoTerm(getClient()));
 		}
 		return terms;
 	}

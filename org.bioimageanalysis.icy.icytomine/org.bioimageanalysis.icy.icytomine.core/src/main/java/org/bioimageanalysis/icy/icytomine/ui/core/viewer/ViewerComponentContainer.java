@@ -56,6 +56,7 @@ public class ViewerComponentContainer extends JPanel {
 	private JMenuItem cropImageMenuItem;
 	private JMenuItem importFromSequenceMenuItem;
 	private AnnotationsMenu menuAnnotations;
+	private JMenuItem menuAnnotations1;
 
 	private JLayeredPane layeredViewPane;
 
@@ -111,6 +112,9 @@ public class ViewerComponentContainer extends JPanel {
 
 		this.menuAnnotations = createAnnotationsMenu();
 		menuBar.add(menuAnnotations);
+
+		this.menuAnnotations1 = new JMenuItem("Annotations1");
+		menuBar.add(menuAnnotations1);
 	}
 
 	private AnnotationsMenu createAnnotationsMenu() {
@@ -303,6 +307,10 @@ public class ViewerComponentContainer extends JPanel {
 
 	public void setZoomLevel(double zoomLevel) {
 		zoomLevelButton.setText(String.format("%.1f X", zoomLevel));
+	}
+
+	public void addAnnotationMenuListener(ActionListener listener) {
+		this.menuAnnotations1.addActionListener(listener);
 	}
 
 	public void addUserFilterListener(UserFilterListener listener) {

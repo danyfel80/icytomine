@@ -27,6 +27,18 @@ import be.cytomine.client.Cytomine;
  *
  */
 public class Term {
+
+	private static final be.cytomine.client.models.Term internalNoTerm;
+	static {
+		internalNoTerm = new be.cytomine.client.models.Term();
+		internalNoTerm.set("id", 0L);
+		internalNoTerm.set("name", "No term");
+	};
+
+	public static Term getNoTerm(Cytomine client) {
+		return new Term(client, internalNoTerm);
+	}
+
 	private Cytomine client;
 	private be.cytomine.client.models.Term internalTerm;
 

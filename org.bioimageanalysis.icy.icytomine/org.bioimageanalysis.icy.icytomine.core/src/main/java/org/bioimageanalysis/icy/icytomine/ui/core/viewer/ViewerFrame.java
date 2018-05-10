@@ -51,7 +51,7 @@ public class ViewerFrame extends IcyFrame {
 			public void icyFrameOpened(IcyFrameEvent e) {
 				viewerController.startViewer();
 			}
-			
+
 			@Override
 			public void icyFrameClosed(IcyFrameEvent e) {
 				System.out.println("frame closed");
