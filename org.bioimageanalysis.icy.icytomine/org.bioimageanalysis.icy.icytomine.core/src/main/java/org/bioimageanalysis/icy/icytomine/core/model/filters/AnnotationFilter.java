@@ -30,4 +30,8 @@ public abstract class AnnotationFilter {
 		}
 	}
 
+	public Set<Annotation> apply(Set<Annotation> annotations) {
+		return annotations;
+	}
+
 }

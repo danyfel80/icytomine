@@ -1,38 +1,31 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
-import org.bioimageanalysis.icy.icytomine.core.model.filters.AnnotationFilter;
+import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTableModel.AnnotationVisibilityListener;
 
 @SuppressWarnings("serial")
 public class AnnotationTable extends JScrollPane {
 
-	private List<Annotation> annotations;
-	private List<Annotation> filteredAnnotations;
-
 	private JTable annotationTable;
 	private AnnotationTableModel annotationTableModel;
 
+	private Set<AnnotationVisibilityListener> annotationVisibilityListeners;
+
 	public AnnotationTable() {
-		this(new ArrayList<>(0));
+		this(new HashMap<>());
 	}
 
-	public AnnotationTable(List<Annotation> annotations) {
-		this.annotations = new ArrayList<>(annotations);
-		this.filteredAnnotations = new ArrayList<>(annotations);
-		annotationTableModel = new AnnotationTableModel(annotations);
-
+	public AnnotationTable(Map<? extends Annotation, Boolean> annotationVisibility) {
 		annotationTable = new JTable();
-		annotationTable.setModel(annotationTableModel);
+		setTableModel(annotationVisibility);
 		annotationTable.getColumnModel().getColumn(0).setPreferredWidth(50);
 		annotationTable.getColumnModel().getColumn(0).setMinWidth(30);
 		annotationTable.getColumnModel().getColumn(1).setMinWidth(50);
@@ -41,40 +34,41 @@ public class AnnotationTable extends JScrollPane {
 		setViewportView(annotationTable);
 	}
 
-	public void applyUserFilter(Set<User> users) {
-		if (users.isEmpty())
-			filteredAnnotations = filteredAnnotations.stream().collect(Collectors.toList());
-		else
-			filteredAnnotations = AnnotationFilter.byUsers(filteredAnnotations, users);
-
-		annotationTableModel = new AnnotationTableModel(filteredAnnotations);
-		annotationTable.setModel(annotationTableModel);
-	}
-
-	public void applyTermFilter(Set<Term> terms) {
-		if (terms.isEmpty())
-			filteredAnnotations = filteredAnnotations.stream().collect(Collectors.toList());
-		else
-			filteredAnnotations = AnnotationFilter.byTerms(filteredAnnotations, terms);
-
-		annotationTableModel = new AnnotationTableModel(filteredAnnotations);
-		annotationTable.setModel(annotationTableModel);
-	}
-
-	public void resetFilters() {
-		filteredAnnotations = new ArrayList<>(annotations);
-	}
-
-	public List<Annotation> getFilteredAnnotations() {
-		return filteredAnnotations;
-	}
-
-	public List<Annotation> getVisibleAnotations() {
-		List<Annotation> visibleAnnotations = new ArrayList<>();
-		for (int i = 0; i < filteredAnnotations.size(); i++) {
-			if ((boolean) annotationTableModel.getValueAt(i, 0))
-				visibleAnnotations.add(filteredAnnotations.get(i));
+	public void setTableModel(Map<? extends Annotation, Boolean> annotationVisibility) {
+		AnnotationTableModel newTableModel = new AnnotationTableModel(annotationVisibility);
+		synchronized (annotationTable) {
+			removeAnnotationVisibilityListenersFromTableModel();
+			annotationTable.setModel(newTableModel);
+			annotationTableModel = newTableModel;
+			addAnnotationVisibilityListenersToTableModel();
 		}
-		return visibleAnnotations;
 	}
+
+	public AnnotationTableModel getTableModel() {
+		return annotationTableModel;
+	}
+
+	private void removeAnnotationVisibilityListenersFromTableModel() {
+		annotationVisibilityListeners
+				.forEach(listener -> annotationTableModel.removeAnnotationVisibilityListener(listener));
+	}
+
+	private void addAnnotationVisibilityListenersToTableModel() {
+		annotationVisibilityListeners.forEach(listener -> annotationTableModel.addAnnotationVisibilityListener(listener));
+	}
+
+	public void addAnnotationVisibilityListener(AnnotationVisibilityListener listener) {
+		synchronized (annotationTable) {
+			annotationVisibilityListeners.add(listener);
+			annotationTableModel.addAnnotationVisibilityListener(listener);
+		}
+	}
+
+	public void removeAnnotationVisibilityListener(AnnotationVisibilityListener listener) {
+		synchronized (annotationTable) {
+			annotationVisibilityListeners.remove(listener);
+			annotationTableModel.removeAnnotationVisibilityListener(listener);
+		}
+	}
+
 }

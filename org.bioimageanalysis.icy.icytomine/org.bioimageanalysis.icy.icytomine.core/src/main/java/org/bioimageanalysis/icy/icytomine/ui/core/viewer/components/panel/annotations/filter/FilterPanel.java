@@ -19,27 +19,27 @@ import org.bioimageanalysis.icy.icytomine.ui.general.JCheckedComboBox;
 
 @SuppressWarnings("serial")
 public abstract class FilterPanel<E> extends JPanel {
-	private JCheckedComboBox<E> choicesComboBox;
-	private static Image userRemoveImage = new ImageIcon(
+	protected JCheckedComboBox<E> choicesComboBox;
+	private static Image panelRemoveImage = new ImageIcon(
 			AnnotationManagerPanel.class.getResource("/com/sun/java/swing/plaf/windows/icons/Error.gif")).getImage();
 
 	public FilterPanel(String label) {
 		setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
 
-		JLabel userLabel = new JLabel(label);
-		add(userLabel);
+		JLabel filterLabel = new JLabel(label);
+		add(filterLabel);
 
 		choicesComboBox = new JCheckedComboBox<>();
 		choicesComboBox.setModel(new DefaultComboBoxModel<>());
 		add(choicesComboBox);
 
-		JButton userRemoveButton = new JButton("");
-		userRemoveButton.setPreferredSize(new Dimension(15, 15));
-		userRemoveButton.setMaximumSize(new Dimension(15, 15));
-		Image resizedUserRemoveIcon = userRemoveImage.getScaledInstance(userRemoveButton.getPreferredSize().width,
-				userRemoveButton.getPreferredSize().height, Image.SCALE_SMOOTH);
-		userRemoveButton.setIcon(new ImageIcon(resizedUserRemoveIcon));
-		add(userRemoveButton);
+		JButton filterRemoveButton = new JButton("");
+		filterRemoveButton.setPreferredSize(new Dimension(15, 15));
+		filterRemoveButton.setMaximumSize(new Dimension(15, 15));
+		Image resizedFilterRemoveIcon = panelRemoveImage.getScaledInstance(filterRemoveButton.getPreferredSize().width,
+				filterRemoveButton.getPreferredSize().height, Image.SCALE_SMOOTH);
+		filterRemoveButton.setIcon(new ImageIcon(resizedFilterRemoveIcon));
+		add(filterRemoveButton);
 	}
 
 	public void setModel(E[] items, Function<E, String> labelFunction) {
@@ -47,7 +47,8 @@ public abstract class FilterPanel<E> extends JPanel {
 		JCheckableItem<E>[] checkableItems = Arrays.stream(items)
 				.map((E it) -> new JCheckableItem<E>(it, labelFunction.apply(it), true)).toArray(JCheckableItem[]::new);
 		choicesComboBox.setModel(new DefaultComboBoxModel<JCheckableItem<E>>(checkableItems));
-		choicesComboBox.addActionListener((ActionEvent e) -> System.out.println("Item changed"));
+		choicesComboBox.addActionListener((ActionEvent e) -> choiceChanged(e));
 	}
 
+	protected abstract void choiceChanged(ActionEvent e);
 }

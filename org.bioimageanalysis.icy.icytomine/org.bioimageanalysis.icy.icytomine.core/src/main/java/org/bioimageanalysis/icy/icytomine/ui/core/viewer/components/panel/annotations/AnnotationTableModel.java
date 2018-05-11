@@ -1,9 +1,14 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
@@ -12,14 +17,22 @@ import be.cytomine.client.CytomineException;
 
 @SuppressWarnings("serial")
 public class AnnotationTableModel extends AbstractTableModel {
+	public interface AnnotationVisibilityListener {
+		void annotationVisibilityChanged(Annotation annotation, boolean visible);
+	}
+
 	private static final String[] columnNames = new String[] { "Visible", "Name", "Terms", "Author" };
 
 	private List<Annotation> annotations;
-	private List<Boolean> annotationVisibility;
+	private Map<Annotation, Boolean> annotationVisibility;
 
-	public AnnotationTableModel(List<Annotation> annotations) {
-		this.annotations = new ArrayList<>(annotations);
-		annotationVisibility = annotations.stream().map(a -> true).collect(Collectors.toList());
+	private Set<AnnotationVisibilityListener> annotationVisibilityListeners;
+
+	public AnnotationTableModel(Map<? extends Annotation, Boolean> annotationVisibility) {
+		this.annotationVisibility = new ConcurrentHashMap<>(annotationVisibility);
+		this.annotations = new ArrayList<>(annotationVisibility.keySet());
+		this.annotationVisibilityListeners = new HashSet<>();
+		this.addTableModelListener(event -> onTableValuesChanged(event));
 	}
 
 	@Override
@@ -72,8 +85,8 @@ public class AnnotationTableModel extends AbstractTableModel {
 		return null;
 	}
 
-	private Boolean isAnnotationVisible(int annotationIndex) {
-		return annotationVisibility.get(annotationIndex);
+	private boolean isAnnotationVisible(int annotationIndex) {
+		return annotationVisibility.get(annotations.get(annotationIndex));
 	}
 
 	private Long getAnnotationId(int annotationIndex) {
@@ -96,9 +109,45 @@ public class AnnotationTableModel extends AbstractTableModel {
 	@Override
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
 		if (columnIndex == 0) {
-			annotationVisibility.set(rowIndex, (Boolean) aValue);
+			annotationVisibility.put(annotations.get(rowIndex), (Boolean) aValue);
 			fireTableCellUpdated(rowIndex, columnIndex);
 		}
+	}
+
+	public boolean isAnnotationVisible(Annotation annotation) {
+		return annotationVisibility.get(annotation);
+	}
+
+	public void addAnnotationVisibilityListener(AnnotationVisibilityListener listener) {
+		synchronized (annotationVisibilityListeners) {
+			this.annotationVisibilityListeners.add(listener);
+		}
+	}
+
+	public void removeAnnotationVisibilityListener(AnnotationVisibilityListener listener) {
+		synchronized (annotationVisibilityListeners) {
+			this.annotationVisibilityListeners.remove(listener);
+		}
+	}
+
+	private void onTableValuesChanged(TableModelEvent event) {
+		if (event.getType() == TableModelEvent.UPDATE) {
+			notifyAnnotationVisibilityChanged(event.getFirstRow());
+		}
+	}
+
+	private void notifyAnnotationVisibilityChanged(int annotationIndex) {
+		Annotation annotation = annotations.get(annotationIndex);
+		this.annotationVisibilityListeners
+				.forEach(listener -> listener.annotationVisibilityChanged(annotation, annotationVisibility.get(annotation)));
+	}
+
+	public Set<Annotation> getAnnotations() {
+		return new HashSet<>(annotations);
+	}
+
+	public Map<Annotation, Boolean> getAnnotationVisibility() {
+		return annotationVisibility;
 	}
 
 }
