@@ -150,4 +150,9 @@ public class AnnotationTableModel extends AbstractTableModel {
 		return annotationVisibility;
 	}
 
+	public Set<Annotation> getVisibleAnnotations() {
+		return this.annotationVisibility.keySet().stream().filter(a -> annotationVisibility.get(a))
+				.collect(Collectors.toSet());
+	}
+
 }

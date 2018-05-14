@@ -28,7 +28,7 @@ public class TermFilterPanel extends FilterPanel<Term> {
 	protected void choiceChanged(ActionEvent e) {
 		@SuppressWarnings("unchecked")
 		JCheckableItem<Term> item = ((JCheckableItem<Term>) (((JCheckedComboBox<Term>) (e.getSource())).getSelectedItem()));
-		notifyTermSelectionChange(item.getObject(), item.isSelected());
+		notifyTermSelectionChange(item.getObject(), !item.isSelected());
 	}
 
 	private void notifyTermSelectionChange(Term term, boolean selected) {

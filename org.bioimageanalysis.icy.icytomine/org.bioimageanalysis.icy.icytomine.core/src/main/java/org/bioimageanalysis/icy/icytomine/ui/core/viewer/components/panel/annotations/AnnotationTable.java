@@ -1,6 +1,7 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -8,7 +9,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
-import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTableModel.AnnotationVisibilityListener;
 
 @SuppressWarnings("serial")
@@ -25,6 +25,7 @@ public class AnnotationTable extends JScrollPane {
 
 	public AnnotationTable(Map<? extends Annotation, Boolean> annotationVisibility) {
 		annotationTable = new JTable();
+		annotationVisibilityListeners = new HashSet<>();
 		setTableModel(annotationVisibility);
 		annotationTable.getColumnModel().getColumn(0).setPreferredWidth(50);
 		annotationTable.getColumnModel().getColumn(0).setMinWidth(30);
@@ -49,8 +50,10 @@ public class AnnotationTable extends JScrollPane {
 	}
 
 	private void removeAnnotationVisibilityListenersFromTableModel() {
-		annotationVisibilityListeners
-				.forEach(listener -> annotationTableModel.removeAnnotationVisibilityListener(listener));
+		if (annotationTableModel != null) {
+			annotationVisibilityListeners
+					.forEach(listener -> annotationTableModel.removeAnnotationVisibilityListener(listener));
+		}
 	}
 
 	private void addAnnotationVisibilityListenersToTableModel() {
@@ -67,7 +70,9 @@ public class AnnotationTable extends JScrollPane {
 	public void removeAnnotationVisibilityListener(AnnotationVisibilityListener listener) {
 		synchronized (annotationTable) {
 			annotationVisibilityListeners.remove(listener);
-			annotationTableModel.removeAnnotationVisibilityListener(listener);
+			if (annotationTableModel != null) {
+				annotationTableModel.removeAnnotationVisibilityListener(listener);
+			}
 		}
 	}
 

@@ -6,7 +6,9 @@ import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
@@ -129,6 +131,12 @@ public class NullViewController implements ViewController {
 
 	@Override
 	public void setTermAnnotationVisibility(Term term, boolean selected) {
+		// Not used
+		
+	}
+
+	@Override
+	public void setVisibileAnnotations(Set<Annotation> newVisibleAnnotations) {
 		// Not used
 		
 	}

@@ -1,9 +1,7 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations;
 
 import java.awt.BorderLayout;
-import java.awt.Component;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -15,10 +13,9 @@ import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
-import org.bioimageanalysis.icy.icytomine.core.model.filters.AnnotationFilter;
+import org.bioimageanalysis.icy.icytomine.core.model.filters.FilterAnnotationByTerm;
+import org.bioimageanalysis.icy.icytomine.core.model.filters.FilterAnnotationByUser;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.filter.AnnotationFilterPanel;
-
-import com.google.common.base.Objects;
 
 import be.cytomine.client.CytomineException;
 
@@ -34,6 +31,8 @@ public class AnnotationManagerPanel extends JPanel {
 
 	private Image imageInformation;
 	private Set<Annotation> annotations;
+	private Set<User> activeUsers;
+	private Set<Term> activeTerms;
 
 	Set<AnnotationsVisibilityListener> annotationsVisibilitylisteners;
 
@@ -43,7 +42,10 @@ public class AnnotationManagerPanel extends JPanel {
 
 	public AnnotationManagerPanel(Image imageInformation) {
 		this.imageInformation = imageInformation;
-		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(getImageAnnotations());
+		retrieveImageAnnotations();
+		fillActiveUsers();
+		fillActiveTerms();
+		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(annotations);
 
 		setLayout(new BorderLayout(0, 0));
 
@@ -54,17 +56,12 @@ public class AnnotationManagerPanel extends JPanel {
 
 		annotationTable = new AnnotationTable(annotationVisibility);
 		add(annotationTable, BorderLayout.CENTER);
+		annotationTable.addAnnotationVisibilityListener((Annotation annotation, boolean visible) -> annotationVisibilityChanged(annotation, visible));
 
 		annotationsVisibilitylisteners = new HashSet<>();
 	}
 
-	private Map<Annotation, Boolean> createAnnotationVisibility(Set<Annotation> annotations) {
-		Map<Annotation, Boolean> annotationVisibility;
-		annotationVisibility = annotations.stream().collect(Collectors.toMap(Function.identity(), a -> true));
-		return annotationVisibility;
-	}
-
-	private Set<Annotation> getImageAnnotations() {
+	private Set<Annotation> retrieveImageAnnotations() {
 		if (annotations == null) {
 			try {
 				annotations = imageInformation.getAnnotations().stream().collect(Collectors.toSet());
@@ -76,36 +73,14 @@ public class AnnotationManagerPanel extends JPanel {
 		return annotations;
 	}
 
-	private void userSelectionChange(User user, boolean selected) {
-		Set<Annotation> newVisibleAnnotations;
-		if (selected) {
-			newVisibleAnnotations = includeAnnotations(userAnnotations);
-		} else {
-			Set<Annotation> userAnnotations = annotationTable.getTableModel().getAnnotations().stream()
-					.filter(a -> Objects.equal(a.getUser(), user)).collect(Collectors.toSet());
-			newVisibleAnnotations = excludeAnnotations(userAnnotations);
-		}
-
-		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(newVisibleAnnotations);
-		annotationTable.setTableModel(annotationVisibility);
-
-		notifyAnnotationsVisibilityListeners(newVisibleAnnotations);
+	private void fillActiveUsers() {
+		activeUsers = new HashSet<>();
+		annotations.forEach(annotation -> activeUsers.add(annotation.getUser()));
 	}
 
-	private void termSelectionChange(Term term, boolean selected) {
-		Set<Annotation> termAnnotations = annotationTable.getTableModel().getAnnotations().stream()
-				.filter(a -> getAnnotationTerms(a).contains(term)).collect(Collectors.toSet());
-		Set<Annotation> newVisibleAnnotations;
-		if (selected) {
-			newVisibleAnnotations = includeAnnotations(termAnnotations);
-		} else {
-			newVisibleAnnotations = excludeAnnotations(termAnnotations);
-		}
-
-		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(newVisibleAnnotations);
-		annotationTable.setTableModel(annotationVisibility);
-
-		notifyAnnotationsVisibilityListeners(newVisibleAnnotations);
+	private void fillActiveTerms() {
+		activeTerms = new HashSet<>();
+		annotations.forEach(annotation -> activeTerms.addAll(getAnnotationTerms(annotation)));
 	}
 
 	private Set<Term> getAnnotationTerms(Annotation a) {
@@ -119,20 +94,64 @@ public class AnnotationManagerPanel extends JPanel {
 		return terms;
 	}
 
-	private Set<Annotation> includeAnnotations(Set<Annotation> annotations) {
-		Set<Annotation> newVisibleAnnotations = new HashSet<>(annotationTable.getTableModel().getAnnotations());
-		newVisibleAnnotations.addAll(annotations);
-		return newVisibleAnnotations;
+	private Map<Annotation, Boolean> createAnnotationVisibility(Set<Annotation> annotations) {
+		Map<Annotation, Boolean> annotationVisibility;
+		annotationVisibility = annotations.stream().collect(Collectors.toMap(Function.identity(), a -> true));
+		return annotationVisibility;
 	}
 
-	private Set<Annotation> excludeAnnotations(Set<Annotation> userAnnotations) {
-		Set<Annotation> newVisibleAnnotations = new HashSet<>(annotationTable.getTableModel().getAnnotations());
-		newVisibleAnnotations.removeAll(annotations);
-		return newVisibleAnnotations;
+	private void userSelectionChange(User user, boolean selected) {
+		if (selected) {
+			activeUsers.add(user);
+		} else {
+			activeUsers.remove(user);
+		}
+
+		FilterAnnotationByUser userFilter = new FilterAnnotationByUser(activeUsers);
+		FilterAnnotationByTerm termFilter = new FilterAnnotationByTerm(activeTerms);
+
+		Set<Annotation> newActiveAnnotations = annotations.stream().filter(a -> userFilter.apply(a))
+				.filter(a -> termFilter.apply(a)).collect(Collectors.toSet());
+
+		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(newActiveAnnotations);
+		annotationTable.setTableModel(annotationVisibility);
+
+		notifyAnnotationsVisibilityListeners(newActiveAnnotations);
+	}
+
+	private void termSelectionChange(Term term, boolean selected) {
+		if (selected) {
+			activeTerms.add(term);
+		} else {
+			activeTerms.remove(term);
+		}
+
+		FilterAnnotationByUser userFilter = new FilterAnnotationByUser(activeUsers);
+		FilterAnnotationByTerm termFilter = new FilterAnnotationByTerm(activeTerms);
+
+		Set<Annotation> newActiveAnnotations = annotations.stream().filter(a -> userFilter.apply(a))
+				.filter(a -> termFilter.apply(a)).collect(Collectors.toSet());
+
+		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(newActiveAnnotations);
+		annotationTable.setTableModel(annotationVisibility);
+
+		notifyAnnotationsVisibilityListeners(newActiveAnnotations);
 	}
 
 	private void notifyAnnotationsVisibilityListeners(Set<Annotation> newVisibleAnnotations) {
 		annotationsVisibilitylisteners.forEach(l -> l.annotationsVisibiliyChanged(newVisibleAnnotations));
+	}
+
+	public void addAnnotationsVisibilityListener(AnnotationsVisibilityListener listener) {
+		this.annotationsVisibilitylisteners.add(listener);
+	}
+
+	public void removeAnnotationsVisibilityListener(AnnotationsVisibilityListener listener) {
+		this.annotationsVisibilitylisteners.remove(listener);
+	}
+
+	private void annotationVisibilityChanged(Annotation annotation, boolean visible) {
+		notifyAnnotationsVisibilityListeners(annotationTable.getTableModel().getVisibleAnnotations());
 	}
 
 }

@@ -4,7 +4,9 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
@@ -76,6 +78,11 @@ public class NullViewProvider extends ViewProvider {
 	public void setTermAnnotationVisibility(Term term, boolean visible) {
 		// Not used
 		
+	}
+
+	@Override
+	public void setVisibleAnnotations(Set<Annotation> newVisibleAnnotations) {
+		// Not used
 	}
 
 }

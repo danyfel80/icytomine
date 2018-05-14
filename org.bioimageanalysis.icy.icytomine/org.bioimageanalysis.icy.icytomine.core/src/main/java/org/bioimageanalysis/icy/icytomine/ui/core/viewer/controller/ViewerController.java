@@ -3,9 +3,11 @@ package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.geom.Point2D;
+import java.util.Set;
 
 import javax.swing.JFrame;
 
+import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerComponentContainer;
@@ -77,10 +79,13 @@ public class ViewerController {
 			annotationsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 			annotationsFrame.setSize(new Dimension(400, 400));
 			annotationsFrame.setMinimumSize(new Dimension(10, 10));
-			annotationsFrame.setContentPane(new AnnotationManagerPanel(viewController.getImageInformation()));
+			AnnotationManagerPanel annotationsPanel = new AnnotationManagerPanel(viewController.getImageInformation());
+			annotationsPanel.addAnnotationsVisibilityListener((Set<Annotation> newVisibleAnnotations)->viewController.setVisibileAnnotations(newVisibleAnnotations));
+			annotationsFrame.setContentPane(annotationsPanel);
 			annotationsFrame.addToDesktopPane();
 			annotationsFrame.center();
 			annotationsFrame.setVisible(true);
+
 		});
 		viewerContainer.addUserFilterListener(
 				(User user, boolean selected) -> viewController.setUserAnnotationVisibility(user, selected));

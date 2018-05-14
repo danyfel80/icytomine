@@ -60,10 +60,12 @@ public class AnnotationFilterPanel extends JPanel {
 	}
 
 	private synchronized void addFilter(String filterName) {
+		System.out.println(filterName);
 		int row = filterPanels.size();
 		FilterPanel<?> filter = createFilter(filterName);
-		GridBagConstraints layoutConstraints = createLayoutConstraints(0, 5, row);
+		GridBagConstraints layoutConstraints = createLayoutConstraints(0, 5, row+1);
 		add(filter, layoutConstraints);
+		revalidate();
 		this.filterPanels.add(filter);
 	}
 

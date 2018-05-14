@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
@@ -86,6 +87,12 @@ public class CachedViewProvider extends ViewProvider {
 
 	private void notifyViewListeners() {
 		viewListeners.forEach(l -> l.onViewChanged(currentImageView, currentAnnotationView));
+	}
+
+	@Override
+	public void setVisibleAnnotations(Set<Annotation> newVisibleAnnotations) {
+		annotationView.setVisibleAnnotations(newVisibleAnnotations);
+		annotationView.forceViewRefresh();
 	}
 
 }

@@ -11,17 +11,18 @@ import org.bioimageanalysis.icy.icytomine.core.model.User;
 
 import be.cytomine.client.CytomineException;
 
-public abstract class AnnotationFilter {
+@FunctionalInterface
+public interface FilterAnnotation {
 
-	public static List<Annotation> byUsers(List<Annotation> annotations, Set<User> users) {
+	static List<Annotation> byUsers(List<Annotation> annotations, Set<User> users) {
 		return annotations.stream().filter(a -> users.contains(a.getUser())).collect(Collectors.toList());
 	}
 
-	public static List<Annotation> byTerms(List<Annotation> annotations, Set<Term> terms) {
+	static List<Annotation> byTerms(List<Annotation> annotations, Set<Term> terms) {
 		return annotations.stream().filter(a -> existTermIntersection(a, terms)).collect(Collectors.toList());
 	}
 
-	private static boolean existTermIntersection(Annotation a, Set<Term> terms) {
+	static boolean existTermIntersection(Annotation a, Set<Term> terms) {
 		try {
 			return !Collections.disjoint(a.getTerms(), terms);
 		} catch (CytomineException e) {
@@ -30,8 +31,6 @@ public abstract class AnnotationFilter {
 		}
 	}
 
-	public Set<Annotation> apply(Set<Annotation> annotations) {
-		return annotations;
-	}
+	public abstract Set<Annotation> apply(Set<Annotation> annotations);
 
 }

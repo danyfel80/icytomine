@@ -50,6 +50,7 @@ public class AnnotationView {
 	private Dimension canvasSize;
 	private GeometricHash<Annotation> annotationHash;
 	private Set<Annotation> activeAnnotations;
+	private Set<Annotation> visibleAnnotations;
 	private BufferedImage blankView;
 	private BufferedImage currentView;
 
@@ -60,11 +61,14 @@ public class AnnotationView {
 
 	private Set<ViewListener> listeners;
 
+	private Point2D positionAtZeroResolution;
+
 	public AnnotationView(Image imageInformation) throws CytomineException {
 		this.imageInformation = imageInformation;
 		this.userFilter = new HashSet<>();
 		this.termFilter = new HashSet<>();
 		this.activeAnnotations = new HashSet<>();
+		this.visibleAnnotations = new HashSet<>();
 		this.listeners = new HashSet<>();
 		this.blankView = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
 		startPointCache();
@@ -101,6 +105,7 @@ public class AnnotationView {
 	}
 
 	private void fillFilters() {
+		visibleAnnotations = new HashSet<>(annotations);
 		fillUserFilter();
 		fillTermFilter();
 	}
@@ -148,6 +153,7 @@ public class AnnotationView {
 		}
 		cancelPreviousRequests();
 		this.targetResolution = targetResolution;
+		this.positionAtZeroResolution = positionAtZeroResolution;
 		computeViewBoundsAtZeroResolution(positionAtZeroResolution, canvasSize);
 		requestCurrentView(canvasSize);
 
@@ -195,16 +201,17 @@ public class AnnotationView {
 	}
 
 	private boolean isActive(Annotation a) {
-		boolean userActive = userFilter.contains(a.getUserId());
-		HashSet<Term> activeTerms;
-		try {
-			activeTerms = new HashSet<>(a.getTerms());
-		} catch (CytomineException e) {
-			e.printStackTrace();
-			return false;
-		}
-		activeTerms.retainAll(termFilter);
-		return userActive && !activeTerms.isEmpty();
+		return visibleAnnotations.contains(a);
+//		boolean userActive = userFilter.contains(a.getUserId());
+//		HashSet<Term> activeTerms;
+//		try {
+//			activeTerms = new HashSet<>(a.getTerms());
+//		} catch (CytomineException e) {
+//			e.printStackTrace();
+//			return false;
+//		}
+//		activeTerms.retainAll(termFilter);
+//		return userActive && !activeTerms.isEmpty();
 	}
 
 	private void drawAnnotations() throws InterruptedException {
@@ -321,6 +328,16 @@ public class AnnotationView {
 
 	public void addViewListener(ViewListener listener) {
 		this.listeners.add(listener);
+	}
+
+	public void setVisibleAnnotations(Set<Annotation> newVisibleAnnotations) {
+		this.visibleAnnotations = newVisibleAnnotations;
+	}
+
+	public synchronized void forceViewRefresh() {
+		cancelPreviousRequests();
+		computeViewBoundsAtZeroResolution(positionAtZeroResolution, canvasSize);
+		requestCurrentView(canvasSize);
 	}
 
 }

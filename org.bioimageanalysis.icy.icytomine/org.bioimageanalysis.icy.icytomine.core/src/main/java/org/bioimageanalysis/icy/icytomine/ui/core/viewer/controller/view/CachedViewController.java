@@ -12,7 +12,9 @@ import java.awt.geom.Dimension2D;
 import java.awt.geom.Point2D;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
@@ -268,6 +270,12 @@ public class CachedViewController implements ViewController {
 	@Override
 	public void setTermAnnotationVisibility(Term term, boolean visible) {
 		viewCanvasPanel.getViewProvider().setTermAnnotationVisibility(term, visible);
+		viewCanvasPanel.updateCanvas();
+	}
+
+	@Override
+	public void setVisibileAnnotations(Set<Annotation> newVisibleAnnotations) {
+		viewCanvasPanel.getViewProvider().setVisibleAnnotations(newVisibleAnnotations);
 		viewCanvasPanel.updateCanvas();
 	}
 }

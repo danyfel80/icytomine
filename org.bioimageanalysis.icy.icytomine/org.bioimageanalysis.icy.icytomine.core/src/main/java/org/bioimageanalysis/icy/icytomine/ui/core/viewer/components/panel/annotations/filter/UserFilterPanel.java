@@ -28,7 +28,7 @@ public class UserFilterPanel extends FilterPanel<User> {
 	protected void choiceChanged(ActionEvent e) {
 		@SuppressWarnings("unchecked")
 		JCheckableItem<User> item = ((JCheckableItem<User>) (((JCheckedComboBox<User>) (e.getSource())).getSelectedItem()));
-		notifyUserSelectionChange(item.getObject(), item.isSelected());
+		notifyUserSelectionChange(item.getObject(), !item.isSelected());
 	}
 
 	private void notifyUserSelectionChange(User user, boolean selected) {

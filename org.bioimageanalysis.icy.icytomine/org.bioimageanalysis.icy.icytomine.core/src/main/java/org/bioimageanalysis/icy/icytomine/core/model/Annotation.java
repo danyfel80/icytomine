@@ -190,7 +190,8 @@ public class Annotation {
 					return new ArrayList<>(0);
 				}
 			}
-			if (terms.size() == 0) terms.add(Term.getNoTerm(getClient()));
+			if (terms.size() == 0)
+				terms.add(Term.getNoTerm(getClient()));
 		}
 		return terms;
 	}
@@ -217,6 +218,54 @@ public class Annotation {
 			}
 		}
 		return user;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((cytomine == null) ? 0 : cytomine.hashCode());
+		result = prime * result + ((internalAnnotation == null) ? 0 : internalAnnotation.getId().hashCode());
+		return result;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof Annotation)) {
+			return false;
+		}
+		Annotation other = (Annotation) obj;
+		if (cytomine == null) {
+			if (other.cytomine != null) {
+				return false;
+			}
+		} else if (!cytomine.equals(other.cytomine)) {
+			return false;
+		}
+		if (internalAnnotation == null) {
+			if (other.internalAnnotation != null) {
+				return false;
+			}
+		} else if (!internalAnnotation.getId().equals(other.internalAnnotation.getId())) {
+			return false;
+		}
+		return true;
 	}
 
 }

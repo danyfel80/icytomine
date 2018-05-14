@@ -44,6 +44,7 @@ public class FilterAdditionPanel extends JPanel {
 	}
 
 	private void addFilterButtonClicked(String selectedItem) {
+		System.out.println(selectedItem);
 		filterListeners.forEach(l -> l.filterAdditionRequested(selectedItem));
 	}
 }
