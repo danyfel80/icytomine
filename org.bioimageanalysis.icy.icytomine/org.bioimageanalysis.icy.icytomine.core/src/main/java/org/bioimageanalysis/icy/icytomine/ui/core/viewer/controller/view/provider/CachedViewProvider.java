@@ -7,8 +7,6 @@ import java.util.Set;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.core.view.AnnotationView;
 import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
 import org.bioimageanalysis.icy.icytomine.core.view.ViewListener;
@@ -41,16 +39,6 @@ public class CachedViewProvider extends ViewProvider {
 	}
 
 	@Override
-	public void setUserAnnotationVisibility(User user, boolean visible) {
-		this.annotationView.setUserAnnotationVisibility(user, visible);
-	}
-
-	@Override
-	public void setTermAnnotationVisibility(Term term, boolean visible) {
-		this.annotationView.setTermAnnotationVisibility(term, visible);
-	}
-
-	@Override
 	public synchronized BufferedImage getView(Dimension canvasSize) {
 		if (canvasSize.width == 0 || canvasSize.height == 0) {
 			return new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
@@ -59,8 +47,8 @@ public class CachedViewProvider extends ViewProvider {
 	}
 
 	private BufferedImage buildView(Dimension canvasSize) {
-		currentImageView = cachedView.getView(getPosition(), canvasSize, getResolutionLevel());
-		currentAnnotationView = annotationView.getView(getPosition(), canvasSize, getResolutionLevel());
+		currentImageView = cachedView.getView(getPosition(), canvasSize, getResolution());
+		currentAnnotationView = annotationView.getView(getPosition(), canvasSize, getResolution());
 		return currentImageView;
 	}
 
@@ -94,5 +82,14 @@ public class CachedViewProvider extends ViewProvider {
 		annotationView.setVisibleAnnotations(newVisibleAnnotations);
 		annotationView.forceViewRefresh();
 	}
+	
+	@Override
+	public Set<Annotation> getVisibleAnnotations() {
+		return annotationView.getVisibleAnnotations();
+	}
 
+	@Override
+	public Set<Annotation> getActiveAnnotations() {
+		return annotationView.getActiveAnnotations();
+	}
 }

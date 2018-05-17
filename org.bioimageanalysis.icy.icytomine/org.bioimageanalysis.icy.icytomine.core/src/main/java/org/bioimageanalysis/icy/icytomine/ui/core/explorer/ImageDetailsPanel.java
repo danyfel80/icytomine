@@ -7,7 +7,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -25,33 +24,32 @@ import javax.swing.SwingConstants;
 import javax.swing.Timer;
 import javax.swing.UIManager;
 
-import org.bioimageanalysis.icy.icytomine.core.IcytomineImporter;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 
-import icy.common.exception.UnsupportedFormatException;
+import be.cytomine.client.CytomineException;
 
 public class ImageDetailsPanel extends JPanel {
-	private static final long				serialVersionUID	= 6055883183949045447L;
-	private static final ImageIcon	defaultIcon				= new ImageIcon(
+	private static final long serialVersionUID = 6055883183949045447L;
+	private static final ImageIcon defaultIcon = new ImageIcon(
 			ImageDetailsPanel.class.getResource("/javax/swing/plaf/basic/icons/image-delayed.png"));
-	private Image										currentImage;
+	private Image currentImage;
 
-	private JScrollPane	scrollPaneDetails;
-	private JPanel			panelDetails;
-	private JTextArea		lblImageFileName;
-	private JLabel			lblPreview;
-	private JTextArea		lblIdValue;
-	private JTextArea		lblDimensionValue;
-	private JTextArea		lblMagnificationValue;
-	private JTextArea		lblAnnotationsAlgoValue;
-	private JTextArea		lblAnnotationsUserValue;
-	private JTextArea		lblSizeValue;
-	private JTextArea		lblResolutionValue;
-	private JTextArea		lblDepthValue;
-	private JTextArea		lblDateCreationValue;
+	private JScrollPane scrollPaneDetails;
+	private JPanel panelDetails;
+	private JTextArea lblImageFileName;
+	private JLabel lblPreview;
+	private JTextArea lblIdValue;
+	private JTextArea lblDimensionValue;
+	private JTextArea lblMagnificationValue;
+	private JTextArea lblAnnotationsAlgoValue;
+	private JTextArea lblAnnotationsUserValue;
+	private JTextArea lblSizeValue;
+	private JTextArea lblResolutionValue;
+	private JTextArea lblDepthValue;
+	private JTextArea lblDateCreationValue;
 
-	private ExecutorService							previewExecutor;
-	private Cache<Long, BufferedImage>	previewCache;
+	private ExecutorService previewExecutor;
+	private Cache<Long, BufferedImage> previewCache;
 
 	/**
 	 * Create the panel.
@@ -370,41 +368,48 @@ public class ImageDetailsPanel extends JPanel {
 			String id = "" + getCurrentImage().getId();
 			Double dimensionX = getCurrentImage().getDimensionX(), dimensionY = getCurrentImage().getDimensionY();
 			String dimension = String.format("%.2f x %.2f \u00B5m", dimensionX, dimensionY);
-			if (dimensionX == null || dimensionY == null) dimension = "Unavailable";
+			if (dimensionX == null || dimensionY == null)
+				dimension = "Unavailable";
 			String magnification = String.format("%dX", getCurrentImage().getMagnification());
-			if (magnification.equals("nullX")) magnification = "Unavailable";
+			if (magnification.equals("nullX"))
+				magnification = "Unavailable";
 			String annotationsAlgo = "" + getCurrentImage().getAnnotationsAlgo();
-			if (annotationsAlgo.equals("null")) annotationsAlgo = "Unavailable";
+			if (annotationsAlgo.equals("null"))
+				annotationsAlgo = "Unavailable";
 			String annotationsUser = "" + getCurrentImage().getAnnotationsUser();
-			if (annotationsUser.equals("null")) annotationsUser = "Unavailable";
+			if (annotationsUser.equals("null"))
+				annotationsUser = "Unavailable";
 			Integer sizeX = getCurrentImage().getSizeX(), sizeY = getCurrentImage().getSizeY();
 			String size = String.format("%d x %d px", sizeX, sizeY);
-			if (sizeX == null || sizeY == null) size = "Unavailable";
+			if (sizeX == null || sizeY == null)
+				size = "Unavailable";
 			Double res = getCurrentImage().getResolution();
 			String resolution = String.format("%f \u00B5m/px", res);
-			if (res == null) resolution = "Unavailable";
+			if (res == null)
+				resolution = "Unavailable";
 			Long dep = getCurrentImage().getDepth();
 			String depth = String.format("%d levels", dep);
-			if (dep == null) depth = "Unavailable";
+			if (dep == null)
+				depth = "Unavailable";
 			Date dt = getCurrentImage().getCreationDate().getTime();
 			DateFormat formatter = new SimpleDateFormat("d MMM yyyy HH:mm");
-			String date = dt == null? "Unavailable": formatter.format(dt);
+			String date = dt == null ? "Unavailable" : formatter.format(dt);
 
 			synchronized (this.lblPreview) {
 				this.lblPreview.setIcon(null);
-				if (previewExecutor != null && !previewExecutor.isTerminated()) previewExecutor.shutdownNow();
+				if (previewExecutor != null && !previewExecutor.isTerminated())
+					previewExecutor.shutdownNow();
 				previewExecutor = Executors.newSingleThreadExecutor();
 				previewExecutor.submit(() -> {
 					final ExecutorService thisExecutor = previewExecutor;
 
 					BufferedImage preview = previewCache.get(getCurrentImage().getId());
 					if (preview == null) {
-						try (IcytomineImporter importer = new IcytomineImporter(getCurrentImage().getClient())) {
-							importer.open(getCurrentImage().getId().toString(), 0);
-							preview = importer.getThumbnail(0);
-							previewCache.put(getCurrentImage().getId(), preview);
-						} catch (UnsupportedFormatException | IOException e) {
-							preview = null;
+						try {
+							preview = getCurrentImage().getThumbnail(256);
+						} catch (CytomineException e) {
+							e.printStackTrace();
+							preview = new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB);
 						}
 					}
 					ImageIcon icon;

@@ -4,14 +4,13 @@ import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.PositionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.ResolutionListener;
@@ -22,7 +21,7 @@ public class NullViewController implements ViewController {
 	List<PositionListener> cursorPositionListeners;
 	private ViewCanvasPanel viewCanvasPanel;
 
-	//private Point2D viewPosition;
+	// private Point2D viewPosition;
 	private double resolutionLevel;
 
 	private Point2D lastDragStartPosition;
@@ -124,21 +123,33 @@ public class NullViewController implements ViewController {
 	}
 
 	@Override
-	public void setUserAnnotationVisibility(User user, boolean selected) {
-		// Not used
-		
-	}
-
-	@Override
-	public void setTermAnnotationVisibility(Term term, boolean selected) {
-		// Not used
-		
-	}
-
-	@Override
 	public void setVisibileAnnotations(Set<Annotation> newVisibleAnnotations) {
 		// Not used
-		
+
+	}
+
+	@Override
+	public Rectangle2D getCurrentViewBoundsAtZeroResolution() {
+		// Not used
+		return null;
+	}
+
+	@Override
+	public double getCurrentResolution() {
+		// Not used
+		return 0;
+	}
+
+	@Override
+	public Set<Annotation> getVisibleAnnotations() {
+		// Not used
+		return null;
+	}
+
+	@Override
+	public Set<Annotation> getActiveAnnotations() {
+		// Not used
+		return null;
 	}
 
 }

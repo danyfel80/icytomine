@@ -1,5 +1,6 @@
 package org.bioimageanalysis.icy.icytomine.core.image.importer;
 
+import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
@@ -14,6 +15,7 @@ import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.Tile2DKey;
@@ -32,6 +34,7 @@ public class TileGridImporter {
 	private Image imageInformation;
 	private Rectangle grid;
 	private int resolution;
+	private Dimension tileSize;
 
 	private Set<TileImportationListener> tileImportationListeners;
 	private Set<TileImportationEndListener> tileImportationEndListeners;
@@ -42,6 +45,7 @@ public class TileGridImporter {
 		this.imageInformation = imageInformation;
 		this.resolution = resolution;
 		this.grid = grid;
+		this.tileSize = imageInformation.getTileSize();
 
 		tileImportationListeners = new HashSet<>();
 		tileImportationEndListeners = new HashSet<>();
@@ -56,39 +60,12 @@ public class TileGridImporter {
 		startHandlingFutureResults(completionService, futureResults);
 	}
 
-	private void startHandlingFutureResults(CompletionService<TileResult> completionService,
-			List<Future<TileResult>> futureResults) {
-		futureResultsHandlingService = Executors.newSingleThreadExecutor();
-		futureResultsHandlingService.execute(() -> {
-			CompletableFuture<Void> endFuture = new CompletableFuture<>();
-			int numberOfTiles = futureResults.size();
-			for (int tile = 0; tile < numberOfTiles; tile++) {
-				try {
-					Future<TileResult> futureResult = completionService.take();
-					TileResult result = futureResult.get();
-					CompletableFuture<TileResult> returnFuture = new CompletableFuture<>();
-					returnFuture.complete(result);
-					notifyTileImportationListeners(returnFuture);
-				} catch (InterruptedException | ExecutionException e) {
-					futureResults.forEach(f -> f.cancel(true));
-					endFuture.completeExceptionally(e);
-					break;
-				}
-			}
-
-			if (!endFuture.isDone()) {
-				endFuture.complete(null);
-			}
-			notifyTileImportationEndListeners(endFuture);
-		});
-	}
-
 	private List<Future<TileResult>> submitTileTasks(CompletionService<TileResult> completionService) {
 		List<Future<TileResult>> futureResults = new LinkedList<>();
 
-		for (int x = 0; x < grid.width; x++) {
-			for (int y = 0; y < grid.height; y++) {
-				Tile2DKey key = new Tile2DKey(imageInformation, resolution, x, y);
+		for (int x = 0; !Thread.interrupted() && x < grid.width; x++) {
+			for (int y = 0; !Thread.interrupted() && y < grid.height; y++) {
+				Tile2DKey key = new Tile2DKey(imageInformation, resolution, grid.x + x, grid.y + y);
 				futureResults.add(completionService.submit(getTileTask(key)));
 			}
 		}
@@ -96,7 +73,43 @@ public class TileGridImporter {
 		return futureResults;
 	}
 
-	private int getNumberOfTiles() {
+	private void startHandlingFutureResults(CompletionService<TileResult> completionService,
+			List<Future<TileResult>> futureResults) {
+		futureResultsHandlingService = Executors.newSingleThreadExecutor();
+		futureResultsHandlingService.submit(() -> {
+			CompletableFuture<Void> endFuture = new CompletableFuture<>();
+			int numberOfTiles = futureResults.size();
+			int tile;
+			for (tile = 0; !Thread.interrupted() && tile < numberOfTiles; tile++) {
+				try {
+					Future<TileResult> futureResult = completionService.take();
+					TileResult result = futureResult.get();
+					CompletableFuture<TileResult> returnFuture = new CompletableFuture<>();
+					returnFuture.complete(result);
+					notifyTileImportationListeners(returnFuture);
+				} catch (InterruptedException e) {
+					futureResults.forEach(f -> f.cancel(true));
+					break;
+				} catch (ExecutionException e) {
+					futureResults.forEach(f -> f.cancel(true));
+					endFuture.completeExceptionally(e);
+					break;
+				}
+			}
+
+			if (Thread.interrupted() || tile < numberOfTiles)
+				endFuture.cancel(true);
+
+			if (!endFuture.isDone())
+				endFuture.complete(null);
+
+			notifyTileImportationEndListeners(endFuture);
+			threadPool.shutdownNow();
+			futureResultsHandlingService.shutdown();
+		});
+	}
+
+	public int getNumberOfTiles() {
 		return grid.width * grid.height;
 	}
 
@@ -132,7 +145,18 @@ public class TileGridImporter {
 		tileImportationEndListeners.remove(listener);
 	}
 
-	public void cancelImportation() {
-		threadPool.shutdownNow();
+	public void cancelImportation() throws RuntimeException, InterruptedException {
+		futureResultsHandlingService.shutdownNow();
+
+		if (!futureResultsHandlingService.awaitTermination(5, TimeUnit.SECONDS))
+			throw new RuntimeException("Could not interrupt all threads");
+	}
+
+	public int getResolution() {
+		return resolution;
+	}
+
+	public Dimension getTileSize() {
+		return tileSize;
 	}
 }

@@ -29,9 +29,6 @@ import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.menu.AnnotationsMenu;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.menu.AnnotationsMenu.TermFilterListener;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.menu.AnnotationsMenu.UserFilterListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.NullViewProvider;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
@@ -53,10 +50,11 @@ public class ViewerComponentContainer extends JPanel {
 	private ViewProvider viewProvider;
 
 	private JMenuBar menuBar;
-	private JMenuItem cropImageMenuItem;
-	private JMenuItem importFromSequenceMenuItem;
-	private AnnotationsMenu menuAnnotations;
-	private JMenuItem menuAnnotations1;
+	private JMenuItem cytomineToIcyMenuItem;
+	private JMenuItem icySequenceToCytomineMenuItem;
+	private JMenuItem icyFileToCytomineMenuItem;
+	private JMenuItem icyFolderToCytomineMenuItem;
+	private JMenuItem menuAnnotationsItem;
 
 	private JLayeredPane layeredViewPane;
 
@@ -100,25 +98,36 @@ public class ViewerComponentContainer extends JPanel {
 
 	private void buildMenuBar() {
 		menuBar = new JMenuBar();
+		JMenu transferMenu = createTransferMenu();
+		menuBar.add(transferMenu);
 
-		JMenu mnAction = new JMenu("File");
-		menuBar.add(mnAction);
-
-		cropImageMenuItem = new JMenuItem("Crop");
-		mnAction.add(cropImageMenuItem);
-
-		importFromSequenceMenuItem = new JMenuItem("Import from sequence...");
-		mnAction.add(importFromSequenceMenuItem);
-
-		this.menuAnnotations = createAnnotationsMenu();
-		menuBar.add(menuAnnotations);
-
-		this.menuAnnotations1 = new JMenuItem("Annotations1");
-		menuBar.add(menuAnnotations1);
+		JMenu annotationsMenu = createAnnotationsMenu();
+		menuBar.add(annotationsMenu);
 	}
 
-	private AnnotationsMenu createAnnotationsMenu() {
-		return new AnnotationsMenu(viewProvider.getImageInformation());
+	private JMenu createTransferMenu() {
+		JMenu menu = new JMenu("Transfer");
+
+		cytomineToIcyMenuItem = new JMenuItem("Cytomine -> Icy...");
+		menu.add(cytomineToIcyMenuItem);
+
+		JMenu icyToCytomineMenu = new JMenu("Icy -> Cytomine");
+		icySequenceToCytomineMenuItem = new JMenuItem("From image...");
+		icyToCytomineMenu.add(icySequenceToCytomineMenuItem);
+		icyFileToCytomineMenuItem = new JMenuItem("From File...");
+		icyToCytomineMenu.add(icyFileToCytomineMenuItem);
+		icyFolderToCytomineMenuItem = new JMenuItem("From Folder...");
+		icyToCytomineMenu.add(icyFolderToCytomineMenuItem);
+		menu.add(icyToCytomineMenu);
+
+		return menu;
+	}
+
+	private JMenu createAnnotationsMenu() {
+		JMenu menu = new JMenu("Annotations");
+		menuAnnotationsItem = new JMenuItem("Filter...");
+		menu.add(menuAnnotationsItem);
+		return menu;
 	}
 
 	private void buildLayeredViewPane() {
@@ -309,23 +318,23 @@ public class ViewerComponentContainer extends JPanel {
 		zoomLevelButton.setText(String.format("%.1f X", zoomLevel));
 	}
 
+	public void addCytomineToIcyMenuListener(ActionListener actionListener) {
+		cytomineToIcyMenuItem.addActionListener(actionListener);
+	}
+
+	public void addIcySequenceToCytomineMenuListener(ActionListener actionListener) {
+		icySequenceToCytomineMenuItem.addActionListener(actionListener);
+	}
+
+	public void addIcyFileToCytomineMenuListener(ActionListener actionListener) {
+		icyFileToCytomineMenuItem.addActionListener(actionListener);
+	}
+
+	public void addIcyFolderToCytomineMenuListener(ActionListener actionListener) {
+		icyFolderToCytomineMenuItem.addActionListener(actionListener);
+	}
+
 	public void addAnnotationMenuListener(ActionListener listener) {
-		this.menuAnnotations1.addActionListener(listener);
-	}
-
-	public void addUserFilterListener(UserFilterListener listener) {
-		this.menuAnnotations.addUserFilterListener(listener);
-	}
-
-	public void addTermFilterListener(TermFilterListener listener) {
-		this.menuAnnotations.addTermFilterListener(listener);
-	}
-
-	public void addImageCropListener(ActionListener actionListener) {
-		cropImageMenuItem.addActionListener(actionListener);
-	}
-
-	public void addImportFromSequenceListener(ActionListener actionListener) {
-		importFromSequenceMenuItem.addActionListener(actionListener);
+		menuAnnotationsItem.addActionListener(listener);
 	}
 }

@@ -10,14 +10,13 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.MouseWheelListener;
 import java.awt.geom.Dimension2D;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
 
@@ -262,20 +261,34 @@ public class CachedViewController implements ViewController {
 	}
 
 	@Override
-	public void setUserAnnotationVisibility(User user, boolean visible) {
-		viewCanvasPanel.getViewProvider().setUserAnnotationVisibility(user, visible);
-		viewCanvasPanel.updateCanvas();
-	}
-
-	@Override
-	public void setTermAnnotationVisibility(Term term, boolean visible) {
-		viewCanvasPanel.getViewProvider().setTermAnnotationVisibility(term, visible);
-		viewCanvasPanel.updateCanvas();
-	}
-
-	@Override
 	public void setVisibileAnnotations(Set<Annotation> newVisibleAnnotations) {
 		viewCanvasPanel.getViewProvider().setVisibleAnnotations(newVisibleAnnotations);
 		viewCanvasPanel.updateCanvas();
+	}
+
+	@Override
+	public Rectangle2D getCurrentViewBoundsAtZeroResolution() {
+		double viewResolution = viewCanvasPanel.getViewProvider().getResolution();
+		Point2D positionAtZeroResolution = viewCanvasPanel.getViewProvider().getPosition();
+		Dimension2D dimensionAtViewResolution = viewCanvasPanel.getSize();
+		Dimension2D dimensionAtZeroResolution = MagnitudeResolutionConverter.convertDimension2D(dimensionAtViewResolution,
+				viewResolution, 0d);
+		return new Rectangle2D.Double(positionAtZeroResolution.getX(), positionAtZeroResolution.getY(),
+				dimensionAtZeroResolution.getWidth(), dimensionAtZeroResolution.getHeight());
+	}
+
+	@Override
+	public double getCurrentResolution() {
+		return viewCanvasPanel.getViewProvider().getResolution();
+	}
+
+	@Override
+	public Set<Annotation> getVisibleAnnotations() {
+		return viewCanvasPanel.getViewProvider().getVisibleAnnotations();
+	}
+
+	@Override
+	public Set<Annotation> getActiveAnnotations() {
+		return viewCanvasPanel.getViewProvider().getActiveAnnotations();
 	}
 }

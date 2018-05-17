@@ -2,16 +2,18 @@ package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller;
 
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.Set;
 
 import javax.swing.JFrame;
+import javax.swing.JPanel;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerComponentContainer;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanel;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.cytomine2Icy.CytomineToIcyPanel;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.sequence.IcySequenceToCytominePanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.ViewController;
 
 import icy.gui.frame.IcyFrame;
@@ -21,6 +23,8 @@ public class ViewerController {
 	private ViewerComponentContainer viewerContainer;
 	private ViewController viewController;
 	private IcyFrame annotationsFrame;
+	private IcyFrame cytomineToIcyFrame;
+	private IcyFrame icySequenceToCytomineFrame;
 
 	public ViewerController(ViewerComponentContainer viewerContainer) {
 		this.viewerContainer = viewerContainer;
@@ -73,30 +77,77 @@ public class ViewerController {
 		});
 		viewerContainer
 				.addZoomLevelSelectedListener(zoomLevel -> viewController.setResolution(getResolutionLevel(zoomLevel)));
-		viewerContainer.addAnnotationMenuListener(e -> {
-			System.out.println("clicked");
-			annotationsFrame = new IcyFrame("Annotations - Icytomine", true, true, false, false);
-			annotationsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-			annotationsFrame.setSize(new Dimension(400, 400));
-			annotationsFrame.setMinimumSize(new Dimension(10, 10));
-			AnnotationManagerPanel annotationsPanel = new AnnotationManagerPanel(viewController.getImageInformation());
-			annotationsPanel.addAnnotationsVisibilityListener((Set<Annotation> newVisibleAnnotations)->viewController.setVisibileAnnotations(newVisibleAnnotations));
-			annotationsFrame.setContentPane(annotationsPanel);
-			annotationsFrame.addToDesktopPane();
-			annotationsFrame.center();
-			annotationsFrame.setVisible(true);
+		viewerContainer.addAnnotationMenuListener(getAnnotationMenuHandler());
+		viewerContainer.addCytomineToIcyMenuListener(getCytomineToIcyMenuHandler());
+		viewerContainer.addIcySequenceToCytomineMenuListener(getIcySequenceToCytomineMenuHandler());
+		// TODO addIcyToCytomineFileMenuListener
+		// TODO addIcyToCytomineFolderMenuListener
+	}
 
-		});
-		viewerContainer.addUserFilterListener(
-				(User user, boolean selected) -> viewController.setUserAnnotationVisibility(user, selected));
-		viewerContainer.addTermFilterListener(
-				(Term term, boolean selected) -> viewController.setTermAnnotationVisibility(term, selected));
+	private ActionListener getAnnotationMenuHandler() {
+		return e -> {
+			System.out.println("Opening annotations menu...");
+			if (annotationsFrame != null) {
+				annotationsFrame.close();
+			}
+
+			AnnotationManagerPanel annotationsPanel = new AnnotationManagerPanel(viewController.getImageInformation());
+			annotationsPanel.addAnnotationsVisibilityListener(
+					(Set<Annotation> newVisibleAnnotations) -> viewController.setVisibileAnnotations(newVisibleAnnotations));
+			annotationsFrame = createIcyDialog("Annotations - Icytomine", annotationsPanel, true);
+			annotationsFrame.setSize(new Dimension(400, 400));
+			annotationsFrame.setVisible(true);
+		};
+	}
+
+	private static IcyFrame createIcyDialog(String title, JPanel contentPane, boolean resizable) {
+		IcyFrame frame = new IcyFrame(title, resizable, true, false, false);
+		frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame.setMinimumSize(new Dimension(10, 10));
+		frame.setContentPane(contentPane);
+		frame.setSize(contentPane.getPreferredSize());
+		frame.addToDesktopPane();
+		frame.center();
+		return frame;
+	}
+
+	private ActionListener getCytomineToIcyMenuHandler() {
+		return e -> {
+			System.out.println("Opening cytomine -> icy dialog...");
+			if (cytomineToIcyFrame != null) {
+				cytomineToIcyFrame.close();
+			}
+
+			CytomineToIcyPanel contentPane = new CytomineToIcyPanel(viewController);
+			cytomineToIcyFrame = createIcyDialog("Download view from Cytomine - Icytomine", contentPane, false);
+			contentPane.addCloseListener(a -> cytomineToIcyFrame.close());
+			cytomineToIcyFrame.setVisible(true);
+		};
+	}
+
+	private ActionListener getIcySequenceToCytomineMenuHandler() {
+		return e -> {
+			System.out.println("Opening icy sequence -> cytomine dialog...");
+			if (icySequenceToCytomineFrame != null) {
+				icySequenceToCytomineFrame.close();
+			}
+
+			IcySequenceToCytominePanel contentPane = new IcySequenceToCytominePanel(viewController);
+			icySequenceToCytomineFrame = createIcyDialog("Send Sequence ROIs to Cytomine - Icytomine", contentPane, false);
+			contentPane.addCloseListener(a -> icySequenceToCytomineFrame.close());
+			icySequenceToCytomineFrame.setVisible(true);
+		};
 	}
 
 	public void stopViewer() {
-		if (annotationsFrame != null)
-			annotationsFrame.close();
+		closeFrame(annotationsFrame);
+		closeFrame(cytomineToIcyFrame);
 
 		viewController.stopView();
+	}
+
+	private void closeFrame(IcyFrame frame) {
+		if (frame != null)
+			frame.close();
 	}
 }

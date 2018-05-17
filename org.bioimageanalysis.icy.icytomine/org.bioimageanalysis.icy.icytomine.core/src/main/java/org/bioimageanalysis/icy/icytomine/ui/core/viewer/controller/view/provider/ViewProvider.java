@@ -7,8 +7,6 @@ import java.util.Set;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.core.view.ViewListener;
 
 public abstract class ViewProvider {
@@ -33,7 +31,7 @@ public abstract class ViewProvider {
 		this.position.setLocation(position);
 	}
 
-	public double getResolutionLevel() {
+	public double getResolution() {
 		return resolutionLevel;
 	}
 
@@ -51,9 +49,9 @@ public abstract class ViewProvider {
 
 	public abstract Image getImageInformation();
 
-	public abstract void setUserAnnotationVisibility(User user, boolean visible);
-
-	public abstract void setTermAnnotationVisibility(Term term, boolean visible);
-
 	public abstract void setVisibleAnnotations(Set<Annotation> newVisibleAnnotations);
+
+	public abstract Set<Annotation> getVisibleAnnotations();
+
+	public abstract Set<Annotation> getActiveAnnotations();
 }

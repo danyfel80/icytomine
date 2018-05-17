@@ -18,6 +18,7 @@
  */
 package org.bioimageanalysis.icy.icytomine.core.model;
 
+import java.awt.Color;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
@@ -165,8 +166,10 @@ public class Annotation {
 
 			List<Term> terms = getTerms();
 			if (!terms.isEmpty()) {
-				this.roi.setColor(terms.get(0).getColor());
-				this.roi.setName(terms.get(0).getName());
+				Color color = terms.get(0).getColor();
+				String name = terms.get(0).getName();
+				this.roi.setColor(color);
+				this.roi.setName(name);
 			}
 		}
 

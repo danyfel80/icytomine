@@ -1,11 +1,10 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view;
 
+import java.awt.geom.Rectangle2D;
 import java.util.Set;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.PositionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.ResolutionListener;
 
@@ -29,10 +28,13 @@ public interface ViewController {
 
 	void stopView();
 
-	void setUserAnnotationVisibility(User user, boolean selected);
-
-	void setTermAnnotationVisibility(Term term, boolean selected);
-
 	void setVisibileAnnotations(Set<Annotation> newVisibleAnnotations);
+	
+	Set<Annotation> getVisibleAnnotations();
+	
+	Set<Annotation> getActiveAnnotations();
 
+	Rectangle2D getCurrentViewBoundsAtZeroResolution();
+
+	double getCurrentResolution();
 }

@@ -20,8 +20,6 @@ import java.util.stream.Collectors;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 import org.bioimageanalysis.icy.icytomine.geom.GeometricHash;
 import org.ehcache.Cache;
@@ -36,20 +34,21 @@ import be.cytomine.client.CytomineException;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
+import plugins.kernel.roi.roi2d.ROI2DShape;
 
 public class AnnotationView {
 	private static CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
 	private Image imageInformation;
-	private List<Annotation> annotations;
-	private Set<Long> userFilter;
-	private Set<Term> termFilter;
+	private List<Annotation> annotations; // All annotations in image
 
 	private Rectangle2D.Double viewBoundsAtZeroResolution;
 	private double targetResolution;
 	private Dimension canvasSize;
 	private GeometricHash<Annotation> annotationHash;
-	private Set<Annotation> activeAnnotations;
+	private Set<Annotation> activeAnnotations; // annotations in the current field
+																							// of view that might be visible
+																							// or not
 	private Set<Annotation> visibleAnnotations;
 	private BufferedImage blankView;
 	private BufferedImage currentView;
@@ -65,15 +64,13 @@ public class AnnotationView {
 
 	public AnnotationView(Image imageInformation) throws CytomineException {
 		this.imageInformation = imageInformation;
-		this.userFilter = new HashSet<>();
-		this.termFilter = new HashSet<>();
 		this.activeAnnotations = new HashSet<>();
 		this.visibleAnnotations = new HashSet<>();
 		this.listeners = new HashSet<>();
 		this.blankView = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
 		startPointCache();
 		retrieveAnnotations();
-		fillFilters();
+		fillVisibleAnnotations();
 		startDrawingThread();
 	}
 
@@ -104,45 +101,13 @@ public class AnnotationView {
 		});
 	}
 
-	private void fillFilters() {
+	private void fillVisibleAnnotations() {
 		visibleAnnotations = new HashSet<>(annotations);
-		fillUserFilter();
-		fillTermFilter();
-	}
-
-	private void fillUserFilter() {
-		annotations.stream().map(a -> a.getUserId()).filter(uId -> uId != null).forEach(uId -> userFilter.add(uId));
-	}
-
-	private void fillTermFilter() {
-		try {
-			termFilter.addAll(imageInformation.getAvailableTerms());
-		} catch (CytomineException e) {
-			e.printStackTrace();
-		}
 	}
 
 	private void startDrawingThread() {
 		annotationDrawingThreadPool = (ThreadPoolExecutor) Executors.newFixedThreadPool(1);
 		annotationDrawingThreadPool.prestartAllCoreThreads();
-	}
-
-	public void setUserAnnotationVisibility(User user, boolean visible) {
-		if (user != null) {
-			if (visible) {
-				userFilter.add(user.getId());
-			} else {
-				userFilter.remove(user.getId());
-			}
-		}
-	}
-
-	public void setTermAnnotationVisibility(Term term, boolean visible) {
-		if (visible) {
-			termFilter.add(term);
-		} else {
-			termFilter.remove(term);
-		}
 	}
 
 	public synchronized BufferedImage getView(Point2D positionAtZeroResolution, Dimension canvasSize,
@@ -202,16 +167,6 @@ public class AnnotationView {
 
 	private boolean isActive(Annotation a) {
 		return visibleAnnotations.contains(a);
-//		boolean userActive = userFilter.contains(a.getUserId());
-//		HashSet<Term> activeTerms;
-//		try {
-//			activeTerms = new HashSet<>(a.getTerms());
-//		} catch (CytomineException e) {
-//			e.printStackTrace();
-//			return false;
-//		}
-//		activeTerms.retainAll(termFilter);
-//		return userActive && !activeTerms.isEmpty();
 	}
 
 	private void drawAnnotations() throws InterruptedException {
@@ -226,12 +181,13 @@ public class AnnotationView {
 	private void drawAnnotation(Annotation a) throws InterruptedException {
 		try {
 			List<Point2D> annotationPoints = getAnnotationPoints(a);
-			if (a.getROI(0) instanceof ROI2DPoint) {
-				drawPoint(annotationPoints);
-			} else if (a.getROI(0) instanceof ROI2DPolygon) {
-				drawPolygon(annotationPoints);
-			} else if (a.getROI(0) instanceof ROI2DPolyLine) {
-				drawPolyLine(annotationPoints);
+			ROI2DShape roi = a.getROI(0);
+			if (roi instanceof ROI2DPoint) {
+				drawPoint(annotationPoints, roi.getColor());
+			} else if (roi instanceof ROI2DPolygon) {
+				drawPolygon(annotationPoints, roi.getColor());
+			} else if (roi instanceof ROI2DPolyLine) {
+				drawPolyLine(annotationPoints, roi.getColor());
 			}
 		} catch (ParseException | CytomineException e) {
 			e.printStackTrace();
@@ -249,32 +205,32 @@ public class AnnotationView {
 		return points;
 	}
 
-	private void drawPoint(List<Point2D> annotationPoints) {
+	private void drawPoint(List<Point2D> annotationPoints, Color color) {
 		Graphics2D g2 = currentView.createGraphics();
 		Point2D point = annotationPoints.get(0);
 		int x = (int) MagnitudeResolutionConverter.convertMagnitude(point.getX() - viewBoundsAtZeroResolution.getMinX(), 0d,
 				targetResolution);
 		int y = (int) MagnitudeResolutionConverter.convertMagnitude(point.getY() - viewBoundsAtZeroResolution.getMinY(), 0d,
 				targetResolution);
-		g2.setColor(Color.BLUE);
+		g2.setColor(color);
 		g2.setStroke(new BasicStroke(3));
 		g2.drawOval(x - 2, y - 2, 4, 4);
 		g2.dispose();
 	}
 
-	private void drawPolygon(List<Point2D> annotationPoints) throws InterruptedException {
+	private void drawPolygon(List<Point2D> annotationPoints, Color color) throws InterruptedException {
 		Graphics2D g2 = currentView.createGraphics();
 		Point2D initPoint = annotationPoints.get(annotationPoints.size() - 1);
 		int x1 = (int) MagnitudeResolutionConverter
 				.convertMagnitude(initPoint.getX() - viewBoundsAtZeroResolution.getMinX(), 0d, targetResolution);
 		int y1 = (int) MagnitudeResolutionConverter
 				.convertMagnitude(initPoint.getY() - viewBoundsAtZeroResolution.getMinY(), 0d, targetResolution);
+		
+		g2.setColor(color);
+		g2.setStroke(new BasicStroke(3));
 		for (Point2D currentPoint : annotationPoints) {
 			if (Thread.interrupted())
 				throw new InterruptedException();
-
-			g2.setColor(Color.GREEN);
-			g2.setStroke(new BasicStroke(3));
 			int x2 = (int) MagnitudeResolutionConverter
 					.convertMagnitude(currentPoint.getX() - viewBoundsAtZeroResolution.getMinX(), 0d, targetResolution);
 			int y2 = (int) MagnitudeResolutionConverter
@@ -286,16 +242,16 @@ public class AnnotationView {
 		g2.dispose();
 	}
 
-	private void drawPolyLine(List<Point2D> annotationPoints) throws InterruptedException {
+	private void drawPolyLine(List<Point2D> annotationPoints, Color color) throws InterruptedException {
 		Graphics2D g2 = currentView.createGraphics();
 		int x1 = 0, y1 = 0;
 		boolean first = true;
+		
+		g2.setColor(color);
+		g2.setStroke(new BasicStroke(3));
 		for (Point2D currentPoint : annotationPoints) {
 			if (Thread.interrupted())
 				throw new InterruptedException();
-
-			g2.setColor(Color.GREEN);
-			g2.setStroke(new BasicStroke(3));
 			int x2 = (int) MagnitudeResolutionConverter
 					.convertMagnitude(currentPoint.getX() - viewBoundsAtZeroResolution.getMinX(), 0, targetResolution);
 			int y2 = (int) MagnitudeResolutionConverter
@@ -338,6 +294,14 @@ public class AnnotationView {
 		cancelPreviousRequests();
 		computeViewBoundsAtZeroResolution(positionAtZeroResolution, canvasSize);
 		requestCurrentView(canvasSize);
+	}
+
+	public Set<Annotation> getVisibleAnnotations() {
+		return new HashSet<>(visibleAnnotations);
+	}
+
+	public Set<Annotation> getActiveAnnotations() {
+		return new HashSet<>(activeAnnotations);
 	}
 
 }

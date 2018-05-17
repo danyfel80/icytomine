@@ -32,7 +32,7 @@ subprojects {
 
 
 	dependencies {
-		//api 'com.github.cytomine:Cytomine-java-client:v1.1.2' // Cytomine
+		//api 'com.github.cytomine:Cytomine-java-client:v1.1.3' // Cytomine
 		api ':cytomine-java-client:1.1'
 		implementation 'javax.json.bind:javax.json.bind-api:1.0' // Json-B
 		implementation 'org.glassfish:javax.json:1.1.2' // Json-B
