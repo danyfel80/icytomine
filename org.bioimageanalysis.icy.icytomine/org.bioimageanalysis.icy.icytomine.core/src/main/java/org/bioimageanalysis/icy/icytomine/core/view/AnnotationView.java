@@ -225,7 +225,7 @@ public class AnnotationView {
 				.convertMagnitude(initPoint.getX() - viewBoundsAtZeroResolution.getMinX(), 0d, targetResolution);
 		int y1 = (int) MagnitudeResolutionConverter
 				.convertMagnitude(initPoint.getY() - viewBoundsAtZeroResolution.getMinY(), 0d, targetResolution);
-		
+
 		g2.setColor(color);
 		g2.setStroke(new BasicStroke(3));
 		for (Point2D currentPoint : annotationPoints) {
@@ -246,7 +246,7 @@ public class AnnotationView {
 		Graphics2D g2 = currentView.createGraphics();
 		int x1 = 0, y1 = 0;
 		boolean first = true;
-		
+
 		g2.setColor(color);
 		g2.setStroke(new BasicStroke(3));
 		for (Point2D currentPoint : annotationPoints) {
@@ -302,6 +302,11 @@ public class AnnotationView {
 
 	public Set<Annotation> getActiveAnnotations() {
 		return new HashSet<>(activeAnnotations);
+	}
+
+	public void updateModel() throws CytomineException {
+		retrieveAnnotations();
+		fillVisibleAnnotations();
 	}
 
 }

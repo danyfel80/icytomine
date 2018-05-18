@@ -82,4 +82,8 @@ public class NullViewProvider extends ViewProvider {
 		return new HashSet<>();
 	}
 
+	@Override
+	public void updateAnnotations() throws Exception {
+	}
+
 }

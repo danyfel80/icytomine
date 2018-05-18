@@ -19,6 +19,7 @@ import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
 
 public class CachedViewController implements ViewController {
 
@@ -290,5 +291,10 @@ public class CachedViewController implements ViewController {
 	@Override
 	public Set<Annotation> getActiveAnnotations() {
 		return viewCanvasPanel.getViewProvider().getActiveAnnotations();
+	}
+
+	@Override
+	public ViewProvider getViewProvider() {
+		return viewCanvasPanel.getViewProvider();
 	}
 }

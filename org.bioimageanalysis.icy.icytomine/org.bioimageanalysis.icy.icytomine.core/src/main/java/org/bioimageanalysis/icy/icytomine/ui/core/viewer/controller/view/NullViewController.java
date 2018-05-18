@@ -14,6 +14,7 @@ import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.PositionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.ResolutionListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
 
 public class NullViewController implements ViewController {
 
@@ -150,6 +151,11 @@ public class NullViewController implements ViewController {
 	public Set<Annotation> getActiveAnnotations() {
 		// Not used
 		return null;
+	}
+
+	@Override
+	public ViewProvider getViewProvider() {
+		return viewCanvasPanel.getViewProvider();
 	}
 
 }

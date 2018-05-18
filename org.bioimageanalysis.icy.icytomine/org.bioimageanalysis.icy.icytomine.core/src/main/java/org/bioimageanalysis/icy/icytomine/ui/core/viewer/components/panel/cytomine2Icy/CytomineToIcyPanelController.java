@@ -5,6 +5,7 @@ import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -143,7 +144,7 @@ public class CytomineToIcyPanelController {
 			Sequence image = new Sequence(result.get());
 			Dimension2D pixelSize = getPixelSizeAtViewResolution();
 			image.setPixelSizeX(pixelSize.getWidth());
-			image.setPixelSizeX(pixelSize.getHeight());
+			image.setPixelSizeY(pixelSize.getHeight());
 			image.setPositionX(viewBounds.getX() * pixelSize.getWidth());
 			image.setPositionY(viewBounds.getY() * pixelSize.getHeight());
 
@@ -168,7 +169,7 @@ public class CytomineToIcyPanelController {
 	}
 
 	private Dimension2D getPixelSizeAtViewResolution() {
-		double pixelLength = imageInformation.getResolution();
+		double pixelLength = Optional.ofNullable(imageInformation.getResolution()).orElse(1d);
 		Dimension2D pixelSize = new icy.type.dimension.Dimension2D.Double(pixelLength, pixelLength);
 		return MagnitudeResolutionConverter.convertDimension2D(pixelSize, 0d, outputResolution);
 	}

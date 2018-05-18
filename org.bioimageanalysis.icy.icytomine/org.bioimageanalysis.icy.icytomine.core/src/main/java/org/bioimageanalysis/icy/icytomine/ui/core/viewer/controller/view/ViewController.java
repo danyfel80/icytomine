@@ -7,6 +7,7 @@ import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.PositionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.ResolutionListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
 
 public interface ViewController {
 
@@ -29,12 +30,14 @@ public interface ViewController {
 	void stopView();
 
 	void setVisibileAnnotations(Set<Annotation> newVisibleAnnotations);
-	
+
 	Set<Annotation> getVisibleAnnotations();
-	
+
 	Set<Annotation> getActiveAnnotations();
 
 	Rectangle2D getCurrentViewBoundsAtZeroResolution();
 
 	double getCurrentResolution();
+
+	ViewProvider getViewProvider();
 }

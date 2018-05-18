@@ -11,6 +11,8 @@ import org.bioimageanalysis.icy.icytomine.core.view.AnnotationView;
 import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
 import org.bioimageanalysis.icy.icytomine.core.view.ViewListener;
 
+import be.cytomine.client.CytomineException;
+
 public class CachedViewProvider extends ViewProvider {
 	private CachedView cachedView;
 	private AnnotationView annotationView;
@@ -75,6 +77,11 @@ public class CachedViewProvider extends ViewProvider {
 
 	private void notifyViewListeners() {
 		viewListeners.forEach(l -> l.onViewChanged(currentImageView, currentAnnotationView));
+	}
+	
+	@Override
+	public void updateAnnotations() throws CytomineException {
+		annotationView.updateModel();
 	}
 
 	@Override

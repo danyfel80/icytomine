@@ -142,6 +142,7 @@ public class ViewerController {
 	public void stopViewer() {
 		closeFrame(annotationsFrame);
 		closeFrame(cytomineToIcyFrame);
+		closeFrame(icySequenceToCytomineFrame);
 
 		viewController.stopView();
 	}

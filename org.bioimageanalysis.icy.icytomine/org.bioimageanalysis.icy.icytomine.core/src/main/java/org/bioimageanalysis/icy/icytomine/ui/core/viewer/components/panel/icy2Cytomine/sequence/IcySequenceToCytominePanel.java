@@ -2,6 +2,7 @@ package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2C
 
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -32,6 +33,7 @@ public class IcySequenceToCytominePanel extends JPanel {
 	}
 
 	private void setView() {
+		setPreferredSize(new Dimension(300, 220));
 		setGridBagLayout();
 		addInstructionsMessage();
 		addSequenceSelection();
@@ -51,37 +53,36 @@ public class IcySequenceToCytominePanel extends JPanel {
 
 	private void addInstructionsMessage() {
 		JLabel messageLabel = new JLabel("Please select the sequence to send");
-		addWithConstraints(messageLabel, this, 0, 0, 2, 1, GridBagConstraints.CENTER, GridBagConstraints.NONE, 10, 10, 10,
-				10);
+		addWithConstraints(messageLabel, this, 0, 0, 2, 1, GridBagConstraints.CENTER, GridBagConstraints.NONE, 5, 5, 5, 5);
 
 	}
 
 	private void addSequenceSelection() {
 		JLabel sequenceLabel = new JLabel("Sequence");
-		addWithConstraints(sequenceLabel, this, 0, 1, 1, 1, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, 0, 10,
-				5, 5);
+		addWithConstraints(sequenceLabel, this, 0, 1, 1, 1, GridBagConstraints.EAST, GridBagConstraints.HORIZONTAL, 0, 5, 5,
+				5);
 
 		sequenceComboBox = new JComboBox<>();
 		addWithConstraints(sequenceComboBox, this, 1, 1, 1, 1, GridBagConstraints.CENTER, GridBagConstraints.HORIZONTAL, 0,
-				0, 5, 10);
+				0, 5, 5);
 	}
 
 	private void addRoiSelection() {
 		roiSelectionCheckBox = new JCheckBox("Send only selected ROI's");
-		addWithConstraints(roiSelectionCheckBox, this, 0, 2, 2, 1, GridBagConstraints.CENTER, GridBagConstraints.NONE, 0,
-				10, 5, 10);
+		addWithConstraints(roiSelectionCheckBox, this, 0, 2, 2, 1, GridBagConstraints.CENTER, GridBagConstraints.NONE, 0, 5,
+				5, 5);
 	}
 
 	private void addProgressBar() {
 		transferProgressBar = new JProgressBar();
-		addWithConstraints(transferProgressBar, this, 0, 3, 2, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 0, 10,
-				5, 10);
+		addWithConstraints(transferProgressBar, this, 0, 3, 2, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 0, 5,
+				5, 5);
 
 	}
 
 	private void addActionButtons() {
 		JPanel panel = getActionButtonPanel();
-		addWithConstraints(panel, this, 0, 4, 2, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 0, 10, 10, 10);
+		addWithConstraints(panel, this, 0, 4, 2, 1, GridBagConstraints.CENTER, GridBagConstraints.BOTH, 0, 5, 5, 5);
 	}
 
 	private JPanel getActionButtonPanel() {

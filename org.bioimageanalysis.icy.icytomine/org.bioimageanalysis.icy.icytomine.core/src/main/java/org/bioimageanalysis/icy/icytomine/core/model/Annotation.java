@@ -24,6 +24,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -43,9 +44,11 @@ import be.cytomine.client.CytomineException;
 import be.cytomine.client.collections.TermCollection;
 import icy.painter.Anchor2D;
 import icy.roi.ROI2D;
+import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
+import plugins.kernel.roi.roi2d.ROI2DRectShape;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
 /**
@@ -110,13 +113,32 @@ public class Annotation {
 	 */
 	public static String convertToWKT(ROI2DShape shape) {
 		List<Anchor2D> points = new ArrayList<>(shape.getControlPoints());
-		points.add(points.get(0));
 
 		StringBuffer buffer = new StringBuffer();
-		buffer.append(shape instanceof ROI2DPoint ? "POINT(" : "POLYGON ((");
-		buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
-				.collect(Collectors.joining(",")));
-		buffer.append(shape instanceof ROI2DPoint ? ")" : "))");
+		if (shape instanceof ROI2DPoint) {
+			buffer.append("POINT(");
+			buffer.append(String.format("%f %f", points.get(0).getPositionX(), points.get(0).getPositionY()));
+			buffer.append(")");
+		} else if (shape instanceof ROI2DLine || shape instanceof ROI2DPolyLine) {
+			buffer.append("LINESTRING (");
+			buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
+					.collect(Collectors.joining(",")));
+			buffer.append(")");
+		} else {
+			buffer.append("POLYGON((");
+			if (shape instanceof ROI2DRectShape) {
+				Rectangle2D rect = ((ROI2DRectShape) shape).getBounds2D();
+				buffer.append(String.format("%f %f, ", rect.getMinX(), rect.getMinY()));
+				buffer.append(String.format("%f %f, ", rect.getMinX(), rect.getMaxY()));
+				buffer.append(String.format("%f %f, ", rect.getMaxX(), rect.getMaxY()));
+				buffer.append(String.format("%f %f, ", rect.getMaxX(), rect.getMinY()));
+				buffer.append(String.format("%f %f", rect.getMinX(), rect.getMinY()));
+			} else {
+				buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
+						.collect(Collectors.joining(",")));
+			}
+			buffer.append("))");
+		}
 		return buffer.toString();
 	}
 
@@ -178,7 +200,8 @@ public class Annotation {
 
 	public List<Term> getTerms() throws CytomineException {
 		if (terms == null) {
-			TermCollection nativeAnnotationTerms = getClient().getTermsByAnnotation(getId());
+			TermCollection nativeAnnotationTerms = Optional.ofNullable(getClient().getTermsByAnnotation(getId()))
+					.orElse(new TermCollection(0, 0));
 			ThreadPoolExecutor tp = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
 			CompletionService<Term> cs = new ExecutorCompletionService<>(tp);
 			IntStream.range(0, nativeAnnotationTerms.size()).mapToObj(i -> nativeAnnotationTerms.get(i))

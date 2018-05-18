@@ -1,8 +1,10 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.sequence;
 
+import icy.main.Icy;
 import icy.sequence.Sequence;
 
 public class SequenceItem {
+
 	private Sequence sequence;
 
 	public SequenceItem(Sequence sequence) {
@@ -11,11 +13,15 @@ public class SequenceItem {
 	}
 
 	public Sequence getSequence() {
+		if (sequence == null)
+			return Icy.getMainInterface().getActiveSequence();
 		return sequence;
 	}
 
 	@Override
 	public String toString() {
+		if (sequence == null)
+			return "Active sequence";
 		return sequence.getName();
 	}
 
@@ -43,8 +49,12 @@ public class SequenceItem {
 			if (other.sequence != null) {
 				return false;
 			}
-		} else if (sequence.hashCode() != (other.sequence.hashCode())) {
-			return false;
+		} else {
+			if (other.sequence == null)
+				return false;
+			else if (sequence.hashCode() != (other.sequence.hashCode())) {
+				return false;
+			}
 		}
 		return true;
 	}

@@ -54,4 +54,6 @@ public abstract class ViewProvider {
 	public abstract Set<Annotation> getVisibleAnnotations();
 
 	public abstract Set<Annotation> getActiveAnnotations();
+
+	public abstract void updateAnnotations() throws Exception;
 }
