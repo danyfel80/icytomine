@@ -49,6 +49,7 @@ public class AnnotationInserter {
 			ROI2DShape roi = (ROI2DShape) annotation.getROI(0);
 			ROI2DShape roiInView = createRoiInView(roi);
 			roiInView.setName(Objects.toString(annotation.getId()));
+			roiInView.setProperty("cytomineId", Objects.toString(annotation.getId()));
 			roiInView.setColor(roi.getColor());
 			sequence.addROI(roiInView);
 		} catch (ParseException | CytomineException e) {

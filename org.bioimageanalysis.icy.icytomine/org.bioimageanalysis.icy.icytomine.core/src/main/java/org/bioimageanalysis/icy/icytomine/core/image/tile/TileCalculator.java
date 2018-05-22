@@ -2,6 +2,7 @@ package org.bioimageanalysis.icy.icytomine.core.image.tile;
 
 import java.awt.Dimension;
 import java.awt.Rectangle;
+import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
 
 public class TileCalculator {
@@ -27,5 +28,13 @@ public class TileCalculator {
 		int yEndTile = (yEnd + tileDimension.height - 1) / tileDimension.height;
 
 		return new Rectangle(xStartTile, yStartTile, xEndTile - xStartTile, yEndTile - yStartTile);
+	}
+	
+	public Rectangle getLimitedTileBounds(Dimension2D imageSize) {
+		int maxXTile = (int) Math.ceil(imageSize.getWidth() / tileDimension.getWidth());
+		int maxYTile = (int) Math.ceil(imageSize.getHeight() / tileDimension.getHeight());
+		Rectangle imageTileGrid = new Rectangle(0, 0, maxXTile, maxYTile);
+		Rectangle tileGrid = getTileBounds();
+		return tileGrid.intersection(imageTileGrid);
 	}
 }

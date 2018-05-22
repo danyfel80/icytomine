@@ -95,8 +95,8 @@ public class TileGridStitcher {
 
 		Graphics2D g = targetImage.createGraphics();
 		g.drawImage(tileResult.getTileImage(), tilePositionInImage.x, tilePositionInImage.y,
-				(int) Math.ceil(tileDimensionAtTargetResolution.getWidth()),
-				(int) Math.ceil(tileDimensionAtTargetResolution.getHeight()), null);
+				Math.min((int) Math.ceil(tileDimensionAtTargetResolution.getWidth()), tileResult.getTileImage().getWidth()),
+				Math.min((int) Math.ceil(tileDimensionAtTargetResolution.getHeight()), tileResult.getTileImage().getHeight()), null);
 
 		synchronized (stitchedTiles) {
 			stitchedTiles.incrementAndGet();

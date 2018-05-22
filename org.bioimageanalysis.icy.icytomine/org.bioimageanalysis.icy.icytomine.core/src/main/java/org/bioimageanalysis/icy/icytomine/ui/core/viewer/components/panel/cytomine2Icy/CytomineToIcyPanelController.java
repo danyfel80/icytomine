@@ -143,6 +143,7 @@ public class CytomineToIcyPanelController {
 		try {
 			Sequence image = new Sequence(result.get());
 			Dimension2D pixelSize = getPixelSizeAtViewResolution();
+			image.setName(imageInformation.getName());
 			image.setPixelSizeX(pixelSize.getWidth());
 			image.setPixelSizeY(pixelSize.getHeight());
 			image.setPositionX(viewBounds.getX() * pixelSize.getWidth());

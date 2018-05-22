@@ -24,6 +24,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutionException;
@@ -136,6 +137,7 @@ public class Annotation {
 			} else {
 				buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
 						.collect(Collectors.joining(",")));
+				buffer.append(String.format(",%f %f", points.get(0).getPositionX(), points.get(0).getPositionY()));
 			}
 			buffer.append("))");
 		}
@@ -189,10 +191,10 @@ public class Annotation {
 			List<Term> terms = getTerms();
 			if (!terms.isEmpty()) {
 				Color color = terms.get(0).getColor();
-				String name = terms.get(0).getName();
 				this.roi.setColor(color);
-				this.roi.setName(name);
 			}
+
+			this.roi.setProperty("cytomineId", Objects.toString(this.getId()));
 		}
 
 		return roi;

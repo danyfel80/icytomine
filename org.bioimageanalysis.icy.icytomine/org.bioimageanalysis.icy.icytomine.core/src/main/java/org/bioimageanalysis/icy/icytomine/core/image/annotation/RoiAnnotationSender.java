@@ -78,11 +78,23 @@ public class RoiAnnotationSender {
 	private List<? extends ROI2D> getROIs() {
 		Set<String> ids = getExistingAnnotationIds();
 		if (selectedRois) {
-			return sequence.getSelectedROI2Ds().stream().filter(roi -> !ids.contains(roi.getName()))
+			return sequence.getSelectedROI2Ds().stream().filter(roi -> !ids.contains(getAnnotationId(roi)))
 					.collect(Collectors.toList());
 		} else {
-			return sequence.getROI2Ds().stream().filter(roi -> !ids.contains(roi.getName())).collect(Collectors.toList());
+			return sequence.getROI2Ds().stream().filter(roi -> !ids.contains(getAnnotationId(roi)))
+					.collect(Collectors.toList());
 		}
+	}
+
+	private String getAnnotationId(ROI2D roi) {
+		String idString = roi.getProperty("cytomineId");
+		Long id;
+		try {
+			id = Long.parseUnsignedLong(idString);
+		} catch (NumberFormatException e) {
+			id = Long.MIN_VALUE;
+		}
+		return id.toString();
 	}
 
 	private Set<String> getExistingAnnotationIds() {

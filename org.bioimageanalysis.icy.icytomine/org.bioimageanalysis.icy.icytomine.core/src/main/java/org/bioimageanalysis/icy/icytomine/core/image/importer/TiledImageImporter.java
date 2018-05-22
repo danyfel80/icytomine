@@ -11,6 +11,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
+import org.bioimageanalysis.icy.icytomine.core.image.tile.TileCalculator;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 
@@ -82,16 +83,11 @@ public class TiledImageImporter {
 	}
 
 	private void computeTileGridToRequest() {
-		Dimension2D imageDim = getImageSizeAtRequestResolution();
 		Dimension tileDim = new Dimension((int) tileDimensionAtRequestResolution.getWidth(),
 				(int) tileDimensionAtRequestResolution.getHeight());
-		int tileX = (int) Math.max(0, boundsAtRequestResolution.getX()) / tileDim.width;
-		int tileY = (int) Math.max(0, boundsAtRequestResolution.getY()) / tileDim.height;
-		int tileMaxX = (int) (Math.max(0, Math.min(boundsAtRequestResolution.getMaxX(), imageDim.getWidth()))
-				+ tileDim.width - 1) / tileDim.width;
-		int tileMaxY = (int) (Math.max(0, Math.min(boundsAtRequestResolution.getMaxY(), imageDim.getHeight()))
-				+ tileDim.height - 1) / tileDim.height;
-		tileGrigToRequest = new Rectangle(tileX, tileY, tileMaxX - tileX, tileMaxY - tileY);
+		TileCalculator calculator = new TileCalculator(boundsAtRequestResolution, requestResolution, tileDim);
+		Dimension2D imageDim = getImageSizeAtRequestResolution();
+		tileGrigToRequest = calculator.getLimitedTileBounds(imageDim);
 	}
 
 	private Dimension2D getImageSizeAtRequestResolution() {
