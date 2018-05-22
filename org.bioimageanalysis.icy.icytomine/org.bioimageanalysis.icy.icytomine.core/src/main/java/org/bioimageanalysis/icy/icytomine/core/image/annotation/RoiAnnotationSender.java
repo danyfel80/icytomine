@@ -2,14 +2,17 @@ package org.bioimageanalysis.icy.icytomine.core.image.annotation;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.core.model.Term;
 
 import be.cytomine.client.CytomineException;
 import icy.common.listener.ProgressListener;
@@ -34,16 +37,29 @@ public class RoiAnnotationSender {
 
 	private Point2D sequenceLocation;
 	private double sequenceScaleFactor;
+	private Map<String, Term> availableTerms;
 
 	public RoiAnnotationSender(Image imageInformation, Sequence sequence, boolean selectedRois) {
 		this.imageInformation = imageInformation;
 		this.sequence = sequence;
 		this.selectedRois = selectedRois;
 
+		computeAvailableTerms();
+
 		progressListeners = new HashSet<>();
 
 		sequenceLocation = null;
 		sequenceScaleFactor = Double.NaN;
+	}
+
+	private void computeAvailableTerms() {
+		try {
+			List<Term> terms = imageInformation.getAvailableTerms();
+			availableTerms = new HashMap<>(terms.size());
+			terms.forEach(term -> availableTerms.put(term.getName().toLowerCase(), term));
+		} catch (CytomineException e) {
+			availableTerms = new HashMap<>(0);
+		}
 	}
 
 	public void addProgressListener(ProgressListener listener) {
@@ -113,10 +129,18 @@ public class RoiAnnotationSender {
 
 	private Annotation sendROI(ROI2D roi) throws CytomineException, UnsupportedOperationException {
 		String description = getRoiWTKDesciption(roi);
+		Set<Term> terms = getRoiTermsBasedOnName(roi);
 
-		be.cytomine.client.models.Annotation internalAnnotation = imageInformation.getClient().addAnnotation(description,
-				imageInformation.getId());
+		Annotation annotation = createAnnotation(description, terms);
+
+		return annotation;
+	}
+
+	private Annotation createAnnotation(String description, Set<Term> terms) throws CytomineException {
+		be.cytomine.client.models.Annotation internalAnnotation = imageInformation.getClient().addAnnotationWithTerms(
+				description, imageInformation.getId(), terms.stream().map(term -> term.getId()).collect(Collectors.toList()));
 		Annotation annotation = new Annotation(internalAnnotation, imageInformation, imageInformation.getClient());
+		annotation.getTerms();
 		return annotation;
 	}
 
@@ -178,6 +202,23 @@ public class RoiAnnotationSender {
 					sequence.getPositionY() / sequence.getPixelSizeY());
 		}
 		return sequenceLocation;
+	}
+
+	private Set<Term> getRoiTermsBasedOnName(ROI2D roi) {
+		Set<Term> terms = new HashSet<>();
+		String termString = roi.getName();
+		String[] termStrings = termString.split(",");
+		for (String termName : termStrings) {
+			termName = termName.trim().toLowerCase();
+			if (isValidTerm(termName)) {
+				terms.add(availableTerms.get(termName));
+			}
+		}
+		return terms;
+	}
+
+	private boolean isValidTerm(String termName) {
+		return availableTerms.containsKey(termName);
 	}
 
 	private void notifyProgress(int processedRois, int numRois) {

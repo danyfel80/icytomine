@@ -205,4 +205,8 @@ public class CytomineToIcyPanel extends JPanel {
 			progressBar.setValue(0);
 		});
 	}
+
+	public CytomineToIcyPanelController getController() {
+		return panelController;
+	}
 }

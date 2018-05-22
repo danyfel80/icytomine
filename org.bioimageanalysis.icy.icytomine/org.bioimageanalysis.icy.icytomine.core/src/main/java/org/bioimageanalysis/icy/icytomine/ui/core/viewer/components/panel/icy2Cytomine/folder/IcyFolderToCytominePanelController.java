@@ -1,15 +1,20 @@
-package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.sequence;
+package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.folder;
 
 import java.awt.EventQueue;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import javax.swing.DefaultComboBoxModel;
+import javax.swing.JFileChooser;
 
 import org.bioimageanalysis.icy.icytomine.core.image.annotation.RoiAnnotationSender;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
@@ -17,84 +22,85 @@ import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.ViewCon
 
 import be.cytomine.client.CytomineException;
 import icy.common.listener.ProgressListener;
+import icy.file.Loader;
 import icy.gui.dialog.MessageDialog;
-import icy.main.Icy;
 import icy.sequence.Sequence;
 
-public class IcySequenceToCytominePanelController {
+public class IcyFolderToCytominePanelController {
 
-	public interface RoiTransferCancellationListener {
-		void cancelTransfer();
-	}
-
-	public interface RoiTransferStartListener {
-		void startTransfer(Sequence fromSequence);
-	}
-
-	private IcySequenceToCytominePanel panel;
+	private IcyFolderToCytominePanel panel;
 	private ViewController viewController;
 
+	private ExecutorService transferService;
 	private Set<ActionListener> closeListeners;
 
-	private ExecutorService transferService;
+	private Path selectedFolderPath;
 
-	public IcySequenceToCytominePanelController(IcySequenceToCytominePanel panel, ViewController viewController) {
+	public IcyFolderToCytominePanelController(IcyFolderToCytominePanel panel, ViewController viewController) {
 		this.panel = panel;
 		this.viewController = viewController;
-		closeListeners = new HashSet<>();
 
+		closeListeners = new HashSet<>();
 		setHandlers();
 		setDisplayInformation();
 	}
 
-	private void setAvailableSequences() {
-		List<Sequence> sequences = Icy.getMainInterface().getSequences();
-		sequences.add(0, null);
-		SequenceItem[] items = sequences.stream().map(seq -> new SequenceItem(seq)).toArray(SequenceItem[]::new);
-		panel.getSequenceComboBox().setModel(new DefaultComboBoxModel<>(items));
-		panel.getSequenceComboBox().setSelectedItem(items[0]);
-	}
-
 	private void setHandlers() {
+		panel.getSelectFolderButton().addActionListener(getSelectFolderButtonHandler());
 		panel.getSendButton().addActionListener(getSendButtonHandler());
 		panel.getCancelButton().addActionListener(getCancelButtonHandler());
 	}
 
-	private ActionListener getSendButtonHandler() {
-		return (event) -> {
-			try {
-				cancelPreviousRequest();
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			} catch (RuntimeException e) {
-				MessageDialog.showDialog("Send annotations to Cytomine", e.getMessage(), MessageDialog.ERROR_MESSAGE);
-				e.printStackTrace();
-				return;
+	private ActionListener getSelectFolderButtonHandler() {
+		return event -> {
+			JFileChooser dialog = new JFileChooser();
+			dialog.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			dialog.setMultiSelectionEnabled(false);
+			dialog.showOpenDialog(panel);
+
+			File selectedFolder = dialog.getSelectedFile();
+			if (selectedFolder != null) {
+				selectedFolderPath = selectedFolder.toPath();
+				panel.getFolderPathLabel().setText(selectedFolderPath.toString());
+			} else {
+				selectedFolderPath = null;
+				panel.getFolderPathLabel().setText("No folder selected");
 			}
-			Sequence sequence = ((SequenceItem) panel.getSequenceComboBox().getSelectedItem()).getSequence();
-			boolean selectedRois = panel.getRoiSelectionCheckBox().isSelected();
-			sendAnnotations(sequence, selectedRois);
 		};
 	}
 
-	private synchronized void sendAnnotations(Sequence sequence, boolean selectedRois) {
-		if (sequence == null) {
-			MessageDialog.showDialog("Send annotations to Cytomine", "No sequence selected", MessageDialog.ERROR_MESSAGE);
+	private ActionListener getSendButtonHandler() {
+		return event -> {
+			if (selectedFolderPath == null)
+				MessageDialog.showDialog("Send annotations to cytomine", "No folder selected", MessageDialog.ERROR_MESSAGE);
+			else {
+				List<Sequence> sequences = Loader.loadSequences(Arrays.stream(selectedFolderPath.toFile().listFiles())
+						.map(file -> file.toString()).collect(Collectors.toList()), 0, true, true, false, true);
+				sendAnnotationsFromSequeces(sequences);
+			}
+		};
+	}
+
+	private void sendAnnotationsFromSequeces(List<Sequence> sequences) {
+		if (sequences == null || sequences.isEmpty()) {
+			MessageDialog.showDialog("Send annotations to Cytomine", "No sequences selected", MessageDialog.ERROR_MESSAGE);
 		} else {
 			transferService = Executors.newSingleThreadExecutor();
-			transferService.submit(getTransferHandler(sequence, selectedRois));
+			transferService.submit(getTransferHandler(sequences));
 			transferService.shutdown();
 		}
 	}
 
-	private Runnable getTransferHandler(Sequence sequence, boolean selectedRois) {
+	private Runnable getTransferHandler(List<Sequence> sequences) {
 		return () -> {
 			try {
-				RoiAnnotationSender sender = new RoiAnnotationSender(viewController.getImageInformation(), sequence,
-						selectedRois);
-				sender.addProgressListener(getProgressHandler());
-				List<Annotation> createdAnnotations = sender.send();
-				viewController.getImageInformation().getAnnotations().addAll(createdAnnotations);
+				List<Annotation> createdAnnotations = new LinkedList<>();
+				for (Sequence sequence : sequences) {
+					RoiAnnotationSender sender = new RoiAnnotationSender(viewController.getImageInformation(), sequence, false);
+					sender.addProgressListener(getProgressUpdateHandler());
+					createdAnnotations.addAll(sender.send());
+					viewController.getImageInformation().getAnnotations().addAll(createdAnnotations);
+				}
 				notifySuccess(createdAnnotations);
 			} catch (Exception e) {
 				notifyFailure(e);
@@ -102,7 +108,7 @@ public class IcySequenceToCytominePanelController {
 		};
 	}
 
-	private ProgressListener getProgressHandler() {
+	private ProgressListener getProgressUpdateHandler() {
 		return (pos, len) -> {
 			setProgress(pos / len);
 			return true;
@@ -130,7 +136,6 @@ public class IcySequenceToCytominePanelController {
 		MessageDialog.showDialog("Send annotations to Cytomine",
 				String.format("Transfer complete: %d annotations sent", createdAnnotations.size()),
 				MessageDialog.INFORMATION_MESSAGE);
-
 	}
 
 	private void notifyFailure(Exception e) {
@@ -141,16 +146,6 @@ public class IcySequenceToCytominePanelController {
 			MessageDialog.showDialog("Send annotations to Cytomine", e.getMessage(), MessageDialog.ERROR_MESSAGE);
 		}
 		e.printStackTrace();
-	}
-
-	private void cancelPreviousRequest() throws InterruptedException, RuntimeException {
-		if (transferService != null) {
-			ExecutorService t = transferService;
-			transferService = null;
-			t.shutdownNow();
-			if (!t.awaitTermination(5, TimeUnit.SECONDS))
-				throw new RuntimeException("Could not stop transfer service");
-		}
 	}
 
 	private ActionListener getCancelButtonHandler() {
@@ -164,12 +159,21 @@ public class IcySequenceToCytominePanelController {
 		};
 	}
 
+	private void cancelPreviousRequest() throws InterruptedException, RuntimeException {
+		if (transferService != null) {
+			ExecutorService t = transferService;
+			transferService = null;
+			t.shutdownNow();
+			if (!t.awaitTermination(5, TimeUnit.SECONDS))
+				throw new RuntimeException("Could not stop transfer service");
+		}
+	}
+
 	private void notifyCloseListener() {
 		closeListeners.forEach(l -> l.actionPerformed(null));
 	}
 
 	private void setDisplayInformation() {
-		setAvailableSequences();
 	}
 
 	public void addCloseListener(ActionListener listener) {

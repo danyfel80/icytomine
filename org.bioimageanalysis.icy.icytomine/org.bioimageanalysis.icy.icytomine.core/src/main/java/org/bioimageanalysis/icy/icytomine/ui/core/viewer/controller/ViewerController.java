@@ -13,10 +13,14 @@ import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerComponentContainer;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.cytomine2Icy.CytomineToIcyPanel;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.file.IcyFileToCytominePanel;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.folder.IcyFolderToCytominePanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.sequence.IcySequenceToCytominePanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.ViewController;
 
 import icy.gui.frame.IcyFrame;
+import icy.gui.frame.IcyFrameAdapter;
+import icy.gui.frame.IcyFrameEvent;
 
 public class ViewerController {
 
@@ -25,6 +29,8 @@ public class ViewerController {
 	private IcyFrame annotationsFrame;
 	private IcyFrame cytomineToIcyFrame;
 	private IcyFrame icySequenceToCytomineFrame;
+	private IcyFrame icyFileToCytomineFrame;
+	private IcyFrame icyFolderToCytomineFrame;
 
 	public ViewerController(ViewerComponentContainer viewerContainer) {
 		this.viewerContainer = viewerContainer;
@@ -80,8 +86,8 @@ public class ViewerController {
 		viewerContainer.addAnnotationMenuListener(getAnnotationMenuHandler());
 		viewerContainer.addCytomineToIcyMenuListener(getCytomineToIcyMenuHandler());
 		viewerContainer.addIcySequenceToCytomineMenuListener(getIcySequenceToCytomineMenuHandler());
-		// TODO addIcyToCytomineFileMenuListener
-		// TODO addIcyToCytomineFolderMenuListener
+		viewerContainer.addIcyFileToCytomineMenuListener(getIcyFileToCytomineMenuHandler());
+		viewerContainer.addIcyFolderToCytomineMenuListener(getIcyFolderToCytomineMenuHandler());
 	}
 
 	private ActionListener getAnnotationMenuHandler() {
@@ -121,6 +127,12 @@ public class ViewerController {
 			CytomineToIcyPanel contentPane = new CytomineToIcyPanel(viewController);
 			cytomineToIcyFrame = createIcyDialog("Download view from Cytomine - Icytomine", contentPane, false);
 			contentPane.addCloseListener(a -> cytomineToIcyFrame.close());
+			cytomineToIcyFrame.addFrameListener(new IcyFrameAdapter() {
+				@Override
+				public void icyFrameClosed(IcyFrameEvent e) {
+					contentPane.getController().close();
+				}
+			});
 			cytomineToIcyFrame.setVisible(true);
 		};
 	}
@@ -135,7 +147,53 @@ public class ViewerController {
 			IcySequenceToCytominePanel contentPane = new IcySequenceToCytominePanel(viewController);
 			icySequenceToCytomineFrame = createIcyDialog("Send Sequence ROIs to Cytomine - Icytomine", contentPane, false);
 			contentPane.addCloseListener(a -> icySequenceToCytomineFrame.close());
+			icySequenceToCytomineFrame.addFrameListener(new IcyFrameAdapter() {
+				@Override
+				public void icyFrameClosed(IcyFrameEvent e) {
+					contentPane.getController().close();
+				}
+			});
 			icySequenceToCytomineFrame.setVisible(true);
+		};
+	}
+
+	private ActionListener getIcyFileToCytomineMenuHandler() {
+		return e -> {
+			System.out.println("Opening icy file -> cytomine dialog...");
+			if (icyFileToCytomineFrame != null) {
+				icyFileToCytomineFrame.close();
+			}
+
+			IcyFileToCytominePanel contentPane = new IcyFileToCytominePanel(viewController);
+			icyFileToCytomineFrame = createIcyDialog("Send File ROIs to Cytomine - Icytomine", contentPane, false);
+			contentPane.getController().addCloseListener(a -> icyFileToCytomineFrame.close());
+			icyFileToCytomineFrame.addFrameListener(new IcyFrameAdapter() {
+				@Override
+				public void icyFrameClosed(IcyFrameEvent e) {
+					contentPane.getController().close();
+				}
+			});
+			icyFileToCytomineFrame.setVisible(true);
+		};
+	}
+
+	private ActionListener getIcyFolderToCytomineMenuHandler() {
+		return e -> {
+			System.out.println("Opening icy folder -> cytomine dialog...");
+			if (icyFolderToCytomineFrame != null) {
+				icyFolderToCytomineFrame.close();
+			}
+
+			IcyFolderToCytominePanel contentPane = new IcyFolderToCytominePanel(viewController);
+			icyFolderToCytomineFrame = createIcyDialog("Send Folder ROIs to Cytomine - Icytomine", contentPane, false);
+			contentPane.getController().addCloseListener(a -> icyFolderToCytomineFrame.close());
+			icyFolderToCytomineFrame.addFrameListener(new IcyFrameAdapter() {
+				@Override
+				public void icyFrameClosed(IcyFrameEvent e) {
+					contentPane.getController().close();
+				}
+			});
+			icyFolderToCytomineFrame.setVisible(true);
 		};
 	}
 
@@ -143,6 +201,8 @@ public class ViewerController {
 		closeFrame(annotationsFrame);
 		closeFrame(cytomineToIcyFrame);
 		closeFrame(icySequenceToCytomineFrame);
+		closeFrame(icyFileToCytomineFrame);
+		closeFrame(icyFolderToCytomineFrame);
 
 		viewController.stopView();
 	}

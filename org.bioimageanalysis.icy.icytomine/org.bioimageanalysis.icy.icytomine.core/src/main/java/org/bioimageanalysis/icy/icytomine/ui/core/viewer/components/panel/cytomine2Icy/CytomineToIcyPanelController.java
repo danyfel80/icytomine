@@ -219,4 +219,8 @@ public class CytomineToIcyPanelController {
 	public void addCloseListener(ActionListener listener) {
 		closeListeners.add(listener);
 	}
+
+	public void close() {
+		cancelTransfer();
+	}
 }

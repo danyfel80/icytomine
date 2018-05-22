@@ -145,4 +145,8 @@ public class IcySequenceToCytominePanel extends JPanel {
 	protected JButton getCancelButton() {
 		return cancelButton;
 	}
+
+	public IcySequenceToCytominePanelController getController() {
+		return panelController;
+	}
 }
