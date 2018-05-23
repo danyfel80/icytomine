@@ -29,6 +29,7 @@ public class TileGridStitcher {
 
 	private Dimension2D tileDimensionAtTargetResolution;
 	private Dimension targetImageDimension;
+	private double scaleFactorRequestToTargetResolution;
 
 	private BufferedImage targetImage;
 	private Set<StitchingFinishListener> stitchingFinishListeners;
@@ -58,8 +59,15 @@ public class TileGridStitcher {
 	}
 
 	private void computeParameters() {
+		computeScaleFactorRequestToTargetResolution();
 		computeTileDimensionAtTargetResolution();
 		computeTargetImageDimension();
+	}
+
+	private void computeScaleFactorRequestToTargetResolution() {
+		double requestResolution = tileImporter.getResolution();
+		scaleFactorRequestToTargetResolution = MagnitudeResolutionConverter.convertMagnitude(1d, requestResolution,
+				targetResolution);
 	}
 
 	private void computeTileDimensionAtTargetResolution() {
@@ -67,6 +75,7 @@ public class TileGridStitcher {
 		double requestResolution = tileImporter.getResolution();
 		tileDimensionAtTargetResolution = MagnitudeResolutionConverter.convertDimension2D(tileDimensionAtRequestResolution,
 				requestResolution, targetResolution);
+
 	}
 
 	private void computeTargetImageDimension() {
@@ -95,9 +104,8 @@ public class TileGridStitcher {
 
 		Graphics2D g = targetImage.createGraphics();
 		g.drawImage(tileResult.getTileImage(), tilePositionInImage.x, tilePositionInImage.y,
-				Math.min((int) Math.ceil(tileDimensionAtTargetResolution.getWidth()), tileResult.getTileImage().getWidth()),
-				Math.min((int) Math.ceil(tileDimensionAtTargetResolution.getHeight()), tileResult.getTileImage().getHeight()), null);
-
+				(int) Math.ceil(tileResult.getTileImage().getWidth() * scaleFactorRequestToTargetResolution),
+				(int) Math.ceil(tileResult.getTileImage().getHeight() * scaleFactorRequestToTargetResolution), null);
 		synchronized (stitchedTiles) {
 			stitchedTiles.incrementAndGet();
 			notifyProgress();
