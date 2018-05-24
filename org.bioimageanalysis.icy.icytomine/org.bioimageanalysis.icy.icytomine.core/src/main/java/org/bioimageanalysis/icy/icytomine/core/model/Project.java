@@ -27,6 +27,9 @@ public class Project {
 	private Cytomine cytomine;
 	private be.cytomine.client.models.Project internalProject;
 
+	private String name;
+	private String description;
+	private String ontologyName;
 	private ArrayList<Term> terms;
 
 	public Project(be.cytomine.client.models.Project internalProject, Cytomine cytomine) {
@@ -53,7 +56,11 @@ public class Project {
 	 * @return The project name
 	 */
 	public String getName() {
-		return getInternalProject().getStr("name");
+		if (name == null) {
+			name = getInternalProject().getStr("name");
+			name = CytomineUtils.convertFromSystenEncodingToUTF8(name);
+		}
+		return name;
 	}
 
 	/**
@@ -61,15 +68,18 @@ public class Project {
 	 * @throws CytomineException
 	 */
 	public String getDescription() throws CytomineException {
-		try {
-			return getClient().getDescription(getInternalProject().getId(), getInternalProject().getDomainName())
-					.getStr("data");
-		} catch (CytomineException e) {
-			if (e.getHttpCode() == 500)
-				return "N/A";
-			else
-				throw e;
+		if (description == null) {
+			description = "N/A";
+			try {
+				description = getClient().getDescription(getInternalProject().getId(), getInternalProject().getDomainName())
+						.getStr("data");
+				description = CytomineUtils.convertFromSystenEncodingToUTF8(description);
+			} catch (CytomineException e) {
+				if (e.getHttpCode() != 500)
+					throw e;
+			}
 		}
+		return description;
 	}
 
 	/**
@@ -83,7 +93,11 @@ public class Project {
 	 * @return The ontology name used for this project
 	 */
 	public String getOntologyName() {
-		return getInternalProject().getStr("ontologyName");
+		if (ontologyName == null) {
+			ontologyName = getInternalProject().getStr("ontologyName");
+			ontologyName = CytomineUtils.convertFromSystenEncodingToUTF8(ontologyName);
+		}
+		return ontologyName;
 	}
 
 	/**

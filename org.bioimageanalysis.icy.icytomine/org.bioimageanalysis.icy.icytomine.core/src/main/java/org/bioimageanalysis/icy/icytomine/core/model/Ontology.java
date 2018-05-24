@@ -35,6 +35,7 @@ public class Ontology {
 	private be.cytomine.client.models.Ontology internalOntology;
 
 	// Cached terms
+	private String name;
 	private TermCollection nativeTerms;
 
 	public Ontology(be.cytomine.client.models.Ontology internalOntology, Cytomine client) {
@@ -55,7 +56,11 @@ public class Ontology {
 	}
 
 	public String getName() {
-		return getInternalOntology().getStr("name");
+		if (name == null) {
+			name = getInternalOntology().getStr("name");
+			name = CytomineUtils.convertFromSystenEncodingToUTF8(name);
+		}
+		return name;
 	}
 
 	public static List<Term> getTerms(Cytomine client, Long ontologyId) throws CytomineException {

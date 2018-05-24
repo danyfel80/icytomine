@@ -28,6 +28,8 @@ public class User {
 
 	private be.cytomine.client.models.User internalUser;
 
+	private String username;
+
 	public User(be.cytomine.client.models.User internalUser) {
 		this.internalUser = internalUser;
 	}
@@ -37,9 +39,13 @@ public class User {
 	}
 
 	public String getUserName() {
-		String username = internalUser.getStr("username");
 		if (username == null) {
-			username = UNKNOWN_USERNAME;
+			username = internalUser.getStr("username");
+			if (username == null) {
+				username = UNKNOWN_USERNAME;
+			} else {
+				username = CytomineUtils.convertFromSystenEncodingToUTF8(username);
+			}
 		}
 		return username;
 	}

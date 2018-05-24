@@ -41,7 +41,7 @@ public class ViewerFrame extends IcyFrame {
 	}
 
 	public ViewerFrame(ViewProvider viewProvider) {
-		super("Viewer - Icytomine", true, true, true, false);
+		super(viewProvider.getImageInformation().getName() +" - Icytomine", true, true, true, false);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
 		viewerComponentContainer = new ViewerComponentContainer(viewProvider);

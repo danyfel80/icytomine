@@ -32,7 +32,9 @@ public class Image {
 	private ImageInstance internalImage;
 	private Cytomine cytomine;
 
+	private String originalFilename;
 	private List<String> servers;
+
 
 	public Image(ImageInstance internalImage, Cytomine cytomine) {
 		this.internalImage = internalImage;
@@ -71,7 +73,11 @@ public class Image {
 	 * @return Name of this image.
 	 */
 	public String getName() {
-		return getInternalImage().getStr("originalFilename");
+		if (originalFilename == null) {
+			originalFilename = getInternalImage().getStr("originalFilename");
+			originalFilename = CytomineUtils.convertFromSystenEncodingToUTF8(originalFilename);
+		}
+		return originalFilename;
 	}
 
 	/**

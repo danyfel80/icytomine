@@ -42,6 +42,9 @@ public class Term {
 	private Cytomine client;
 	private be.cytomine.client.models.Term internalTerm;
 
+	private String name;
+	private String comment;
+
 	public Term(Cytomine client, be.cytomine.client.models.Term internalTerm) {
 		this.client = client;
 		this.internalTerm = internalTerm;
@@ -60,11 +63,19 @@ public class Term {
 	}
 
 	public String getName() {
-		return getInternalTerm().getStr("name");
+		if (name == null) {
+			name = getInternalTerm().getStr("name");
+			name = CytomineUtils.convertFromSystenEncodingToUTF8(name);
+		}
+		return name;
 	}
 
 	public String getComment() {
-		return getInternalTerm().getStr("comment");
+		if (comment == null) {
+			comment = getInternalTerm().getStr("comment");
+			comment = CytomineUtils.convertFromSystenEncodingToUTF8(comment);
+		}
+		return comment;
 	}
 
 	public String getHexColor() {
