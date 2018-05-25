@@ -99,4 +99,14 @@ public class CachedViewProvider extends ViewProvider {
 	public Set<Annotation> getActiveAnnotations() {
 		return annotationView.getActiveAnnotations();
 	}
+
+	@Override
+	public void setSelectedAnnotations(Set<Annotation> annotations) {
+		annotationView.setSelectedAnnotations(annotations);
+	}
+
+	@Override
+	public Set<Annotation> getSelectedAnnotations() {
+		return annotationView.getSelectedAnnotations();
+	}
 }

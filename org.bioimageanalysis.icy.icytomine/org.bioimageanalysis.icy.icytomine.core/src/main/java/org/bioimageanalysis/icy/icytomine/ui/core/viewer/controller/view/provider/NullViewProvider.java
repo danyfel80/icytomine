@@ -86,4 +86,14 @@ public class NullViewProvider extends ViewProvider {
 	public void updateAnnotations() throws Exception {
 	}
 
+	@Override
+	public void setSelectedAnnotations(Set<Annotation> annotations) {
+		// Not used
+	}
+
+	@Override
+	public Set<Annotation> getSelectedAnnotations() {
+		return new HashSet<>();
+	}
+
 }

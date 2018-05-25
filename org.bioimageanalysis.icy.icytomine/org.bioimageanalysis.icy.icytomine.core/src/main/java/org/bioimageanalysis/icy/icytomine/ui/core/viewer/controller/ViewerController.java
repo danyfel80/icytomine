@@ -100,6 +100,8 @@ public class ViewerController {
 			AnnotationManagerPanel annotationsPanel = new AnnotationManagerPanel(viewController.getImageInformation());
 			annotationsPanel.addAnnotationsVisibilityListener(
 					(Set<Annotation> newVisibleAnnotations) -> viewController.setVisibileAnnotations(newVisibleAnnotations));
+			annotationsPanel.addAnnotationSelectionListener(
+					(Set<Annotation> selectedAnnotations) -> viewController.setSelectedAnnotations(selectedAnnotations));
 			annotationsFrame = createIcyDialog("Annotations - Icytomine", annotationsPanel, true);
 			annotationsFrame.setSize(new Dimension(400, 400));
 			annotationsFrame.setVisible(true);

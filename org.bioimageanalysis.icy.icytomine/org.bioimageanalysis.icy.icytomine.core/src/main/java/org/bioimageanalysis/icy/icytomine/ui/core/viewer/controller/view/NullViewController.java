@@ -154,6 +154,11 @@ public class NullViewController implements ViewController {
 	}
 
 	@Override
+	public void setSelectedAnnotations(Set<Annotation> selectedAnnotations) {
+		// Not used
+	}
+
+	@Override
 	public ViewProvider getViewProvider() {
 		return viewCanvasPanel.getViewProvider();
 	}

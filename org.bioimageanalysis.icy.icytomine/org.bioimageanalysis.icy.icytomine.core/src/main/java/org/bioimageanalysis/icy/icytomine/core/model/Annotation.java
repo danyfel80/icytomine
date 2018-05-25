@@ -296,4 +296,8 @@ public class Annotation {
 		return true;
 	}
 
+	@Override
+	public String toString() {
+		return Objects.toString(internalAnnotation.getId());
+	}
 }

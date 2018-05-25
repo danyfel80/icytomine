@@ -7,6 +7,8 @@ import java.util.Set;
 
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.event.ListSelectionEvent;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTableModel.AnnotationVisibilityListener;
@@ -14,10 +16,15 @@ import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annota
 @SuppressWarnings("serial")
 public class AnnotationTable extends JScrollPane {
 
+	public interface AnnotationSelectionListener {
+		void selectionChanged(Set<Annotation> selectedAnnotations);
+	}
+
 	private JTable annotationTable;
 	private AnnotationTableModel annotationTableModel;
 
 	private Set<AnnotationVisibilityListener> annotationVisibilityListeners;
+	private Set<AnnotationSelectionListener> annotationSelectionListeners;
 
 	public AnnotationTable() {
 		this(new HashMap<>());
@@ -26,13 +33,11 @@ public class AnnotationTable extends JScrollPane {
 	public AnnotationTable(Map<? extends Annotation, Boolean> annotationVisibility) {
 		annotationTable = new JTable();
 		annotationVisibilityListeners = new HashSet<>();
+		annotationSelectionListeners = new HashSet<>();
 		setTableModel(annotationVisibility);
-		annotationTable.getColumnModel().getColumn(0).setPreferredWidth(50);
-		annotationTable.getColumnModel().getColumn(0).setMinWidth(30);
-		annotationTable.getColumnModel().getColumn(1).setMinWidth(50);
-		annotationTable.getColumnModel().getColumn(2).setMinWidth(60);
-		annotationTable.getColumnModel().getColumn(3).setMinWidth(30);
+		setColumnWidths();
 		setViewportView(annotationTable);
+		addSelectionListener();
 	}
 
 	public void setTableModel(Map<? extends Annotation, Boolean> annotationVisibility) {
@@ -60,6 +65,43 @@ public class AnnotationTable extends JScrollPane {
 		annotationVisibilityListeners.forEach(listener -> annotationTableModel.addAnnotationVisibilityListener(listener));
 	}
 
+	private void setColumnWidths() {
+		annotationTable.getColumnModel().getColumn(0).setPreferredWidth(50);
+		annotationTable.getColumnModel().getColumn(0).setMinWidth(30);
+		annotationTable.getColumnModel().getColumn(1).setMinWidth(50);
+		annotationTable.getColumnModel().getColumn(2).setMinWidth(60);
+		annotationTable.getColumnModel().getColumn(3).setMinWidth(30);
+	}
+
+	private void addSelectionListener() {
+		annotationTable.getSelectionModel().addListSelectionListener((ListSelectionEvent e) -> {
+			if (!e.getValueIsAdjusting()) {
+				notifySelectionChange();
+			}
+		});
+	}
+
+	private void notifySelectionChange() {
+		Set<Annotation> selectedAnnotations = getSelectedAnnotations();
+		this.annotationSelectionListeners.forEach(l -> l.selectionChanged(selectedAnnotations));
+	}
+
+	public Set<Annotation> getSelectedAnnotations() {
+		ListSelectionModel selectionModel = annotationTable.getSelectionModel();
+		Set<Annotation> selectedAnnotations = new HashSet<>();
+		if (!selectionModel.isSelectionEmpty()) {
+			int minIndex = selectionModel.getMinSelectionIndex();
+			int maxIndex = selectionModel.getMaxSelectionIndex();
+			for (int i = minIndex; i <= maxIndex; i++) {
+				if (selectionModel.isSelectedIndex(i)) {
+					selectedAnnotations.add(((AnnotationTableModel) annotationTable.getModel()).getAnnotationAt(i));
+				}
+			}
+		}
+
+		return selectedAnnotations;
+	}
+
 	public void addAnnotationVisibilityListener(AnnotationVisibilityListener listener) {
 		synchronized (annotationTable) {
 			annotationVisibilityListeners.add(listener);
@@ -76,4 +118,11 @@ public class AnnotationTable extends JScrollPane {
 		}
 	}
 
+	public void addAnnotationSelectionListener(AnnotationSelectionListener listener) {
+		this.annotationSelectionListeners.add(listener);
+	}
+
+	public void removeAnnotationSelectionListener(AnnotationSelectionListener listener) {
+		this.annotationSelectionListeners.remove(listener);
+	}
 }

@@ -15,9 +15,19 @@ import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.core.model.filters.FilterAnnotationByTerm;
 import org.bioimageanalysis.icy.icytomine.core.model.filters.FilterAnnotationByUser;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTable.AnnotationSelectionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.filter.AnnotationFilterPanel;
 
 import be.cytomine.client.CytomineException;
+import java.awt.GridLayout;
+import javax.swing.JLabel;
+import org.bioimageanalysis.icy.icytomine.ui.general.JCheckedComboBox;
+import javax.swing.JButton;
+import java.awt.FlowLayout;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import javax.swing.border.TitledBorder;
 
 @SuppressWarnings("serial")
 public class AnnotationManagerPanel extends JPanel {
@@ -56,6 +66,43 @@ public class AnnotationManagerPanel extends JPanel {
 
 		annotationTable = new AnnotationTable(annotationVisibility);
 		add(annotationTable, BorderLayout.CENTER);
+		
+		JPanel actionPanel = new JPanel();
+		actionPanel.setBorder(new TitledBorder(null, "Actions", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		add(actionPanel, BorderLayout.SOUTH);
+		actionPanel.setLayout(new GridLayout(1, 0, 0, 0));
+		
+		JPanel termSelectionPanel = new JPanel();
+		actionPanel.add(termSelectionPanel);
+		GridBagLayout gbl_termSelectionPanel = new GridBagLayout();
+		gbl_termSelectionPanel.columnWidths = new int[] {0, 0, 0, 0};
+		gbl_termSelectionPanel.rowHeights = new int[]{23, 0};
+		gbl_termSelectionPanel.columnWeights = new double[]{0.0, 0.0, 0.0, Double.MIN_VALUE};
+		gbl_termSelectionPanel.rowWeights = new double[]{0.0, Double.MIN_VALUE};
+		termSelectionPanel.setLayout(gbl_termSelectionPanel);
+		
+		JLabel lblTerms = new JLabel("Associated terms");
+		GridBagConstraints gbc_lblTerms = new GridBagConstraints();
+		gbc_lblTerms.insets = new Insets(2, 5, 2, 5);
+		gbc_lblTerms.gridx = 0;
+		gbc_lblTerms.gridy = 0;
+		termSelectionPanel.add(lblTerms, gbc_lblTerms);
+		
+		JCheckedComboBox checkedComboBox = new JCheckedComboBox();
+		GridBagConstraints gbc_checkedComboBox = new GridBagConstraints();
+		gbc_checkedComboBox.weightx = 1.0;
+		gbc_checkedComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_checkedComboBox.insets = new Insets(2, 0, 2, 5);
+		gbc_checkedComboBox.gridx = 1;
+		gbc_checkedComboBox.gridy = 0;
+		termSelectionPanel.add(checkedComboBox, gbc_checkedComboBox);
+		
+		JButton btnSet = new JButton("Set");
+		GridBagConstraints gbc_btnSet = new GridBagConstraints();
+		gbc_btnSet.insets = new Insets(2, 0, 2, 5);
+		gbc_btnSet.gridx = 2;
+		gbc_btnSet.gridy = 0;
+		termSelectionPanel.add(btnSet, gbc_btnSet);
 		annotationTable.addAnnotationVisibilityListener((Annotation annotation, boolean visible) -> annotationVisibilityChanged(annotation, visible));
 
 		annotationsVisibilitylisteners = new HashSet<>();
@@ -152,6 +199,10 @@ public class AnnotationManagerPanel extends JPanel {
 
 	private void annotationVisibilityChanged(Annotation annotation, boolean visible) {
 		notifyAnnotationsVisibilityListeners(annotationTable.getTableModel().getVisibleAnnotations());
+	}
+
+	public void addAnnotationSelectionListener(AnnotationSelectionListener listener) {
+		this.annotationTable.addAnnotationSelectionListener(listener);
 	}
 
 }

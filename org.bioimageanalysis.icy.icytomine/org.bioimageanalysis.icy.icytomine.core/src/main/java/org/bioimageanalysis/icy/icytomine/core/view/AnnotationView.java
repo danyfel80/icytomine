@@ -46,11 +46,22 @@ public class AnnotationView {
 	private double targetResolution;
 	private Dimension canvasSize;
 	private GeometricHash<Annotation> annotationHash;
-	private Set<Annotation> activeAnnotations; // annotations in the current field
-																							// of view that might be visible
-																							// or not
+
+	/**
+	 * Annotations that should be drawn in the view.
+	 */
 	private Set<Annotation> visibleAnnotations;
+	/**
+	 * Annotations in the current field of view that are visible.
+	 */
+	private Set<Annotation> activeAnnotations;
+	/**
+	 * Annotations that should be highlighted in the view when active.
+	 */
+	private Set<Annotation> selectedAnnotations;
+
 	private BufferedImage blankView;
+
 	private BufferedImage currentView;
 
 	private ThreadPoolExecutor annotationDrawingThreadPool;
@@ -64,8 +75,9 @@ public class AnnotationView {
 
 	public AnnotationView(Image imageInformation) throws CytomineException {
 		this.imageInformation = imageInformation;
-		this.activeAnnotations = new HashSet<>();
 		this.visibleAnnotations = new HashSet<>();
+		this.activeAnnotations = new HashSet<>();
+		this.selectedAnnotations = new HashSet<>();
 		this.listeners = new HashSet<>();
 		this.blankView = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
 		startPointCache();
@@ -173,26 +185,32 @@ public class AnnotationView {
 		for (Annotation a : activeAnnotations) {
 			if (Thread.interrupted())
 				throw new InterruptedException();
-
-			drawAnnotation(a);
+			boolean selected = selectedAnnotations.contains(a);
+			drawAnnotation(a, selected);
 		}
 	}
 
-	private void drawAnnotation(Annotation a) throws InterruptedException {
+	private void drawAnnotation(Annotation a, boolean selected) throws InterruptedException {
 		try {
 			List<Point2D> annotationPoints = getAnnotationPoints(a);
 			ROI2DShape roi = a.getROI(0);
+			Color color = roi.getColor();
+			int thickness = getStrokeThickness(selected);
 			if (roi instanceof ROI2DPoint) {
-				drawPoint(annotationPoints, roi.getColor());
+				drawPoint(annotationPoints, color, thickness);
 			} else if (roi instanceof ROI2DPolygon) {
-				drawPolygon(annotationPoints, roi.getColor());
+				drawPolygon(annotationPoints, color, thickness);
 			} else if (roi instanceof ROI2DPolyLine) {
-				drawPolyLine(annotationPoints, roi.getColor());
+				drawPolyLine(annotationPoints, color, thickness);
 			}
 		} catch (ParseException | CytomineException e) {
 			e.printStackTrace();
 			return;
 		}
+	}
+
+	private int getStrokeThickness(boolean selected) {
+		return (selected ? 3 : 2);
 	}
 
 	private List<Point2D> getAnnotationPoints(Annotation a) throws ParseException, CytomineException {
@@ -205,7 +223,7 @@ public class AnnotationView {
 		return points;
 	}
 
-	private void drawPoint(List<Point2D> annotationPoints, Color color) {
+	private void drawPoint(List<Point2D> annotationPoints, Color color, int thickness) {
 		Graphics2D g2 = currentView.createGraphics();
 		Point2D point = annotationPoints.get(0);
 		int x = (int) MagnitudeResolutionConverter.convertMagnitude(point.getX() - viewBoundsAtZeroResolution.getMinX(), 0d,
@@ -213,12 +231,12 @@ public class AnnotationView {
 		int y = (int) MagnitudeResolutionConverter.convertMagnitude(point.getY() - viewBoundsAtZeroResolution.getMinY(), 0d,
 				targetResolution);
 		g2.setColor(color);
-		g2.setStroke(new BasicStroke(3));
+		g2.setStroke(new BasicStroke(thickness));
 		g2.drawOval(x - 2, y - 2, 4, 4);
 		g2.dispose();
 	}
 
-	private void drawPolygon(List<Point2D> annotationPoints, Color color) throws InterruptedException {
+	private void drawPolygon(List<Point2D> annotationPoints, Color color, int thickness) throws InterruptedException {
 		Graphics2D g2 = currentView.createGraphics();
 		Point2D initPoint = annotationPoints.get(annotationPoints.size() - 1);
 		int x1 = (int) MagnitudeResolutionConverter
@@ -227,7 +245,7 @@ public class AnnotationView {
 				.convertMagnitude(initPoint.getY() - viewBoundsAtZeroResolution.getMinY(), 0d, targetResolution);
 
 		g2.setColor(color);
-		g2.setStroke(new BasicStroke(3));
+		g2.setStroke(new BasicStroke(thickness));
 		for (Point2D currentPoint : annotationPoints) {
 			if (Thread.interrupted())
 				throw new InterruptedException();
@@ -242,20 +260,20 @@ public class AnnotationView {
 		g2.dispose();
 	}
 
-	private void drawPolyLine(List<Point2D> annotationPoints, Color color) throws InterruptedException {
+	private void drawPolyLine(List<Point2D> annotationPoints, Color color, int thickness) throws InterruptedException {
 		Graphics2D g2 = currentView.createGraphics();
 		int x1 = 0, y1 = 0;
 		boolean first = true;
 
 		g2.setColor(color);
-		g2.setStroke(new BasicStroke(3));
+		g2.setStroke(new BasicStroke(thickness));
 		for (Point2D currentPoint : annotationPoints) {
 			if (Thread.interrupted())
 				throw new InterruptedException();
 			int x2 = (int) MagnitudeResolutionConverter
 					.convertMagnitude(currentPoint.getX() - viewBoundsAtZeroResolution.getMinX(), 0, targetResolution);
 			int y2 = (int) MagnitudeResolutionConverter
-					.convertMagnitude(currentPoint.getX() - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
+					.convertMagnitude(currentPoint.getY() - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
 			if (!first) {
 				g2.drawLine(x1, y1, x2, y2);
 			} else {
@@ -290,18 +308,26 @@ public class AnnotationView {
 		this.visibleAnnotations = newVisibleAnnotations;
 	}
 
-	public synchronized void forceViewRefresh() {
-		cancelPreviousRequests();
-		computeViewBoundsAtZeroResolution(positionAtZeroResolution, canvasSize);
-		requestCurrentView(canvasSize);
-	}
-
 	public Set<Annotation> getVisibleAnnotations() {
 		return new HashSet<>(visibleAnnotations);
 	}
 
 	public Set<Annotation> getActiveAnnotations() {
 		return new HashSet<>(activeAnnotations);
+	}
+
+	public void setSelectedAnnotations(Set<Annotation> selectedAnnotations) {
+		this.selectedAnnotations = selectedAnnotations;
+	}
+
+	public Set<Annotation> getSelectedAnnotations() {
+		return new HashSet<>(selectedAnnotations);
+	}
+
+	public synchronized void forceViewRefresh() {
+		cancelPreviousRequests();
+		computeViewBoundsAtZeroResolution(positionAtZeroResolution, canvasSize);
+		requestCurrentView(canvasSize);
 	}
 
 	public void updateModel() throws CytomineException {

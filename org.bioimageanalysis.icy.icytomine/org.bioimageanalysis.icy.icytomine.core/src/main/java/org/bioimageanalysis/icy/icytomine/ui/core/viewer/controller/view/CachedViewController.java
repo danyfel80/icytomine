@@ -297,4 +297,10 @@ public class CachedViewController implements ViewController {
 	public ViewProvider getViewProvider() {
 		return viewCanvasPanel.getViewProvider();
 	}
+
+	@Override
+	public void setSelectedAnnotations(Set<Annotation> selectedAnnotations) {
+		viewCanvasPanel.getViewProvider().setSelectedAnnotations(selectedAnnotations);
+		viewCanvasPanel.updateCanvas();
+	}
 }

@@ -35,9 +35,13 @@ public interface ViewController {
 
 	Set<Annotation> getActiveAnnotations();
 
+	void setSelectedAnnotations(Set<Annotation> selectedAnnotations);
+	
 	Rectangle2D getCurrentViewBoundsAtZeroResolution();
 
 	double getCurrentResolution();
 
 	ViewProvider getViewProvider();
+
+
 }
