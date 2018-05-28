@@ -13,7 +13,6 @@ import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import javax.cache.Cache;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -25,6 +24,7 @@ import javax.swing.Timer;
 import javax.swing.UIManager;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.ehcache.Cache;
 
 import be.cytomine.client.CytomineException;
 

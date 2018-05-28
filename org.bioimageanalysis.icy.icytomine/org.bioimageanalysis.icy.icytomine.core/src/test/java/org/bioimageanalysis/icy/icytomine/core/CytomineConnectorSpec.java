@@ -35,8 +35,8 @@ public class CytomineConnectorSpec {
 		urlString = "http://localhost-core/";
 		url = new URL(urlString);
 		userName = "danyfel80";
-		publicKey = "42327df7-2ec4-4516-9d6c-63c7eb9b27d5";
-		privateKey = "c7835b52-5d8a-4281-87bd-bd85c3c62b49";
+		publicKey = "8d5272e3-a97a-4b50-a365-70fa7aaa0d5a";
+		privateKey = "3a3dbe30-788f-46bd-ab4d-5a71ce4bf9b4";
 	}
 
 	@Test

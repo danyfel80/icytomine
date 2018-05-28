@@ -8,14 +8,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.SystemColor;
 import java.awt.image.BufferedImage;
+import java.util.concurrent.TimeUnit;
 
-import javax.cache.Cache;
-import javax.cache.CacheManager;
-import javax.cache.Caching;
-import javax.cache.configuration.MutableConfiguration;
-import javax.cache.expiry.CreatedExpiryPolicy;
-import javax.cache.expiry.Duration;
-import javax.cache.spi.CachingProvider;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
 import javax.swing.JPanel;
@@ -27,9 +21,18 @@ import javax.swing.event.AncestorListener;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
 import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImagePanel.ImageSelectionListener;
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 
 import be.cytomine.client.Cytomine;
 import be.cytomine.client.CytomineException;
+import icy.plugin.PluginLoader;
 
 public class ExplorerPanel extends JPanel {
 	private static final long serialVersionUID = 2595438652951822963L;
@@ -143,13 +146,16 @@ public class ExplorerPanel extends JPanel {
 		});
 		splitPaneImages.setRightComponent(imagePanel);
 
-		CachingProvider provider = Caching.getCachingProvider();
-		CacheManager cacheManager = provider.getCacheManager();
+		CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+				.withClassLoader(PluginLoader.getLoader()).build(true);
+		
+//		CachingProvider provider = Caching.getCachingProvider();
+//		CacheManager cacheManager = provider.getCacheManager();
 		this.addAncestorListener(new AncestorListener() {
 
 			@Override
 			public void ancestorRemoved(AncestorEvent event) {
-				cacheManager.destroyCache("previewCache" + ExplorerPanel.this.hashCode());
+				cacheManager.removeCache("previewCache" + ExplorerPanel.this.hashCode());
 				System.out.println("preview cache destroyed");
 			}
 
@@ -158,9 +164,13 @@ public class ExplorerPanel extends JPanel {
 
 			@Override
 			public void ancestorAdded(AncestorEvent event) {
-				MutableConfiguration<Long, BufferedImage> cacheConfiguration = new MutableConfiguration<Long, BufferedImage>()
-						.setTypes(Long.class, BufferedImage.class).setStoreByValue(false)
-						.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE));
+//				MutableConfiguration<Long, BufferedImage> cacheConfiguration = new MutableConfiguration<Long, BufferedImage>()
+//						.setTypes(Long.class, BufferedImage.class).setStoreByValue(false)
+//						.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE));
+//				
+				CacheConfiguration<Long, BufferedImage> cacheConfiguration = CacheConfigurationBuilder
+				.newCacheConfigurationBuilder(Long.class, BufferedImage.class, ResourcePoolsBuilder.heap(500)).withExpiry(Expirations.timeToLiveExpiration(Duration.of(1, TimeUnit.MINUTES))).build();
+				
 				previewCache = cacheManager.createCache("previewCache" + ExplorerPanel.this.hashCode(), cacheConfiguration);
 				imageDetailsPanel.setPreviewCache(previewCache);
 				System.out.println("preview cache created");

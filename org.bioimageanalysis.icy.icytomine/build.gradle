@@ -10,45 +10,55 @@ subprojects {
 	
 	version = '0.0.1'
 
+	configurations {
+		extraLibs // configuration that holds jars to include in the jar
+	}
+	
 	// In this section you declare where to find the dependencies of your project
 	repositories {
-    	jcenter()
-    	mavenCentral()
-    	// For geotools
-    	maven { url 'http://download.osgeo.org/webdav/geotools/'}
-    	// For bioformats
-    	maven { url 'https://maven.atlassian.com/3rdparty/' }
-    	maven { 
-      		name 'Unidata'
-      		url 'https://artifacts.unidata.ucar.edu/content/repositories/unidata-releases'
-    	}
-    	maven { url 'https://artifacts.openmicroscopy.org/artifactory/maven/' }
-    	// For cytomine java client
-    	maven { url 'https://jitpack.io' }
-    	flatDir {
+		// For jai
+		maven { url 'https://mvnrepository.com/artifact/javax.media/jai_core' }
+		// For geotools
+		maven { url 'http://download.osgeo.org/webdav/geotools/'}
+		// For bioformats
+		maven { url 'https://maven.atlassian.com/3rdparty/' }
+		maven { 
+			name 'Unidata'
+			url 'https://artifacts.unidata.ucar.edu/content/repositories/unidata-releases'
+		}
+		maven { url 'https://artifacts.openmicroscopy.org/artifactory/maven/' }
+		// For cytomine java client
+		maven { url 'https://jitpack.io' }
+		flatDir {
 			dirs "$rootProject.projectDir/libs/cytomine-java-client" // To fix with server when new version arrives
-    	}
+		}
+		mavenCentral()
+		jcenter()
 	}
 
 
 	dependencies {
-		//api 'com.github.cytomine:Cytomine-java-client:v1.1.3' // Cytomine
-		api ':cytomine-java-client:1.1'
-		implementation 'javax.json.bind:javax.json.bind-api:1.0' // Json-B
-		implementation 'org.glassfish:javax.json:1.1.2' // Json-B
-		implementation 'org.eclipse:yasson:1.0.1' // Json-B
-		implementation 'ome:bio-formats-tools:5.7.2' // Bioformats
-		implementation 'com.sun:jai_core:1.1.3' // JAI
+		//api 'com.github.cytomine:Cytomine-java-client:v1.1.3' // Cytomine api - not working yet
+		extraLibs ':cytomine-java-client:1.1' // Cytomine api
+		extraLibs 'javax.json.bind:javax.json.bind-api:1.0' // Json-B
+		extraLibs 'org.glassfish:javax.json:1.1.2' // Json-B
+		extraLibs 'org.eclipse:yasson:1.0.1' // Json-B
+		extraLibs 'javax.cache:cache-api:1.1.0' // JCache
+		extraLibs 'org.ehcache:ehcache:3.4.0' // Ehcache (JCache implementation)
+		extraLibs 'org.geotools:gt-main:18.2' // GeoTools
+		
+		configurations.implementation.extendsFrom(configurations.extraLibs)
+		
+		//implementation 'ome:bio-formats-tools:5.7.2' // Bioformats
+		//implementation 'com.sun:jai_core:1.1.3' // JAI
 		//implementation 'javax.media:jai_core:1.1.3' // JAI
-		implementation 'javax.cache:cache-api:1.1.0' // JCache
-		implementation 'org.ehcache:ehcache:3.4.0' // Ehcache (JCache implementation)
-		implementation 'com.github.kirill-grouchnikov:flamingo:v5.1.01' // Ribbon UI
-		implementation files("${System.env.ICY_HOME}/lib/substance.jar") // substance UI
-		implementation group: 'org.geotools', name: 'gt-main', version: '18.2' // GeoTools
+		//implementation 'com.github.kirill-grouchnikov:flamingo:v5.1.01' // Ribbon UI
 		
 		implementation files("${System.env.ICY_HOME}/icy.jar") // Icy core
-		
-		
+		implementation files("${System.env.ICY_HOME}/lib/substance.jar") // substance UI
+		implementation files("${System.env.ICY_HOME}/lib/flamingo.jar") // substance UI
+		implementation files("${System.env.ICY_HOME}/lib/jai_core.jar") // substance UI
+		implementation files("${System.env.ICY_HOME}/lib/bioformats.jar") // substance UI
 	}
 	
 	eclipse {
@@ -56,6 +66,23 @@ subprojects {
 		project {
 			natures += ['icy.icy4eclipse.core.icynature']
 		}
+	}
+	
+	jar {
+		from {
+			configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
+		}
+	}
+	
+	task sourcesJar(type: Jar) {
+		classifier = 'sources'
+		from sourceSets.main.output
+		from sourceSets.main.java
+		from configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) }
+	}
+	
+	artifacts {
+		archives sourcesJar
 	}
 }
 
