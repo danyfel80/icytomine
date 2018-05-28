@@ -21,8 +21,11 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 
+import icy.plugin.PluginLoader;
+
 public class ViewTileCache {
-	private static CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
+	private static CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+			.withClassLoader(PluginLoader.getLoader()).build(true);
 
 	public interface ViewTileLoadListener {
 		void tileLoaded(Tile2DKey tilePosition, BufferedImage tileImage);

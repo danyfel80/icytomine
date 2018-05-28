@@ -31,13 +31,15 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import com.vividsolutions.jts.io.ParseException;
 
 import be.cytomine.client.CytomineException;
+import icy.plugin.PluginLoader;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
 public class AnnotationView {
-	private static CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
+	private static CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+			.withClassLoader(PluginLoader.getLoader()).build(true);
 
 	private Image imageInformation;
 	private List<Annotation> annotations; // All annotations in image
