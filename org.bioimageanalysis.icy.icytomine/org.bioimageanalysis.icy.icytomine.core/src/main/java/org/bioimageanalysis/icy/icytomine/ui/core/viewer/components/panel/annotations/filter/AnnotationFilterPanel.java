@@ -1,120 +1,134 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.filter;
 
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.Image;
 import java.awt.Insets;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.Arrays;
 import java.util.Set;
+import java.util.function.Function;
 
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.model.Term;
-import org.bioimageanalysis.icy.icytomine.core.model.User;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.filter.TermFilterPanel.TermSelectionListener;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.filter.UserFilterPanel.UserSelectionListener;
+import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
+import org.bioimageanalysis.icy.icytomine.core.model.filters.AnnotationFilter;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanel;
+import org.bioimageanalysis.icy.icytomine.ui.general.JCheckableItem;
+import org.bioimageanalysis.icy.icytomine.ui.general.JCheckedComboBox;
 
 @SuppressWarnings("serial")
-public class AnnotationFilterPanel extends JPanel {
-
-	private FilterAdditionPanel filterAdditionPanel;
-	private List<FilterPanel<?>> filterPanels;
-
-	private Set<UserSelectionListener> userSelectionListeners;
-	private Set<TermSelectionListener> termSelectionListeners;
-
-	private Image imageInformation;
-
-	public AnnotationFilterPanel(org.bioimageanalysis.icy.icytomine.core.model.Image imageInformation) {
-		this.filterPanels = new ArrayList<>();
-
-		userSelectionListeners = new HashSet<>();
-		termSelectionListeners = new HashSet<>();
-
-		this.imageInformation = imageInformation;
-
-		GridBagLayout gbl_filterPanel = new GridBagLayout();
-		gbl_filterPanel.columnWidths = new int[] { 305 };
-		setLayout(gbl_filterPanel);
-
-		addFilterAdditionPanel();
+public abstract class AnnotationFilterPanel<E> extends JPanel {
+	public interface AnnotationFilterListener {
+		void filterUpdated(Set<Annotation> activeAnnotations);
 	}
 
-	private void addFilterAdditionPanel() {
-		filterAdditionPanel = new FilterAdditionPanel();
-		GridBagConstraints layoutConstraints = createLayoutConstraints(5, 5, 0);
-		add(filterAdditionPanel, layoutConstraints);
-		filterAdditionPanel.addFilterAdditionListener((String filterName) -> addFilter(filterName));
+	private static Image panelRemoveImage = new ImageIcon(
+			AnnotationManagerPanel.class.getResource("/com/sun/java/swing/plaf/windows/icons/Error.gif")).getImage();
+	private static final Dimension CHOICESBOX_MIN_SIZE = new Dimension(28, 20);
+
+	private JLabel filterLabel;
+	private JCheckedComboBox<E> choicesComboBox;
+	private JButton filterRemoveButton;
+	private AnnotationFilter filter;
+
+	public AnnotationFilterPanel() {
+		setGridBagLayout();
+		addFilterLabel();
+		addChoiceComboBox();
+		addFilterRemoveButton();
 	}
 
-	private GridBagConstraints createLayoutConstraints(int topMargin, int bottomMargin, int row) {
-		GridBagConstraints constraints = new GridBagConstraints();
-		constraints.insets = new Insets(topMargin, 0, bottomMargin, 0);
-		constraints.fill = GridBagConstraints.BOTH;
-		constraints.gridx = 0;
-		constraints.gridy = row;
-		return constraints;
+	private void setGridBagLayout() {
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWidths = new int[] { 0, 0, 0, 0 };
+		gridBagLayout.rowHeights = new int[] { 0, 0 };
+		gridBagLayout.columnWeights = new double[] { 0.0, 1.0, 0.0, Double.MIN_VALUE };
+		gridBagLayout.rowWeights = new double[] { 0.0, Double.MIN_VALUE };
+		setLayout(gridBagLayout);
 	}
 
-	private synchronized void addFilter(String filterName) {
-		System.out.println(filterName);
-		int row = filterPanels.size();
-		FilterPanel<?> filter = createFilter(filterName);
-		GridBagConstraints layoutConstraints = createLayoutConstraints(0, 5, row+1);
-		add(filter, layoutConstraints);
-		revalidate();
-		this.filterPanels.add(filter);
+	private void addFilterLabel() {
+		filterLabel = new JLabel();
+		filterLabel.setMinimumSize(new Dimension(55, 14));
+
+		GridBagConstraints gbc_filterLabel = new GridBagConstraints();
+		gbc_filterLabel.anchor = GridBagConstraints.WEST;
+		gbc_filterLabel.insets = new Insets(0, 0, 0, 5);
+		gbc_filterLabel.gridx = 0;
+		gbc_filterLabel.gridy = 0;
+
+		add(filterLabel, gbc_filterLabel);
 	}
 
-	private FilterPanel<?> createFilter(String filterName) {
-		FilterPanel<?> filterPanel = null;
-		if (Objects.equals(filterName, "User")) {
-			UserFilterPanel userFilterPanel = new UserFilterPanel(getImageUsers(imageInformation));
-			userSelectionListeners.forEach(l -> userFilterPanel.addUserSelectionListener(l));
-			filterPanel = userFilterPanel;
-		} else if (Objects.equals(filterName, "Term")) {
-			TermFilterPanel termFilterPanel = new TermFilterPanel(getImageTerms(imageInformation));
-			termSelectionListeners.forEach(l -> termFilterPanel.addTermSelectionListener(l));
+	private void addChoiceComboBox() {
+		choicesComboBox = new JCheckedComboBox<>();
+		choicesComboBox.setModel(new DefaultComboBoxModel<>());
 
-			filterPanel = termFilterPanel;
-		}
-		return filterPanel;
+		GridBagConstraints gbc_choicesComboBox = new GridBagConstraints();
+		gbc_choicesComboBox.fill = GridBagConstraints.HORIZONTAL;
+		gbc_choicesComboBox.insets = new Insets(0, 0, 0, 5);
+		gbc_choicesComboBox.gridx = 1;
+		gbc_choicesComboBox.gridy = 0;
+
+		add(choicesComboBox, gbc_choicesComboBox);
 	}
 
-	private List<User> getImageUsers(org.bioimageanalysis.icy.icytomine.core.model.Image imageInformation) {
-		try {
-			return imageInformation.getAnnotationUsers();
-		} catch (Exception e) {
-			e.printStackTrace();
-			return new ArrayList<>(0);
-		}
+	private void addFilterRemoveButton() {
+		filterRemoveButton = new JButton("");
+		Dimension filterRemoveButtonSize = new Dimension(15, 15);
+		filterRemoveButton.setPreferredSize(filterRemoveButtonSize);
+		filterRemoveButton.setMinimumSize(filterRemoveButtonSize);
+		filterRemoveButton.setIcon(getRemoveIcon(filterRemoveButtonSize));
+
+		GridBagConstraints gbc_filterRemoveButton = new GridBagConstraints();
+		gbc_filterRemoveButton.anchor = GridBagConstraints.WEST;
+		gbc_filterRemoveButton.gridx = 2;
+		gbc_filterRemoveButton.gridy = 0;
+
+		add(filterRemoveButton, gbc_filterRemoveButton);
 	}
 
-	private List<Term> getImageTerms(org.bioimageanalysis.icy.icytomine.core.model.Image imageInformation) {
-		try {
-			return imageInformation.getAvailableTerms();
-		} catch (Exception e) {
-			e.printStackTrace();
-			return new ArrayList<>(0);
-		}
+	private Icon getRemoveIcon(Dimension size) {
+		Image resizedFilterRemoveIcon = panelRemoveImage.getScaledInstance(size.width, size.height, Image.SCALE_SMOOTH);
+		return new ImageIcon(resizedFilterRemoveIcon);
 	}
 
-	public void addUserSelectionListener(UserSelectionListener listener) {
-		this.userSelectionListeners.add(listener);
+	public void setLabelText(String labelText) {
+		filterLabel.setText(labelText);
 	}
 
-	public void removeUserSelectionListener(UserSelectionListener listener) {
-		this.userSelectionListeners.remove(listener);
+	protected void setFilter(AnnotationFilter filter) {
+		this.filter = filter;
 	}
 
-	public void addTermSelectionListener(TermSelectionListener listener) {
-		this.termSelectionListeners.add(listener);
+	public AnnotationFilter getFilter() {
+		return filter;
 	}
 
-	public void removeTermSelectionListener(TermSelectionListener listener) {
-		this.termSelectionListeners.remove(listener);
+	public void setModel(E[] items, Function<E, String> labelFunction) {
+		@SuppressWarnings("unchecked")
+		JCheckableItem<E>[] checkableItems = Arrays.stream(items)
+				.map((E it) -> new JCheckableItem<E>(it, labelFunction.apply(it), true)).toArray(JCheckableItem[]::new);
+		choicesComboBox.setModel(new DefaultComboBoxModel<JCheckableItem<E>>(checkableItems));
+		choicesComboBox.addActionListener((ActionEvent e) -> choiceChanged(e));
+		choicesComboBox.setMinimumSize(CHOICESBOX_MIN_SIZE);
+	}
+
+	protected abstract void choiceChanged(ActionEvent e);
+
+	public void addRemoveButtonListener(ActionListener listener) {
+		filterRemoveButton.addActionListener(listener);
+	}
+
+	public void removeRemoveButtonListener(ActionListener listener) {
+		filterRemoveButton.removeActionListener(listener);
 	}
 }
