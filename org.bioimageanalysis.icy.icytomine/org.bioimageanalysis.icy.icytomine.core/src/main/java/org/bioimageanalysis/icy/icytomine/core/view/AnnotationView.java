@@ -17,7 +17,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
@@ -28,14 +30,15 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 
-import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.CoordinateSequence;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 
 import be.cytomine.client.CytomineException;
 import icy.plugin.PluginLoader;
-import plugins.kernel.roi.roi2d.ROI2DPoint;
-import plugins.kernel.roi.roi2d.ROI2DPolyLine;
-import plugins.kernel.roi.roi2d.ROI2DPolygon;
-import plugins.kernel.roi.roi2d.ROI2DShape;
 
 public class AnnotationView {
 	private static CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -83,7 +86,7 @@ public class AnnotationView {
 		this.listeners = new HashSet<>();
 		this.blankView = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
 		startPointCache();
-		retrieveAnnotations();
+		retrieveAnnotations(false);
 		fillVisibleAnnotations();
 		startDrawingThread();
 	}
@@ -97,18 +100,20 @@ public class AnnotationView {
 		}
 	}
 
-	private void retrieveAnnotations() throws CytomineException {
-		annotations = imageInformation.getAnnotations();
+	private void retrieveAnnotations(boolean recompute) throws CytomineClientException {
+		annotations = null;
+		annotations = imageInformation.getAnnotationsWithGeometry(recompute);
 		buildGeometricHash();
 	}
 
 	private void buildGeometricHash() {
-		Rectangle imageBounds = new Rectangle(imageInformation.getSize());
+		Rectangle imageBounds = new Rectangle(imageInformation.getSize().get());
 		annotationHash = new GeometricHash<>(imageBounds, Math.max(1, annotations.size()));
 		annotations.forEach(a -> {
 			try {
-				annotationHash.addObjectAt(a, a.getBounds());
-			} catch (ParseException | CytomineException e) {
+				Rectangle2D bounds = a.getYAdjustedApproximativeBounds();
+				annotationHash.addObjectAt(a, bounds);
+			} catch (CytomineClientException e) {
 				e.printStackTrace();
 				return;
 			}
@@ -160,7 +165,6 @@ public class AnnotationView {
 				computeActiveAnnotations();
 				drawAnnotations();
 			} catch (InterruptedException e) {
-				return null;
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw e;
@@ -175,15 +179,17 @@ public class AnnotationView {
 	}
 
 	private void computeActiveAnnotations() throws InterruptedException {
-		activeAnnotations = annotationHash.cellObjectsAt(viewBoundsAtZeroResolution).parallelStream()
-				.filter(a -> isActive(a)).collect(Collectors.toSet());
+		activeAnnotations = annotationHash.cellObjectsAt(viewBoundsAtZeroResolution).stream()
+				.filter(a -> viewBoundsAtZeroResolution.intersects(a.getYAdjustedApproximativeBounds()))
+				.filter(a -> isVisible(a)).collect(Collectors.toSet());
 	}
 
-	private boolean isActive(Annotation a) {
+	private boolean isVisible(Annotation a) {
 		return visibleAnnotations.contains(a);
 	}
 
-	private void drawAnnotations() throws InterruptedException {
+	private void drawAnnotations() throws CytomineClientException, AnnotationViewException, InterruptedException {
+		annotations.parallelStream().forEach(a -> a.getSimplifiedGeometryForResolution((int) targetResolution));
 		for (Annotation a : activeAnnotations) {
 			if (Thread.interrupted())
 				throw new InterruptedException();
@@ -192,98 +198,108 @@ public class AnnotationView {
 		}
 	}
 
-	private void drawAnnotation(Annotation a, boolean selected) throws InterruptedException {
+	private void drawAnnotation(Annotation a, boolean selected) throws CytomineClientException, AnnotationViewException {
+		Geometry geometry = a.getSimplifiedGeometryForResolution((int) targetResolution);
+		Color color = a.getColor();
 		try {
-			List<Point2D> annotationPoints = getAnnotationPoints(a);
-			ROI2DShape roi = a.getROI(0);
-			Color color = roi.getColor();
-			int thickness = getStrokeThickness(selected);
-			if (roi instanceof ROI2DPoint) {
-				drawPoint(annotationPoints, color, thickness);
-			} else if (roi instanceof ROI2DPolygon) {
-				drawPolygon(annotationPoints, color, thickness);
-			} else if (roi instanceof ROI2DPolyLine) {
-				drawPolyLine(annotationPoints, color, thickness);
-			}
-		} catch (ParseException | CytomineException e) {
-			e.printStackTrace();
-			return;
+			drawGeometry(geometry, color, selected);
+		} catch (AnnotationViewException e) {
+			throw new AnnotationViewException(String.format("Could not draw annotation %d", a.getId()), e);
 		}
+	}
+
+	private void drawGeometry(Geometry geometry, Color color, boolean selected) {
+		if (geometry instanceof Point) {
+			drawPoint((Point) geometry, color, selected);
+		} else if (geometry instanceof LineString) {
+			drawLineString((LineString) geometry, color, selected);
+		} else if (geometry instanceof Polygon) {
+			drawPolygon((Polygon) geometry, color, selected);
+		} else {
+			// TODO implement multi point
+			// TODO implement multi line string
+			// TODO implement multi polygon
+			throw new AnnotationViewException(
+					String.format("Unsupported annotation geometry (%s)", geometry.getGeometryType()));
+		}
+	}
+
+	private void drawPoint(Point point, Color color, boolean selected) {
+		int maxY = imageInformation.getSizeY().get();
+		Graphics2D g2;
+		synchronized (currentView) {
+			g2 = currentView.createGraphics();
+		}
+
+		int x = (int) MagnitudeResolutionConverter.convertMagnitude(point.getX() - viewBoundsAtZeroResolution.getMinX(), 0d,
+				targetResolution);
+		int y = (int) MagnitudeResolutionConverter
+				.convertMagnitude((maxY - point.getY()) - viewBoundsAtZeroResolution.getMinY(), 0d, targetResolution);
+		g2.setColor(color);
+		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
+		g2.drawOval(x - 2, y - 2, 8, 8);
+		if (selected) {
+			g2.setColor(getSelectedFillColor(color));
+			g2.fillOval(x - 2, y - 2, 8, 8);
+		}
+		g2.dispose();
 	}
 
 	private int getStrokeThickness(boolean selected) {
-		return (selected ? 3 : 2);
+		return (selected ? 4 : 2);
 	}
 
-	private List<Point2D> getAnnotationPoints(Annotation a) throws ParseException, CytomineException {
-		@SuppressWarnings("unchecked")
-		List<Point2D> points = (List<Point2D>) pointCache.get(a);
-		if (points == null) {
-			points = a.getROI(0).getPoints();
-			pointCache.put(a, points);
-		}
-		return points;
+	private Color getSelectedFillColor(Color color) {
+		return new Color(color.getRed(), color.getGreen(), color.getBlue(), 77);
 	}
 
-	private void drawPoint(List<Point2D> annotationPoints, Color color, int thickness) {
+	private void drawLineString(LineString geometry, Color color, boolean selected) {
+		int maxY = imageInformation.getSizeY().get();
 		Graphics2D g2 = currentView.createGraphics();
-		Point2D point = annotationPoints.get(0);
-		int x = (int) MagnitudeResolutionConverter.convertMagnitude(point.getX() - viewBoundsAtZeroResolution.getMinX(), 0d,
-				targetResolution);
-		int y = (int) MagnitudeResolutionConverter.convertMagnitude(point.getY() - viewBoundsAtZeroResolution.getMinY(), 0d,
-				targetResolution);
 		g2.setColor(color);
-		g2.setStroke(new BasicStroke(thickness));
-		g2.drawOval(x - 2, y - 2, 4, 4);
+		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
+
+		CoordinateSequence coordinates = geometry.getCoordinateSequence();
+		int size = coordinates.size();
+		int[] xPoints = new int[size];
+		int[] yPoints = new int[size];
+		IntStream.range(0, size).forEach(i -> {
+			Coordinate coordinate = coordinates.getCoordinate(i);
+			xPoints[i] = (int) MagnitudeResolutionConverter
+					.convertMagnitude(coordinate.x - viewBoundsAtZeroResolution.getMinX(), 0, targetResolution);
+			yPoints[i] = (int) MagnitudeResolutionConverter
+					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
+		});
+
+		g2.drawPolyline(xPoints, yPoints, size);
 		g2.dispose();
 	}
 
-	private void drawPolygon(List<Point2D> annotationPoints, Color color, int thickness) throws InterruptedException {
+	private void drawPolygon(Polygon geometry, Color color, boolean selected) {
+		int maxY = imageInformation.getSizeY().get();
 		Graphics2D g2 = currentView.createGraphics();
-		Point2D initPoint = annotationPoints.get(annotationPoints.size() - 1);
-		int x1 = (int) MagnitudeResolutionConverter
-				.convertMagnitude(initPoint.getX() - viewBoundsAtZeroResolution.getMinX(), 0d, targetResolution);
-		int y1 = (int) MagnitudeResolutionConverter
-				.convertMagnitude(initPoint.getY() - viewBoundsAtZeroResolution.getMinY(), 0d, targetResolution);
-
 		g2.setColor(color);
-		g2.setStroke(new BasicStroke(thickness));
-		for (Point2D currentPoint : annotationPoints) {
-			if (Thread.interrupted())
-				throw new InterruptedException();
-			int x2 = (int) MagnitudeResolutionConverter
-					.convertMagnitude(currentPoint.getX() - viewBoundsAtZeroResolution.getMinX(), 0d, targetResolution);
-			int y2 = (int) MagnitudeResolutionConverter
-					.convertMagnitude(currentPoint.getY() - viewBoundsAtZeroResolution.getMinY(), 0d, targetResolution);
-			g2.drawLine(x1, y1, x2, y2);
-			x1 = x2;
-			y1 = y2;
-		}
-		g2.dispose();
-	}
+		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
 
-	private void drawPolyLine(List<Point2D> annotationPoints, Color color, int thickness) throws InterruptedException {
-		Graphics2D g2 = currentView.createGraphics();
-		int x1 = 0, y1 = 0;
-		boolean first = true;
+		Coordinate[] coordinates = geometry.getCoordinates();
+		int size = coordinates.length;
+		int[] xPoints = new int[size];
+		int[] yPoints = new int[size];
+		IntStream.range(0, size).forEach(i -> {
+			Coordinate coordinate = coordinates[i];
+			xPoints[i] = (int) MagnitudeResolutionConverter
+					.convertMagnitude(coordinate.x - viewBoundsAtZeroResolution.getMinX(), 0, targetResolution);
+			yPoints[i] = (int) MagnitudeResolutionConverter
+					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
+		});
 
-		g2.setColor(color);
-		g2.setStroke(new BasicStroke(thickness));
-		for (Point2D currentPoint : annotationPoints) {
-			if (Thread.interrupted())
-				throw new InterruptedException();
-			int x2 = (int) MagnitudeResolutionConverter
-					.convertMagnitude(currentPoint.getX() - viewBoundsAtZeroResolution.getMinX(), 0, targetResolution);
-			int y2 = (int) MagnitudeResolutionConverter
-					.convertMagnitude(currentPoint.getY() - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
-			if (!first) {
-				g2.drawLine(x1, y1, x2, y2);
-			} else {
-				first = false;
-			}
-			x1 = x2;
-			y1 = y2;
+		g2.drawPolygon(xPoints, yPoints, size);
+
+		if (selected) {
+			g2.setColor(getSelectedFillColor(color));
+			g2.fillPolygon(xPoints, yPoints, size);
 		}
+
 		g2.dispose();
 	}
 
@@ -332,8 +348,8 @@ public class AnnotationView {
 		requestCurrentView(canvasSize);
 	}
 
-	public void updateModel() throws CytomineException {
-		retrieveAnnotations();
+	public void updateModel() throws CytomineClientException {
+		retrieveAnnotations(true);
 		fillVisibleAnnotations();
 	}
 

@@ -18,77 +18,43 @@
  */
 package org.bioimageanalysis.icy.icytomine.core.model;
 
-/**
- * This class represents a cytomine user.
- * 
- * @author Daniel Felipe Gonzalez Obando
- */
-public class User {
-	private static final String UNKNOWN_USERNAME = "unknown";
+import java.util.List;
+import java.util.Optional;
 
-	private be.cytomine.client.models.User internalUser;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 
-	private String username;
+public class User extends Entity {
 
-	public User(be.cytomine.client.models.User internalUser) {
-		this.internalUser = internalUser;
+	public static User retrieve(CytomineClient client, long userId) throws CytomineClientException {
+		return client.getUser(userId);
 	}
 
-	public Long getId() {
-		return internalUser.getId();
+	private List<Project> projects;
+
+	public User(CytomineClient client, be.cytomine.client.models.User internalUser) {
+		super(client, internalUser);
 	}
 
-	public String getUserName() {
-		if (username == null) {
-			username = internalUser.getStr("username");
-			if (username == null) {
-				username = UNKNOWN_USERNAME;
-			} else {
-				username = CytomineUtils.convertFromSystenEncodingToUTF8(username);
-			}
+	public be.cytomine.client.models.User getInternalUser() {
+		return (be.cytomine.client.models.User) getModel();
+	}
+
+	public Optional<String> getName() {
+		return getStr("username");
+	}
+
+	public List<Project> getProjects(boolean recompute) {
+		if (projects == null | recompute) {
+			projects = null;
+			projects = getClient().getUserProjects(getId());
 		}
-		return username;
+		return projects;
 	}
 
+	@Override
 	public String toString() {
-		return getUserName();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		return internalUser.getId().hashCode();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (!(obj instanceof User)) {
-			return false;
-		}
-		User other = (User) obj;
-		if (internalUser == null) {
-			if (other.internalUser != null) {
-				return false;
-			}
-		} else if (!getId().equals(other.getId())) {
-			return false;
-		}
-		return true;
+		return String.format("User: id=%s, name=%s", String.valueOf(getId()), getName().orElse("Not specified"));
 	}
 
 }

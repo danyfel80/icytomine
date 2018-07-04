@@ -18,9 +18,9 @@
  */
 package org.bioimageanalysis.icy.icytomine.command.process.connected;
 
-import org.bioimageanalysis.icy.icytomine.core.model.Project;
+import java.util.List;
 
-import be.cytomine.client.collections.ProjectCollection;
+import org.bioimageanalysis.icy.icytomine.core.model.Project;
 
 /**
  * @author Daniel Felipe Gonzalez Obando
@@ -57,12 +57,12 @@ public class ProjectsCommandProcess extends ConnectedCommandProcess<String> {
 	public String call() throws Exception {
 		StringBuffer projectList = new StringBuffer();
 
-		ProjectCollection projs = client.getProjects();
+		List<Project> projects = getClient().getUserProjects(getClient().getCurrentUser().getId());
 		projectList.append("Projects (ID, Name, Description, # Images, # Annotations):\n");
-		for (int i = 0; i < projs.size(); i++) {
-			Project proj = new Project(projs.get(i), client);
-			projectList.append(proj.getId() + " " + proj.getName() + " " + proj.getDescription() + " "
-					+ proj.getNumberOfImages() + " " + proj.getNumberOfAnnotations() + "\n");
+		for (Project project : projects) {
+			projectList.append(project.getId() + " " + project.getName().orElse("Not specified") + " "
+					+ project.getDescription().getData().orElse("Not specified") + " " + project.getNumberOfImages().orElse(0L)
+					+ " " + project.getNumberOfAnnotations().orElse(0L) + "\n");
 		}
 
 		return projectList.toString();

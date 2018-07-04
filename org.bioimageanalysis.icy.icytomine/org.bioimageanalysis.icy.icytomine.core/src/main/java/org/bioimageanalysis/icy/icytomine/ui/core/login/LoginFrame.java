@@ -30,6 +30,7 @@ public class LoginFrame extends IcyFrame {
 		super("Login - Icytomine", false, true, false, false);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		loginPanel = new LoginPanel(this.getExternalFrame());
+		loginPanel.start();
 		setSize(loginPanel.getPreferredSize());
 		setMinimumSize(loginPanel.getPreferredSize());
 		setContentPane(loginPanel);

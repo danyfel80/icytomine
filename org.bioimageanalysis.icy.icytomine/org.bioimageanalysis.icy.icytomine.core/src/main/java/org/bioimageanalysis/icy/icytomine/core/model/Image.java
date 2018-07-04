@@ -1,209 +1,199 @@
 package org.bioimageanalysis.icy.icytomine.core.model;
 
 import java.awt.Dimension;
+import java.awt.geom.Dimension2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
-import be.cytomine.client.collections.AnnotationCollection;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
+
 import be.cytomine.client.models.ImageInstance;
 
-public class Image {
-	
-	private static final ImageInstance INTERNAL_NO_IMAGE = new ImageInstance();
-	{
-		INTERNAL_NO_IMAGE.set("id", 0L);
-	}
-	
-	public static Image getNoImage(Cytomine client) {
-		return new Image(INTERNAL_NO_IMAGE, client);
+public class Image extends Entity {
+
+	private static final int DEFAULT_TILE_SIZE = 256;
+
+	public static Image retrieve(CytomineClient client, long imageInstanceId) throws CytomineClientException {
+		return client.getImageInstance(imageInstanceId);
 	}
 
-	private static int defaultTileSize = 256;
+	private List<String> imageServers;
+	private List<Annotation> annotations;
 
-	private ImageInstance internalImage;
-	private Cytomine cytomine;
-
-	private String originalFilename;
-	private List<String> servers;
-
-
-	public Image(ImageInstance internalImage, Cytomine cytomine) {
-		this.internalImage = internalImage;
-		this.cytomine = cytomine;
+	public Image(CytomineClient client, ImageInstance internalImage) {
+		super(client, internalImage);
 	}
 
-	/**
-	 * @return Internal Cytomine image object.
-	 */
 	public ImageInstance getInternalImage() {
-		return this.internalImage;
+		return (ImageInstance) getModel();
 	}
 
 	/**
-	 * @return Cytomine client.
+	 * @return Date of creation for this image.
 	 */
-	public Cytomine getClient() {
-		return this.cytomine;
-	}
-
-	/**
-	 * @return Image ID.
-	 */
-	public Long getId() {
-		return getInternalImage().getId();
-	}
-
-	/**
-	 * @return ID of the abstract image this image is associated with.
-	 */
-	public Long getAbstractImageId() {
-		return getInternalImage().getLong("baseImage");
-	}
-
-	/**
-	 * @return Name of this image.
-	 */
-	public String getName() {
-		if (originalFilename == null) {
-			originalFilename = getInternalImage().getStr("originalFilename");
-			originalFilename = CytomineUtils.convertFromSystenEncodingToUTF8(originalFilename);
+	public Optional<Calendar> getCreationDate() {
+		Optional<Long> numericDate = getLong("created");
+		if (numericDate.isPresent()) {
+			Calendar c = GregorianCalendar.getInstance();
+			c.setTimeInMillis(numericDate.get());
+			return Optional.of(c);
+		} else {
+			return Optional.ofNullable(null);
 		}
-		return originalFilename;
+	}
+
+	public Optional<Long> getAbstractImageId() {
+		return getLong("baseImage");
+	}
+
+	public Optional<Long> getProjectId() {
+		return getLong("project");
+	}
+
+	public Optional<String> getName() {
+		return getStr("originalFilename");
 	}
 
 	/**
-	 * @return Magnification used when capturing this image.
+	 * @return Format used to store this image.
 	 */
-	public Integer getMagnification() {
-		return getInternalImage().getInt("magnification");
+	public Optional<String> getMimeType() {
+		return getStr("mime");
+	}
+
+	/**
+	 * @return Size of the image expressed in pixels in x direction.
+	 */
+	public Optional<Integer> getSizeX() {
+		return getInt("width");
+	}
+
+	/**
+	 * @return Size of the image expressed in pixels in y direction.
+	 */
+	public Optional<Integer> getSizeY() {
+		return getInt("height");
+	}
+
+	/**
+	 * @return Size of the image expressed in pixels in x and y directions.
+	 */
+	public Optional<Dimension> getSize() {
+		if (getSizeX().isPresent() && getSizeY().isPresent()) {
+			return Optional.of(new Dimension(getSizeX().get(), getSizeY().get()));
+		} else {
+			return Optional.ofNullable(null);
+		}
 	}
 
 	/**
 	 * @return Resolution of each pixel in x and y directions expressed in
 	 *         microns.
 	 */
-	public Double getResolution() {
-		return getInternalImage().getDbl("resolution");
-	}
-
-	/**
-	 * @return The maximum resolution that can be requested.
-	 */
-	public Long getDepth() {
-		return getInternalImage().getLong("depth");
-	}
-
-	/**
-	 * @return Size of the image expressed in pixels in x direction.
-	 */
-	public Integer getSizeX() {
-		return getInternalImage().getInt("width");
-	}
-
-	/**
-	 * @return Size of the image expressed in pixels in y direction.
-	 */
-	public Integer getSizeY() {
-		return getInternalImage().getInt("height");
-	}
-
-	/**
-	 * @return Size of the image expressed in pixels in x and y directions.
-	 */
-	public Dimension getSize() {
-		return new Dimension(getSizeX(), getSizeY());
+	public Optional<Double> getResolution() {
+		return super.getDbl("resolution");
 	}
 
 	/**
 	 * @return Size of the image expressed in microns in x direction.
 	 */
-	public Double getDimensionX() {
-		Double resolution = getResolution();
-		Integer size = getSizeX();
-		if (resolution == null) {
-			return null;
+	public Optional<Double> getDimensionX() {
+		Optional<Double> resolution = getResolution();
+		Optional<Integer> size = getSizeX();
+		if (size.isPresent() && resolution.isPresent()) {
+			return Optional.of(resolution.get() * size.get());
+		} else {
+			return Optional.ofNullable(null);
 		}
-		if (size == null)
-			return null;
-		return resolution * size;
 	}
 
 	/**
 	 * @return Size of the image expressed in microns in y direction.
 	 */
-	public Double getDimensionY() {
-		Double resolution = getResolution();
-		Integer size = getSizeY();
-		if (resolution == null) {
-			resolution = 1d;
+	public Optional<Double> getDimensionY() {
+		Optional<Double> resolution = getResolution();
+		Optional<Integer> size = getSizeY();
+		if (size.isPresent() && resolution.isPresent()) {
+			return Optional.of(resolution.get() * size.get());
+		} else {
+			return Optional.ofNullable(null);
 		}
-		if (size == null)
-			return null;
-		return resolution * size;
+	}
+
+	/**
+	 * @return Size of the image expressed in microns in x and y directions.
+	 */
+	public Optional<Dimension2D> getDimension() {
+		Optional<Dimension> size = getSize();
+		Optional<Double> resolution = getResolution();
+		if (size.isPresent() && resolution.isPresent()) {
+			return Optional.of(new icy.type.dimension.Dimension2D.Double(size.get().width * resolution.get(),
+					size.get().height * resolution.get()));
+		} else {
+			return Optional.ofNullable(null);
+		}
+	}
+
+	/**
+	 * @return Magnification used when capturing this image.
+	 */
+	public Optional<Integer> getMagnification() {
+		return getInt("magnification");
+	}
+
+	/**
+	 * @return The maximum resolution that can be requested.
+	 */
+	public Optional<Long> getDepth() {
+		return getLong("depth");
 	}
 
 	/**
 	 * @return Size of the tile in x direction.
 	 */
-	public int getTileWidth() {
-		return defaultTileSize;
+	public Optional<Integer> getTileWidth() {
+		return Optional.of(DEFAULT_TILE_SIZE);
 	}
 
 	/**
 	 * @return Size of the tile in y direction.
 	 */
-	public int getTileHeight() {
-		return defaultTileSize;
+	public Optional<Integer> getTileHeight() {
+		return Optional.of(DEFAULT_TILE_SIZE);
 	}
 
 	/**
 	 * @return Size of the tile in x and y directions.
 	 */
-	public Dimension getTileSize() {
-		return new Dimension(getTileWidth(), getTileHeight());
+	public Optional<Dimension> getTileSize() {
+		if (getTileWidth().isPresent() && getTileHeight().isPresent()) {
+			return Optional.of(new Dimension(getTileWidth().get(), getTileHeight().get()));
+		} else {
+			return Optional.ofNullable(null);
+		}
+
 	}
 
 	/**
 	 * @return Number of annotations users have associated to this image.
 	 */
-	public Long getAnnotationsUser() {
-		return getInternalImage().getLong("numberOfAnnotations");
+	public Optional<Long> getAnnotationsOfUsersNumber() {
+		return getLong("numberOfAnnotations");
 	}
 
 	/**
 	 * @return Number of annotations associated to this image produced by
 	 *         algorithms.
 	 */
-	public Long getAnnotationsAlgo() {
-		return getInternalImage().getLong("numberOfJobAnnotations");
-	}
-
-	/**
-	 * @return Date of creation for this image.
-	 */
-	public Calendar getCreationDate() {
-		Long date = getInternalImage().getLong("created");
-		if (date == null)
-			return null;
-		Calendar c = GregorianCalendar.getInstance();
-		c.setTimeInMillis(date);
-		return c;
-	}
-
-	/**
-	 * @return Format used to store this image.
-	 */
-	public String getMimeType() {
-		return getInternalImage().getStr("mime");
+	public Optional<Long> getAnnotationsOfAlgorithmNumber() {
+		return getLong("numberOfJobAnnotations");
 	}
 
 	/**
@@ -216,15 +206,29 @@ public class Image {
 	 * @param y
 	 *          Tile index in y direction.
 	 * @return URL used to retrieve the tile from the server.
-	 * @throws CytomineException
-	 *           If no image server has been declared for this image.
+	 * @throws CytomineClientException
+	 *           If image servers for this image cannot be retrieved.
 	 */
-	public String getUrl(long resolution, int x, int y) throws CytomineException {
-		List<String> servers = getImageServers();
-		if (servers.size() == 0)
-			throw new CytomineException(404, "No image server declared");
+	public Optional<String> getTileUrl(long resolution, int x, int y) throws CytomineClientException {
+		List<String> servers = getImageServers(false);
+		if (servers.isEmpty()) {
+			return Optional.ofNullable(null);
+		}
+		return Optional.of(String.format("%s&z=%d&x=%d&y=%d&mimeType=%s", servers.get(0),
+				getDepth().orElse(0L) - resolution, x, y, getMimeType().orElse("ndpi")));
+	}
 
-		return String.format("%s&z=%d&x=%d&y=%d&mimeType=%s", servers.get(0), getDepth() - resolution, x, y, getMimeType());
+	/**
+	 * @return Collection with image servers available for this image.
+	 * @throws CytomineClientException
+	 *           If the image servers cannot be retrieved from the server.
+	 */
+	public List<String> getImageServers(boolean recompute) throws CytomineClientException {
+		if (imageServers == null || recompute) {
+			imageServers = null;
+			imageServers = getClient().getImageServers(this);
+		}
+		return imageServers;
 	}
 
 	/**
@@ -233,152 +237,65 @@ public class Image {
 	 * @param maxSize
 	 *          Maximum size of the retrieved thumbnail.
 	 * @return Thumbnail.
-	 * @throws CytomineException
-	 *           If the thumbnail fails to be downloaded.
+	 * @throws CytomineClientException
+	 *           If the thumbnail cannot be retrieved from the server.
 	 */
-	public BufferedImage getThumbnail(int maxSize) throws CytomineException {
-		return getClient().downloadAbstractImageAsBufferedImage(getAbstractImageId(), maxSize);
+	public BufferedImage getThumbnail(int maxSize) throws CytomineClientException {
+		return getClient().downloadImageAsBufferedImage(getAbstractImageId().get(), maxSize);
 	}
 
 	/**
 	 * Annotations associated to this image.
 	 * 
 	 * @return Annotation collection for this image.
-	 * @throws CytomineException
+	 * @throws CytomineClientException
 	 *           If annotations for this image cannot be retrieved from the
 	 *           server.
 	 */
-	public List<Annotation> getAnnotations() throws CytomineException {
-		AnnotationCollection annotationsNative = getClient().getAnnotationsByImage(getInternalImage().getId());
-		List<Annotation> annotations = new ArrayList<>();
-
-		ThreadPoolExecutor tp = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
-		ExecutorCompletionService<be.cytomine.client.models.Annotation> cs = new ExecutorCompletionService<>(tp);
-
-		for (int i = 0; i < annotationsNative.size(); i++) {
-			final int idx = i;
-			cs.submit(() -> {
-				return getClient().getAnnotation(annotationsNative.get(idx).getId());
-			});
+	public List<Annotation> getAnnotations(boolean recompute) throws CytomineClientException {
+		if (annotations == null || recompute) {
+			annotations = null;
+			annotations = getClient().getImageAnnotations(getId());
 		}
-		tp.shutdown();
-
-		for (int i = 0; i < annotationsNative.size(); i++) {
-			try {
-				annotations.add(new Annotation(cs.take().get(), this, getClient()));
-			} catch (InterruptedException | ExecutionException e) {
-				throw new CytomineException(e);
-			}
-		}
-
 		return annotations;
 	}
 
 	/**
-	 * @return Collection with image servers available for this image.
-	 * @throws CytomineException
-	 *           If servers cannot be retrieved from the main server.
+	 * Annotations associated to this image containing geometric information.
+	 * 
+	 * @return Annotation collection for this image.
+	 * @throws CytomineClientException
+	 *           If full annotations for this image cannot be retrieved from the
+	 *           server.
 	 */
-	public List<String> getImageServers() throws CytomineException {
-		if (servers == null) {
-			servers = getClient().getImageInstanceServers(getInternalImage()).getServerList();
+	public List<Annotation> getAnnotationsWithGeometry(boolean recompute) throws CytomineClientException {
+		long annotationsWithoutGeometry = 0;
+		if (annotations != null) {
+			annotationsWithoutGeometry = annotations.stream().filter(a -> !a.getLocation().isPresent()).count();
 		}
-		return servers;
+
+		if (annotations == null || recompute || annotationsWithoutGeometry > 0) {
+			annotations = null;
+			annotations = getClient().getFullImageAnnotations(getId());
+		}
+		return annotations;
 	}
 
-	/**
-	 * @return Id of the project this image is associated with.
-	 */
-	public Long getProjectId() {
-		return getInternalImage().getLong("project");
+	public List<Annotation> getAnnotationsWithGeometryOf(Rectangle2D currentTileArea) throws CytomineClientException {
+		return getClient().getFullImageAnnotations(getId(), currentTileArea);
 	}
 
-	/**
-	 * @return The project this image is associated with.
-	 * @throws CytomineException
-	 *           If the project cannot be retreived from the server.
-	 */
-	public Project getProject() throws CytomineException {
-		return new Project(getClient().getProject(getProjectId()), getClient());
+	public Project getProject() throws CytomineClientException {
+		return getClient().getProject(getProjectId().get());
+	}
+
+	public Set<User> getAnnotationUsers() {
+		List<Annotation> annotations = getAnnotations(false);
+		return annotations.stream().map(a -> a.getUser()).collect(Collectors.toSet());
 	}
 
 	@Override
 	public String toString() {
-		return getName();
+		return String.format("Image instance: id=%s, name=%s", String.valueOf(getId()), getName().orElse("Not specified"));
 	}
-
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-
-		if (getClient() != null) {
-			result = prime * result + (getClient().getHost() == null ? 0 : getClient().getHost().hashCode());
-			result = prime * result + (getClient().getPublicKey() == null ? 0 : getClient().getPublicKey().hashCode());
-			result = prime * result + (getClient().getPrivateKey() == null ? 0 : getClient().getPrivateKey().hashCode());
-		} else {
-			result = prime * result;
-		}
-		result = prime * result + ((getInternalImage() == null) ? 0 : getInternalImage().getId().hashCode());
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (!(obj instanceof Image)) {
-			return false;
-		}
-		Image other = (Image) obj;
-		if (getClient() == null) {
-			if (other.getClient() != null) {
-				return false;
-			}
-		} else if (!getClient().getHost().equals(other.getClient().getHost())
-				|| !getClient().getPublicKey().equals(other.getClient().getPublicKey())
-				|| !getClient().getPrivateKey().equals(other.getClient().getPrivateKey())) {
-			return false;
-		}
-		if (getInternalImage() == null) {
-			if (other.getInternalImage() != null) {
-				return false;
-			}
-		} else if (!getInternalImage().equals(other.getInternalImage())) {
-			return false;
-		}
-		return true;
-	}
-
-	public List<User> getAnnotationUsers() throws CytomineException, InterruptedException, ExecutionException {
-		List<Annotation> annotations = getAnnotations();
-
-		ThreadPoolExecutor tp = (ThreadPoolExecutor) Executors.newFixedThreadPool(2);
-		ExecutorCompletionService<User> cs = new ExecutorCompletionService<>(tp);
-
-		int userCount = (int) (annotations.stream().map(annotation -> annotation.getUserId())
-				.filter(userId -> userId != null).distinct()
-				.map((Long userId) -> cs.submit(() -> new User(getClient().getUser(userId.longValue())))).count());
-
-		tp.shutdown();
-
-		List<User> users = new ArrayList<>(userCount);
-		for (long i = 0; i < userCount; i++) {
-			if (Thread.interrupted())
-				throw new InterruptedException();
-
-			users.add(cs.take().get());
-		}
-
-		return users;
-	}
-
-	public List<Term> getAvailableTerms() throws CytomineException {
-		return getProject().getAvailableTerms();
-	}
-
 }

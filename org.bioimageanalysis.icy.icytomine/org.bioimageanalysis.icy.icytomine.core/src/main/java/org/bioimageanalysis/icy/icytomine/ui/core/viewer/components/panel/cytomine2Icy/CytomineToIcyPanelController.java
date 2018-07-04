@@ -1,11 +1,11 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.cytomine2Icy;
 
+import java.awt.Rectangle;
 import java.awt.event.ActionListener;
 import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -58,6 +58,7 @@ public class CytomineToIcyPanelController {
 		this.panel = panel;
 		imageInformation = viewController.getImageInformation();
 		viewBounds = viewController.getCurrentViewBoundsAtZeroResolution();
+		viewBounds = viewBounds.createIntersection(new Rectangle(imageInformation.getSize().get()));
 		viewResolution = viewController.getCurrentResolution();
 		activeAnnotations = viewController.getActiveAnnotations();
 		viewMagnification = getMagnificationOf(viewResolution);
@@ -74,7 +75,7 @@ public class CytomineToIcyPanelController {
 	}
 
 	private int getBaseMagnification() {
-		Integer magnification = imageInformation.getMagnification();
+		Integer magnification = imageInformation.getMagnification().orElse(1);
 		if (magnification == null)
 			magnification = 1;
 		return magnification;
@@ -143,7 +144,7 @@ public class CytomineToIcyPanelController {
 		try {
 			Sequence image = new Sequence(result.get());
 			Dimension2D pixelSize = getPixelSizeAtViewResolution();
-			image.setName(imageInformation.getName());
+			image.setName(imageInformation.getName().orElse("CytomineImage"));
 			image.setPixelSizeX(pixelSize.getWidth());
 			image.setPixelSizeY(pixelSize.getHeight());
 			image.setPositionX(viewBounds.getX() * pixelSize.getWidth());
@@ -170,7 +171,7 @@ public class CytomineToIcyPanelController {
 	}
 
 	private Dimension2D getPixelSizeAtViewResolution() {
-		double pixelLength = Optional.ofNullable(imageInformation.getResolution()).orElse(1d);
+		double pixelLength = imageInformation.getResolution().orElse(1d);
 		Dimension2D pixelSize = new icy.type.dimension.Dimension2D.Double(pixelLength, pixelLength);
 		return MagnitudeResolutionConverter.convertDimension2D(pixelSize, 0d, outputResolution);
 	}

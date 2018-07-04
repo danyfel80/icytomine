@@ -10,9 +10,11 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
+import org.bioimageanalysis.icy.icytomine.geom.WKTUtils;
 
 import be.cytomine.client.CytomineException;
 import icy.common.listener.ProgressListener;
@@ -54,10 +56,10 @@ public class RoiAnnotationSender {
 
 	private void computeAvailableTerms() {
 		try {
-			List<Term> terms = imageInformation.getAvailableTerms();
-			availableTerms = new HashMap<>(terms.size());
-			terms.forEach(term -> availableTerms.put(term.getName().toLowerCase(), term));
-		} catch (CytomineException e) {
+			Set<Term> terms = imageInformation.getProject().getOntology().getTerms(false);
+			availableTerms = terms.stream()
+					.collect(Collectors.toMap(t -> t.getName().orElse("Not specified").toLowerCase(), t -> t));
+		} catch (CytomineClientException e) {
 			availableTerms = new HashMap<>(0);
 		}
 	}
@@ -115,8 +117,8 @@ public class RoiAnnotationSender {
 
 	private Set<String> getExistingAnnotationIds() {
 		try {
-			return imageInformation.getAnnotations().stream().map(a -> a.getId().toString()).collect(Collectors.toSet());
-		} catch (CytomineException e) {
+			return imageInformation.getAnnotations(false).stream().map(a -> a.getId().toString()).collect(Collectors.toSet());
+		} catch (CytomineClientException e) {
 			e.printStackTrace();
 			return new HashSet<>();
 		}
@@ -136,11 +138,9 @@ public class RoiAnnotationSender {
 		return annotation;
 	}
 
-	private Annotation createAnnotation(String description, Set<Term> terms) throws CytomineException {
-		be.cytomine.client.models.Annotation internalAnnotation = imageInformation.getClient().addAnnotationWithTerms(
-				description, imageInformation.getId(), terms.stream().map(term -> term.getId()).collect(Collectors.toList()));
-		Annotation annotation = new Annotation(internalAnnotation, imageInformation, imageInformation.getClient());
-		annotation.getTerms();
+	private Annotation createAnnotation(String description, Set<Term> terms) throws CytomineClientException {
+		Annotation annotation = imageInformation.getClient().addAnnotationWithTerms(description, imageInformation.getId(),
+				terms.stream().map(term -> term.getId()).collect(Collectors.toList()));
 		return annotation;
 	}
 
@@ -148,7 +148,7 @@ public class RoiAnnotationSender {
 		if (roi instanceof ROI2DShape) {
 			ROI2DShape shapeRoi = (ROI2DShape) roi;
 			shapeRoi = adjustRoiToFullImage(shapeRoi);
-			return Annotation.convertToWKT(shapeRoi);
+			return WKTUtils.createFromROI2DShape(shapeRoi);
 		} else {
 			throw new UnsupportedOperationException("Unsupported roi type: " + roi.getClassName());
 		}
@@ -181,7 +181,7 @@ public class RoiAnnotationSender {
 		List<Point2D> adjustedPoints = new ArrayList<>(controlPoints.size());
 		for (Anchor2D anchor : controlPoints) {
 			Point2D adjustedPoint = new Point2D.Double((sequenceLocation.getX() + anchor.getX() * scaleFactor),
-					imageInformation.getSizeY() - (sequenceLocation.getY() + anchor.getY() * scaleFactor));
+					imageInformation.getSizeY().orElse(1) - (sequenceLocation.getY() + anchor.getY() * scaleFactor));
 			adjustedPoints.add(adjustedPoint);
 		}
 		return adjustedPoints;
@@ -189,7 +189,7 @@ public class RoiAnnotationSender {
 
 	private double getSequenceScaleFactor() {
 		if (Double.isNaN(sequenceScaleFactor)) {
-			Optional<Double> res = Optional.ofNullable(imageInformation.getResolution());
+			Optional<Double> res = imageInformation.getResolution();
 			sequenceScaleFactor = res.orElse(1d) / sequence.getPixelSizeX();
 		}
 		return sequenceScaleFactor;

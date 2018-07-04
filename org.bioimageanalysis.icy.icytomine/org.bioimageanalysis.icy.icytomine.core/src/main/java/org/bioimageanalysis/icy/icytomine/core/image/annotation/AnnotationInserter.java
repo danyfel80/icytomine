@@ -6,13 +6,19 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 
-import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.CoordinateSequence;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 
-import be.cytomine.client.CytomineException;
 import icy.sequence.Sequence;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
@@ -44,36 +50,70 @@ public class AnnotationInserter {
 		activeAnnotations.forEach(a -> addAnnotationToSequence(a, sequence));
 	}
 
-	private void addAnnotationToSequence(Annotation annotation, Sequence sequence) {
-		try {
-			ROI2DShape roi = (ROI2DShape) annotation.getROI(0);
-			ROI2DShape roiInView = createRoiInView(roi);
-			roiInView.setName(Objects.toString(annotation.getId()));
-			roiInView.setProperty("cytomineId", Objects.toString(annotation.getId()));
-			roiInView.setColor(roi.getColor());
-			sequence.addROI(roiInView);
-		} catch (ParseException | CytomineException e) {
-			e.printStackTrace();
+	private void addAnnotationToSequence(Annotation annotation, Sequence sequence) throws CytomineClientException, AnnotationInserterException {
+		ROI2DShape roiInView = createRoiInView(annotation);
+		roiInView.setName(Objects.toString(annotation.getId()));
+		roiInView.setProperty("cytomineId", Objects.toString(annotation.getId()));
+		roiInView.setColor(annotation.getColor());
+		sequence.addROI(roiInView);
+	}
+
+	private ROI2DShape createRoiInView(Annotation annotation) throws CytomineClientException, AnnotationInserterException {
+		Geometry geometry = annotation.getGeometryAtZeroResolution(false);
+		if (geometry instanceof Point) {
+			return createPoint((Point) geometry, annotation);
+		} else if (geometry instanceof LineString) {
+			return createLineString((LineString) geometry, annotation);
+		} else if (geometry instanceof Polygon) {
+			return createPolygon((Polygon) geometry, annotation);
+		} else {
+			throw new AnnotationInserterException(
+					String.format("Unsupported annotation geometry (%s)", geometry.getGeometryType()));
 		}
 	}
 
-	private ROI2DShape createRoiInView(ROI2DShape roi) {
-		List<Point2D> transformedPoints = roi.getControlPoints().stream().map(anchor -> anchor.getPositionInternal())
-				.map(p -> new Point2D.Double(
-						MagnitudeResolutionConverter.convertMagnitude(p.getX() - viewBoundsAtZeroResolution.getMinX(), 0,
-								sequenceResolution),
-						MagnitudeResolutionConverter.convertMagnitude(p.getY() - viewBoundsAtZeroResolution.getMinY(), 0,
-								sequenceResolution)))
-				.collect(Collectors.toList());
+	private ROI2DPoint createPoint(Point geometry, Annotation annotation) throws CytomineClientException {
+		int maxY = annotation.getImage().getSizeY().get();
+		int x = (int) MagnitudeResolutionConverter.convertMagnitude(geometry.getX() - viewBoundsAtZeroResolution.getMinX(),
+				0d, sequenceResolution);
+		int y = (int) MagnitudeResolutionConverter
+				.convertMagnitude((maxY - geometry.getY()) - viewBoundsAtZeroResolution.getMinY(), 0d, sequenceResolution);
+		return new ROI2DPoint(x, y);
+	}
 
-		ROI2DShape newRoi = null;
-		if (roi instanceof ROI2DPoint) {
-			newRoi = new ROI2DPoint(transformedPoints.get(0));
-		} else if (roi instanceof ROI2DPolyLine) {
-			newRoi = new ROI2DPolyLine(transformedPoints);
-		} else if (roi instanceof ROI2DPolygon) {
-			newRoi = new ROI2DPolygon(transformedPoints);
-		}
-		return newRoi;
+	private ROI2DPolyLine createLineString(LineString geometry, Annotation annotation) throws CytomineClientException {
+		int maxY = annotation.getImage().getSizeY().get();
+
+		CoordinateSequence coordinates = geometry.getCoordinateSequence();
+		int size = coordinates.size();
+
+		List<Point2D> points = IntStream.range(0, size).mapToObj(i -> {
+			Coordinate coordinate = coordinates.getCoordinate(i);
+			double x = MagnitudeResolutionConverter.convertMagnitude(coordinate.x - viewBoundsAtZeroResolution.getMinX(), 0,
+					sequenceResolution);
+			double y = MagnitudeResolutionConverter
+					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, sequenceResolution);
+			return new Point2D.Double(x, y);
+		}).collect(Collectors.toList());
+
+		return new ROI2DPolyLine(points);
+	}
+
+	private ROI2DPolygon createPolygon(Polygon geometry, Annotation annotation) throws CytomineClientException {
+		int maxY = annotation.getImage().getSizeY().get();
+
+		Coordinate[] coordinates = geometry.getCoordinates();
+		int size = coordinates.length;
+
+		List<Point2D> points = IntStream.range(0, size - 1).mapToObj(i -> {
+			Coordinate coordinate = coordinates[i];
+			double x = MagnitudeResolutionConverter.convertMagnitude(coordinate.x - viewBoundsAtZeroResolution.getMinX(), 0,
+					sequenceResolution);
+			double y = MagnitudeResolutionConverter
+					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, sequenceResolution);
+			return new Point2D.Double(x, y);
+		}).collect(Collectors.toList());
+
+		return new ROI2DPolygon(points);
 	}
 }

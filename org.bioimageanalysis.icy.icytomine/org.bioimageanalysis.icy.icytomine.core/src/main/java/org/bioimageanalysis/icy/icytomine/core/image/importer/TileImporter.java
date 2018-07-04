@@ -2,9 +2,8 @@ package org.bioimageanalysis.icy.icytomine.core.image.importer;
 
 import java.awt.image.BufferedImage;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-
-import be.cytomine.client.CytomineException;
 
 public class TileImporter {
 
@@ -20,8 +19,8 @@ public class TileImporter {
 		this.y = y;
 	}
 
-	public BufferedImage getTile() throws CytomineException {
-		String url = imageInformation.getUrl(resolution, x, y);
+	public BufferedImage getTile() throws CytomineClientException {
+		String url = imageInformation.getTileUrl(resolution, x, y).get();
 		return imageInformation.getClient().downloadPictureAsBufferedImage(url, "ndpi");
 	}
 }

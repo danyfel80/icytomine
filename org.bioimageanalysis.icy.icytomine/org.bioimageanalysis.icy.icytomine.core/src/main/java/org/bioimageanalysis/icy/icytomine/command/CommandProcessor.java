@@ -32,8 +32,7 @@ import org.bioimageanalysis.icy.icytomine.command.process.CommandProcessUtil;
 import org.bioimageanalysis.icy.icytomine.command.process.ConnectionCommand;
 import org.bioimageanalysis.icy.icytomine.command.process.ExitCommand;
 import org.bioimageanalysis.icy.icytomine.command.process.connected.ConnectedCommandProcess;
-
-import be.cytomine.client.Cytomine;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
 
 /**
  * @author Daniel Felipe Gonzalez Obando
@@ -41,7 +40,7 @@ import be.cytomine.client.Cytomine;
 public class CommandProcessor implements Callable<Void> {
 
 	Map<String, Class<CommandProcess<?>>> commands;
-	private Cytomine connection;
+	private CytomineClient connection;
 	private Object previousResult;
 
 	public CommandProcessor() throws IOException, ClassNotFoundException {
@@ -119,7 +118,7 @@ public class CommandProcessor implements Callable<Void> {
 					System.err.println("No cytomine server has been established.");
 					continue;
 				}
-				((ConnectedCommandProcess<?>) process).setCytomineClient(connection);
+				((ConnectedCommandProcess<?>) process).setClient(connection);
 			}
 
 			// Execute
@@ -140,7 +139,7 @@ public class CommandProcessor implements Callable<Void> {
 				System.out.println(result);
 
 			if (process instanceof ConnectionCommand) {
-				this.connection = (Cytomine) result;
+				this.connection = (CytomineClient) result;
 			} else if (process instanceof ExitCommand) {
 				break;
 			}

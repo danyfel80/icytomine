@@ -4,6 +4,7 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.SystemColor;
+import java.util.List;
 
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
@@ -14,13 +15,29 @@ import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
 
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
-import be.cytomine.client.collections.ProjectCollection;
-
 public class ProjectPanel extends JPanel {
+
+	public static class ProjectItem {
+		private Project project;
+
+		public ProjectItem(Project project) {
+			this.project = project;
+		}
+
+		public Project getProject() {
+			return this.project;
+		}
+
+		@Override
+		public String toString() {
+			return project.getName().orElse(String.format("Not specified (id=%d)", project.getId().longValue()));
+		}
+	}
+
 	@FunctionalInterface
 	public interface ProjectSelectionListener {
 		public void projectSelected(Project p);
@@ -28,13 +45,13 @@ public class ProjectPanel extends JPanel {
 
 	private static final long serialVersionUID = 5990256964181871478L;
 
-	private Cytomine cytomine;
+	private CytomineClient client;
 
-	private JList<Project> listProjects;
+	private JList<ProjectItem> listProjects;
 
 	/**
 	 * Create empty panel. To fill with cytomine details use
-	 * {@link #ProjectPanel(Cytomine)}.
+	 * {@link #setClient(CytomineClient)}.
 	 */
 	public ProjectPanel() {
 		setMinimumSize(new Dimension(50, 50));
@@ -59,38 +76,30 @@ public class ProjectPanel extends JPanel {
 		scrollPane.setViewportView(listProjects);
 	}
 
-	/**
-	 * Create the panel.
-	 */
-	public ProjectPanel(Cytomine cytomine) {
-		this();
-		setCytomine(cytomine);
-	}
-
-	public void updateProjectList() throws CytomineException {
-		ProjectCollection projectCollection = cytomine.getProjectsByUser(cytomine.getCurrentUser().getId());
-		Project[] projects = new Project[projectCollection.size()];
-		for (int i = 0; i < projectCollection.size(); i++) {
-			be.cytomine.client.models.Project project = projectCollection.get(i);
-			projects[i] = new Project(project, cytomine);
-		}
+	public void updateProjectList() throws CytomineClientException {
+		List<Project> projectCollection = client.getUserProjects(client.getCurrentUser().getId());
+		ProjectItem[] projects = projectCollection.stream().map(p -> new ProjectItem(p)).toArray(ProjectItem[]::new);
 		listProjects.setListData(projects);
 		listProjects.clearSelection();
 		listProjects.setSelectedIndex(-1);
 	}
 
-	public void setCytomine(Cytomine cytomine) {
-		this.cytomine = cytomine;
+	public void setClient(CytomineClient client) {
+		this.client = client;
 		try {
 			updateProjectList();
-		} catch (CytomineException e) {
+		} catch (CytomineClientException e) {
 			e.printStackTrace();
 		}
 	}
 
 	@SuppressWarnings("unchecked")
 	public void addProjectSelectionListener(ProjectSelectionListener listener) {
-		listProjects.addListSelectionListener(e -> listener.projectSelected(((JList<Project>)e.getSource()).getSelectedValue()));
+		listProjects.addListSelectionListener(event -> {
+			if (!event.getValueIsAdjusting()) {
+				listener.projectSelected(((JList<ProjectItem>) event.getSource()).getSelectedValue().getProject());
+			}
+		});
 	}
 
 }

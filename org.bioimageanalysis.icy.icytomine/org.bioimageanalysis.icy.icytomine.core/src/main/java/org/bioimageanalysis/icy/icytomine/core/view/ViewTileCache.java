@@ -133,7 +133,7 @@ public class ViewTileCache {
 				throw new InterruptedException();
 			if (tileImage == null) {
 				tileImage = imageInformation.getClient()
-						.downloadPictureAsBufferedImage(imageInformation.getUrl(resolutionLevel, x, y), "ndpi");
+						.downloadPictureAsBufferedImage(imageInformation.getTileUrl(resolutionLevel, x, y).get(), "ndpi");
 			}
 			if (tileImage != null) {
 				tileCache.put(key, tileImage);
@@ -147,7 +147,7 @@ public class ViewTileCache {
 	}
 
 	private BufferedImage createDefaultTile() {
-		return new BufferedImage(imageInformation.getTileWidth(), imageInformation.getTileHeight(),
+		return new BufferedImage(imageInformation.getTileWidth().get(), imageInformation.getTileHeight().get(),
 				BufferedImage.TYPE_INT_ARGB);
 	}
 

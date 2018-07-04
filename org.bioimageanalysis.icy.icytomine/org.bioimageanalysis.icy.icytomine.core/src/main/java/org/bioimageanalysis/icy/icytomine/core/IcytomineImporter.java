@@ -23,6 +23,7 @@ import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.Executors;
@@ -30,10 +31,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
 import icy.common.exception.UnsupportedFormatException;
 import icy.common.listener.ProgressListener;
 import icy.image.IcyBufferedImage;
@@ -51,14 +52,14 @@ public class IcytomineImporter implements SequenceIdImporter {
 	private static final int defaultThumbnailSize = 200;
 	private static final int maxRetrievalRetries = 4;
 
-	private final Cytomine cytomine;
+	private final CytomineClient client;
 
 	private Image imageInformation;
 	private Rectangle fullImageRectangle;
 	private ProgressListener progressListener;
 
-	public IcytomineImporter(Cytomine cytomine) {
-		this.cytomine = cytomine;
+	public IcytomineImporter(CytomineClient cytomine) {
+		this.client = cytomine;
 	}
 
 	public void setProgressListener(ProgressListener listener) {
@@ -73,14 +74,20 @@ public class IcytomineImporter implements SequenceIdImporter {
 	@Override
 	public boolean open(String idImage, int flags) throws UnsupportedFormatException, IOException {
 		try {
-			this.imageInformation = new Image(cytomine.getImageInstance(Long.parseLong(idImage)), cytomine);
-			fullImageRectangle = new Rectangle(0, 0, imageInformation.getSizeX(), imageInformation.getSizeY());
-			return true;
+			this.imageInformation = client.getImageInstance(Long.parseLong(idImage));
 		} catch (NumberFormatException e) {
-			throw new UnsupportedFormatException("Invalid id", e);
-		} catch (CytomineException e) {
-			throw new IOException("Exception from Cytomine client", e);
+			throw new UnsupportedFormatException(String.format("Invalid id :%s", idImage), e);
+		} catch (CytomineClientException e) {
+			throw new IOException("Could not retrieve image information from host server.", e);
 		}
+
+		Optional<Dimension> imageSize = imageInformation.getSize();
+		if (imageSize.isPresent()) {
+			fullImageRectangle = new Rectangle(imageSize.get());
+		} else {
+			throw new UnsupportedFormatException(String.format("Invalid size for image instance %s", idImage));
+		}
+		return true;
 	}
 
 	public Image getImageInformation() {
@@ -135,7 +142,7 @@ public class IcytomineImporter implements SequenceIdImporter {
 		try {
 			BufferedImage bImage = getImageInformation().getThumbnail(defaultThumbnailSize);
 			return (bImage == null) ? null : IcyBufferedImage.createFrom(bImage);
-		} catch (CytomineException e) {
+		} catch (CytomineClientException e) {
 			throw new IOException("Exception downloading image", e);
 		}
 	}
@@ -170,7 +177,7 @@ public class IcytomineImporter implements SequenceIdImporter {
 	@Override
 	public boolean isResolutionAvailable(int series, int resolution) throws UnsupportedFormatException, IOException {
 		validateImageInformation();
-		return 0 <= resolution && resolution < getImageInformation().getDepth();
+		return 0 <= resolution && resolution < getImageInformation().getDepth().orElse(0L);
 	}
 
 	/*
@@ -213,7 +220,7 @@ public class IcytomineImporter implements SequenceIdImporter {
 		resolutionAvailable = isResolutionAvailable(0, resolution);
 		if (!resolutionAvailable)
 			throw new IllegalArgumentException(
-					"resolution " + resolution + " out of bounds [0-" + (imageInformation.getDepth() - 1) + "]");
+					"resolution " + resolution + " out of bounds [0-" + (imageInformation.getDepth().orElse(0L)) + "]");
 	}
 
 	private Rectangle originalRectangleToResolutionRectangle(Rectangle rectangle, int resolution) {
@@ -276,13 +283,13 @@ public class IcytomineImporter implements SequenceIdImporter {
 			for (int j = 0, y = tileRectangle.y; j < tileRectangle.height; j++, y++) {
 				final Rectangle tile = new Rectangle(x, y, getTileWidth(0), getTileHeight(0));
 				poolCS.submit(() -> {
-					String url = imageData.getUrl(resolution, tile.x, tile.y);
+					String url = imageData.getTileUrl(resolution, tile.x, tile.y).get();
 					BufferedImage tileBI = null;
 					// Retry to get hopefully a good image
 					int retry = 0;
 					while (tileBI == null && retry < maxRetrievalRetries) {
 						retry++;
-						tileBI = cytomine.downloadPictureAsBufferedImage(url, "ndpi");
+						tileBI = client.downloadPictureAsBufferedImage(url, "ndpi");
 					}
 					if (tileBI == null)
 						throw new IOException("Image could not be retrieved " + tile);

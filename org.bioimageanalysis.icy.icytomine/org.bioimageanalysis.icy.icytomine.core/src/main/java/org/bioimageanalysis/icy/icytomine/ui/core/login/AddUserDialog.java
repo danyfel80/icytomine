@@ -18,18 +18,17 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.CytomineConnector;
-import org.bioimageanalysis.icy.icytomine.core.connection.user.Preferences;
-import org.bioimageanalysis.icy.icytomine.core.connection.user.UserKeys;
+import org.bioimageanalysis.icy.icytomine.core.connection.persistence.Preferences;
 
 import icy.gui.dialog.MessageDialog;
 
 public class AddUserDialog extends JDialog {
 	private static final long serialVersionUID = 9028893545489525619L;
 
-	private JTextField	tFieldHost;
-	private JTextField	tFieldUser;
-	private JTextField	tFieldPublicKey;
-	private JTextField	tFieldPrivateKey;
+	private JTextField tFieldHost;
+	private JTextField tFieldUser;
+	private JTextField tFieldPublicKey;
+	private JTextField tFieldPrivateKey;
 
 	/**
 	 * Create the dialog.
@@ -38,7 +37,7 @@ public class AddUserDialog extends JDialog {
 	 * @param userName
 	 * @param owner
 	 */
-	public AddUserDialog(String host, String userName, Frame owner) {
+	public AddUserDialog(Frame owner) {
 		super(owner, "Add User - Icytomine", true);
 		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
@@ -68,7 +67,7 @@ public class AddUserDialog extends JDialog {
 		gbc_tFieldHost.gridy = 0;
 		getContentPane().add(tFieldHost, gbc_tFieldHost);
 		tFieldHost.setColumns(10);
-		tFieldHost.setText(host);
+		tFieldHost.setText("");
 
 		JLabel lblUser = new JLabel("User");
 		GridBagConstraints gbc_lblUser = new GridBagConstraints();
@@ -86,19 +85,7 @@ public class AddUserDialog extends JDialog {
 		gbc_tFieldUser.gridy = 1;
 		getContentPane().add(tFieldUser, gbc_tFieldUser);
 		tFieldUser.setColumns(10);
-		tFieldUser.setText(userName);
-
-		UserKeys userData;
-		try {
-			userData = Preferences.getInstance().getAvailableCytomineCredentials().get(host).get(userName);
-		} catch (Exception e) {
-			userData = null;
-		}
-		if (userData == null) {
-			userData = new UserKeys();
-			userData.setPublicKey("");
-			userData.setPrivateKey("");
-		}
+		tFieldUser.setText("");
 
 		JLabel lblPublicKey = new JLabel("Public Key");
 		GridBagConstraints gbc_lblPublicKey = new GridBagConstraints();
@@ -116,7 +103,7 @@ public class AddUserDialog extends JDialog {
 		gbc_tFieldPublicKey.gridy = 2;
 		getContentPane().add(tFieldPublicKey, gbc_tFieldPublicKey);
 		tFieldPublicKey.setColumns(10);
-		tFieldPublicKey.setText(userData.getPublicKey());
+		tFieldPublicKey.setText("");
 
 		JLabel lblPrivateKey = new JLabel("Private Key");
 		GridBagConstraints gbc_lblPrivateKey = new GridBagConstraints();
@@ -134,7 +121,7 @@ public class AddUserDialog extends JDialog {
 		gbc_tFieldPrivateKey.gridy = 3;
 		getContentPane().add(tFieldPrivateKey, gbc_tFieldPrivateKey);
 		tFieldPrivateKey.setColumns(10);
-		tFieldPrivateKey.setText(userData.getPrivateKey());
+		tFieldPrivateKey.setText("");
 
 		JPanel panel = new JPanel();
 		GridBagConstraints gbc_panel = new GridBagConstraints();

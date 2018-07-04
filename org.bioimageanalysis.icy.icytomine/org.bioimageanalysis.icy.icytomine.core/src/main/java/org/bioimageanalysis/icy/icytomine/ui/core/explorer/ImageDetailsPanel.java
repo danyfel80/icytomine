@@ -9,7 +9,8 @@ import java.awt.Insets;
 import java.awt.image.BufferedImage;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.Calendar;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,13 +21,11 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
-import javax.swing.Timer;
 import javax.swing.UIManager;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.ehcache.Cache;
-
-import be.cytomine.client.CytomineException;
 
 public class ImageDetailsPanel extends JPanel {
 	private static final long serialVersionUID = 6055883183949045447L;
@@ -344,11 +343,6 @@ public class ImageDetailsPanel extends JPanel {
 		panelDetails.add(lblDateCreationValue, gbc_lblDateCreationValue);
 	}
 
-	ImageDetailsPanel(Image image) {
-		this();
-		setCurrentImage(image);
-	}
-
 	public void setCurrentImage(Image image) {
 		this.currentImage = image;
 		updateImageDetails();
@@ -364,36 +358,74 @@ public class ImageDetailsPanel extends JPanel {
 
 	public void updateImageDetails() {
 		if (getCurrentImage() != null) {
-			String filename = getCurrentImage().getName();
 			String id = "" + getCurrentImage().getId();
-			Double dimensionX = getCurrentImage().getDimensionX(), dimensionY = getCurrentImage().getDimensionY();
-			String dimension = String.format("%.2f x %.2f \u00B5m", dimensionX, dimensionY);
-			if (dimensionX == null || dimensionY == null)
-				dimension = "Unavailable";
-			String magnification = String.format("%dX", getCurrentImage().getMagnification());
-			if (magnification.equals("nullX"))
-				magnification = "Unavailable";
-			String annotationsAlgo = "" + getCurrentImage().getAnnotationsAlgo();
-			if (annotationsAlgo.equals("null"))
-				annotationsAlgo = "Unavailable";
-			String annotationsUser = "" + getCurrentImage().getAnnotationsUser();
-			if (annotationsUser.equals("null"))
-				annotationsUser = "Unavailable";
-			Integer sizeX = getCurrentImage().getSizeX(), sizeY = getCurrentImage().getSizeY();
-			String size = String.format("%d x %d px", sizeX, sizeY);
-			if (sizeX == null || sizeY == null)
-				size = "Unavailable";
-			Double res = getCurrentImage().getResolution();
-			String resolution = String.format("%f \u00B5m/px", res);
-			if (res == null)
-				resolution = "Unavailable";
-			Long dep = getCurrentImage().getDepth();
-			String depth = String.format("%d levels", dep);
-			if (dep == null)
-				depth = "Unavailable";
-			Date dt = getCurrentImage().getCreationDate().getTime();
-			DateFormat formatter = new SimpleDateFormat("d MMM yyyy HH:mm");
-			String date = dt == null ? "Unavailable" : formatter.format(dt);
+
+			String filename = getCurrentImage().getName().orElse("Not specified");
+
+			String dimension;
+			Optional<Double> dimensionX = getCurrentImage().getDimensionX(), dimensionY = getCurrentImage().getDimensionY();
+			if (dimensionX.isPresent() && dimensionY.isPresent()) {
+				dimension = String.format("%.2f x %.2f \u00B5m", dimensionX.get(), dimensionY.get());
+			} else {
+				dimension = "Not specified";
+			}
+
+			String magnification;
+			Optional<Integer> magnificationValue = getCurrentImage().getMagnification();
+			if (magnificationValue.isPresent()) {
+				magnification = String.format("%dX", magnificationValue.get());
+			} else {
+				magnification = "Not specified";
+			}
+
+			String annotationsAlgo;
+			Optional<Long> annotationsAlgoValue = getCurrentImage().getAnnotationsOfAlgorithmNumber();
+			if (annotationsAlgoValue.isPresent()) {
+				annotationsAlgo = annotationsAlgoValue.get().toString();
+			} else {
+				annotationsAlgo = "Not specified";
+			}
+
+			String annotationsUser;
+			Optional<Long> annotationsUserValue = getCurrentImage().getAnnotationsOfUsersNumber();
+			if (annotationsUserValue.isPresent()) {
+				annotationsUser = annotationsUserValue.get().toString();
+			} else {
+				annotationsUser = "Not specified";
+			}
+
+			Optional<Dimension> sizeValue = getCurrentImage().getSize();
+			String size;
+			if (sizeValue.isPresent()) {
+				size = String.format("%d x %d px", sizeValue.get().width, sizeValue.get().height);
+			} else {
+				size = "Not specified";
+			}
+
+			String resolution;
+			Optional<Double> resolutionValue = getCurrentImage().getResolution();
+			if (resolutionValue.isPresent()) {
+				resolution = String.format("%f \u00B5m/px", resolutionValue.get());
+			} else {
+				resolution = "Not specified";
+			}
+
+			String depth;
+			Optional<Long> depthValue = getCurrentImage().getDepth();
+			if (depthValue.isPresent()) {
+				depth = String.format("%d levels", depthValue.get());
+			} else {
+				depth = "Not specified";
+			}
+
+			String date;
+			Optional<Calendar> dateValue = getCurrentImage().getCreationDate();
+			if (dateValue.isPresent()) {
+				DateFormat formatter = new SimpleDateFormat("d MMM yyyy HH:mm");
+				date = formatter.format(dateValue.get().getTime());
+			} else {
+				date = "Not specified";
+			}
 
 			synchronized (this.lblPreview) {
 				this.lblPreview.setIcon(null);
@@ -407,7 +439,7 @@ public class ImageDetailsPanel extends JPanel {
 					if (preview == null) {
 						try {
 							preview = getCurrentImage().getThumbnail(256);
-						} catch (CytomineException e) {
+						} catch (CytomineClientException e) {
 							e.printStackTrace();
 							preview = new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB);
 						}
@@ -425,12 +457,6 @@ public class ImageDetailsPanel extends JPanel {
 
 				});
 				previewExecutor.shutdown();
-				Timer timer = new Timer(200, ev -> {
-					lblPreview.revalidate();
-					scrollPaneDetails.getVerticalScrollBar().setValue(0);
-				});
-				timer.setRepeats(false);
-				timer.start();
 			}
 
 			this.lblImageFileName.setText(filename);

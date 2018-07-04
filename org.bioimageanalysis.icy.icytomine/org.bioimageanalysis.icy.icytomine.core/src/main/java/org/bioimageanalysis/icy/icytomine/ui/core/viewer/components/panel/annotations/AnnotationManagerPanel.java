@@ -7,6 +7,8 @@ import javax.swing.JPanel;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanelController.AnnotationTermCommitListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTable.AnnotationDoubleClickListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTable.AnnotationSelectionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.actions.AnnotationActionPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.filter.AnnotationFilteringPanel;
@@ -75,12 +77,28 @@ public class AnnotationManagerPanel extends JPanel {
 		annotationTable.removeAnnotationSelectionListener(listener);
 	}
 
+	public void addAnnotationDoubleClickListener(AnnotationDoubleClickListener listener) {
+		annotationTable.addAnnotationDoubleClickListener(listener);
+	}
+
+	public void removeAnnotationDoubleClickListener(AnnotationDoubleClickListener listener) {
+		annotationTable.removeAnnotationDoubleClickListener(listener);
+	}
+
 	protected AnnotationFilteringPanel getFilteringPanel() {
 		return filterPanel;
 	}
 
 	protected AnnotationTable getAnnotationTable() {
 		return annotationTable;
+	}
+
+	public AnnotationActionPanel getActionPanel() {
+		return actionPanel;
+	}
+
+	public void addAnnotationTermSelectionCommitListener(AnnotationTermCommitListener listener) {
+		panelController.addAnnotationTermSelectionCommitListener(listener);
 	}
 
 }

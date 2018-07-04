@@ -114,7 +114,7 @@ public class CachedViewController implements ViewController {
 	}
 
 	private void adjustResolutionToFitInView() {
-		Dimension presentedImageDimension = imageInformation.getSize();
+		Dimension presentedImageDimension = imageInformation.getSize().get();
 		Dimension viewDimension = viewCanvasPanel.getBounds().getSize();
 
 		double widthAdjustedResolution = Math.log(presentedImageDimension.getWidth() / viewDimension.getWidth())
@@ -122,7 +122,7 @@ public class CachedViewController implements ViewController {
 		double heightAdjustedResolution = Math.log(presentedImageDimension.getHeight() / viewDimension.getHeight())
 				/ Math.log(2d);
 		resolutionLevel = Math.min(Math.max(widthAdjustedResolution, heightAdjustedResolution),
-				imageInformation.getDepth() + 1);
+				imageInformation.getDepth().get() + 1);
 	}
 
 	private void notifyResolutionChanged() {
@@ -302,5 +302,28 @@ public class CachedViewController implements ViewController {
 	public void setSelectedAnnotations(Set<Annotation> selectedAnnotations) {
 		viewCanvasPanel.getViewProvider().setSelectedAnnotations(selectedAnnotations);
 		viewCanvasPanel.updateCanvas();
+	}
+
+	@Override
+	public void focusOnAnnotation(Annotation a) {
+		Rectangle2D annotationLocation = a.getYAdjustedApproximativeBounds();
+		int margin = 2;
+		
+		viewPositionAt0Resolution = new Point2D.Double(annotationLocation.getX()-margin, annotationLocation.getY()-margin);
+		Dimension2D dimensionAt0Resolution = new icy.type.dimension.Dimension2D.Double(annotationLocation.getWidth()+2*margin, annotationLocation.getHeight()+2*margin);
+		resolutionLevel = getResolutionLevelToFitDimension(dimensionAt0Resolution);
+		
+		refreshView();
+	}
+
+	private double getResolutionLevelToFitDimension(Dimension2D dimensionAtZeroResolutionToFit) {
+		Dimension2D viewDimension = viewCanvasPanel.getBounds().getSize();
+
+		double widthAdjustedResolution = Math.log(dimensionAtZeroResolutionToFit.getWidth() / viewDimension.getWidth())
+				/ Math.log(2d);
+		double heightAdjustedResolution = Math.log(dimensionAtZeroResolutionToFit.getHeight() / viewDimension.getHeight())
+				/ Math.log(2d);
+		return Math.min(Math.max(widthAdjustedResolution, heightAdjustedResolution),
+				imageInformation.getDepth().get());
 	}
 }

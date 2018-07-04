@@ -1,217 +1,107 @@
 package org.bioimageanalysis.icy.icytomine.core.model;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Optional;
 
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
-import be.cytomine.client.collections.TermCollection;
-import be.cytomine.client.collections.UserCollection;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 
-/**
- * This class represents a project in cytomine. It only contains data about its
- * identifier and its name.
- * 
- * @author Daniel Felipe Gonzalez Obando
- */
-/**
- * @author Daniel Felipe Gonzalez Obando
- *
- */
-/**
- * @author Daniel Felipe Gonzalez Obando
- *
- */
-public class Project {
+public class Project extends Entity {
 
-	private Cytomine cytomine;
-	private be.cytomine.client.models.Project internalProject;
-
-	private String name;
-	private String description;
-	private String ontologyName;
-	private ArrayList<Term> terms;
-
-	public Project(be.cytomine.client.models.Project internalProject, Cytomine cytomine) {
-		this.internalProject = internalProject;
-		this.cytomine = cytomine;
+	/**
+	 * @throws CytomineClientException
+	 *           If the project cannot be retrieved from the host server.
+	 */
+	public static Project retrieve(CytomineClient client, long projectId) throws CytomineClientException {
+		return client.getProject(projectId);
 	}
 
-	public Cytomine getClient() {
-		return this.cytomine;
+	private List<User> users;
+	private List<Image> images;
+
+	public Project(CytomineClient client, be.cytomine.client.models.Project internalProject) {
+		super(client, internalProject);
 	}
 
 	public be.cytomine.client.models.Project getInternalProject() {
-		return internalProject;
+		return (be.cytomine.client.models.Project) getModel();
 	}
 
-	/**
-	 * @return The project identifier
-	 */
-	public Long getId() {
-		return getInternalProject().getId();
+	public Optional<String> getName() {
+		return getStr("name");
 	}
 
-	/**
-	 * @return The project name
-	 */
-	public String getName() {
-		if (name == null) {
-			name = getInternalProject().getStr("name");
-			name = CytomineUtils.convertFromSystenEncodingToUTF8(name);
-		}
-		return name;
+	public Optional<Long> getOntologyId() {
+		return super.getLong("ontology");
 	}
 
-	/**
-	 * @return The project description
-	 * @throws CytomineException
-	 */
-	public String getDescription() throws CytomineException {
-		if (description == null) {
-			description = "N/A";
-			try {
-				description = getClient().getDescription(getInternalProject().getId(), getInternalProject().getDomainName())
-						.getStr("data");
-				description = CytomineUtils.convertFromSystenEncodingToUTF8(description);
-			} catch (CytomineException e) {
-				if (e.getHttpCode() != 500)
-					throw e;
-			}
-		}
-		return description;
+	public Optional<String> getOntologyName() {
+		return getStr("ontologyName");
 	}
 
-	/**
-	 * @return The id of the ontology used for this project.
-	 */
-	public Long getOntologyId() {
-		return getInternalProject().getLong("ontology");
+	public Optional<Long> getNumberOfImages() {
+		return getLong("numberOfImages");
 	}
 
-	/**
-	 * @return The ontology name used for this project
-	 */
-	public String getOntologyName() {
-		if (ontologyName == null) {
-			ontologyName = getInternalProject().getStr("ontologyName");
-			ontologyName = CytomineUtils.convertFromSystenEncodingToUTF8(ontologyName);
-		}
-		return ontologyName;
+	public Optional<Long> getNumberOfAnnotations() {
+		return getLong("numberOfAnnotations");
 	}
 
-	/**
-	 * @return The amount of images available for this project
-	 */
-	public Long getNumberOfImages() {
-		return getInternalProject().getLong("numberOfImages");
+	public Optional<Long> getNumberOfJobAnnotations() {
+		return getLong("numberOfJobAnnotations");
 	}
 
-	/**
-	 * @return The amount of human user made annotations
-	 */
-	public Long getNumberOfAnnotations() {
-		return getInternalProject().getLong("numberOfAnnotations");
-	}
-
-	/**
-	 * @return The amount of annotations created by software
-	 */
-	public Long getNumberOfJobAnnotations() {
-		return getInternalProject().getLong("numberOfJobAnnotations");
-	}
-
-	/**
-	 * @return The sum of user made annotations and job annotations.
-	 */
 	public Long getTotalNumberOfAnnotations() {
-		return getNumberOfAnnotations() + getNumberOfJobAnnotations();
+		return getNumberOfAnnotations().orElse(0L) + getNumberOfJobAnnotations().orElse(0L);
 	}
 
 	/**
-	 * @return The users associated to this project.
-	 * @throws CytomineException
-	 *           if the users cannot be retrieved from the server.
+	 * @throws CytomineClientException
+	 *           If the project users cannot be retrieved from the host server.
 	 */
-	public List<User> getUsers() throws CytomineException {
-		UserCollection userCollection = getClient().getProjectUsers(getId());
-		List<User> users = new ArrayList<>(userCollection.size());
-		for (int i = 0; i < userCollection.size(); i++) {
-			users.add(new User(userCollection.get(i)));
+	public List<User> getUsers(boolean recompute) throws CytomineClientException {
+		if (users == null || recompute) {
+			users = null;
+			users = getClient().getProjectUsers(getId());
 		}
-
 		return users;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#toString()
+	/**
+	 * @throws NoSuchElementException
+	 *           If no ontology is specified for this project.
+	 * @throws CytomineClientException
+	 *           If the project ontology cannot be retrieved from the host server.
 	 */
+	public Ontology getOntology() throws NoSuchElementException, CytomineClientException {
+		Long ontologyId = getOntologyId().get();
+		return Ontology.retrieve(getClient(), ontologyId);
+	}
+
+	/**
+	 * @throws CytomineClientException
+	 *           If the project images cannot be retrieved from the host server.
+	 */
+	public List<Image> getImages(boolean recompute) throws CytomineClientException {
+		if (images == null || recompute) {
+			images = null;
+			images = getClient().getProjectImages(getId());
+		}
+		return images;
+	}
+
+	/**
+	 * @throws CytomineClientException
+	 *           If the project image cannot be retrieved from the host server.
+	 */
+	public Image getImageInstance(long imageInstanceId) throws CytomineClientException {
+		return getClient().getImageInstance(imageInstanceId);
+	}
+
 	@Override
 	public String toString() {
-		return getName();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((getClient() == null) ? 0 : getClient().getHost().hashCode());
-		result = prime * result + ((getInternalProject() == null) ? 0 : getId().hashCode());
-		return result;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (!(obj instanceof Project)) {
-			return false;
-		}
-		Project other = (Project) obj;
-		if (getClient() == null) {
-			if (other.getClient() != null) {
-				return false;
-			}
-		} else if (!getClient().getHost().equals(other.getClient().getHost())) {
-			return false;
-		}
-		if (getInternalProject() == null) {
-			if (other.getInternalProject() != null) {
-				return false;
-			}
-		} else if (!getId().equals(other.getId())) {
-			return false;
-		}
-		return true;
-	}
-
-	public List<Term> getAvailableTerms() throws CytomineException {
-		if (terms == null) {
-			Long ontologyId = getOntologyId();
-			TermCollection termCollection = getClient().getTermsByOntology(ontologyId);
-			terms = new ArrayList<>(termCollection.size());
-			for (int i = 0; i < termCollection.size(); i++) {
-				terms.add(new Term(getClient(), termCollection.get(i)));
-			}
-			terms.add(Term.getNoTerm(getClient()));
-		}
-		return terms;
+		return String.format("Project: id=%s, name=%s", String.valueOf(getId()), getName().orElse("Not specified"));
 	}
 
 }

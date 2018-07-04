@@ -1,5 +1,8 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations;
 
+import java.awt.Point;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -20,11 +23,16 @@ public class AnnotationTable extends JScrollPane {
 		void selectionChanged(Set<Annotation> selectedAnnotations);
 	}
 
+	public interface AnnotationDoubleClickListener {
+		void annotationDoubleClicked(Annotation annotation);
+	}
+
 	private JTable annotationTable;
 	private AnnotationTableModel annotationTableModel;
 
 	private Set<AnnotationVisibilityListener> annotationVisibilityListeners;
 	private Set<AnnotationSelectionListener> annotationSelectionListeners;
+	private Set<AnnotationDoubleClickListener> annotationDoubleClickListeners;
 
 	public AnnotationTable() {
 		this(new HashMap<>());
@@ -34,6 +42,7 @@ public class AnnotationTable extends JScrollPane {
 		annotationTable = new JTable();
 		annotationVisibilityListeners = new HashSet<>();
 		annotationSelectionListeners = new HashSet<>();
+		annotationDoubleClickListeners = new HashSet<>();
 		setTableModel(annotationVisibility);
 		setColumnWidths();
 		setViewportView(annotationTable);
@@ -79,6 +88,18 @@ public class AnnotationTable extends JScrollPane {
 				notifySelectionChange();
 			}
 		});
+		annotationTable.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent e) {
+				if (e.getClickCount() == 2 && annotationTable.getSelectedRow() != -1) {
+					Point point = e.getPoint();
+					int row = annotationTable.rowAtPoint(point);
+					if (row != -1) {
+						notifyDoubleClickSelection();
+					}
+				}
+			}
+		});
 	}
 
 	private void notifySelectionChange() {
@@ -100,6 +121,19 @@ public class AnnotationTable extends JScrollPane {
 		}
 
 		return selectedAnnotations;
+	}
+
+	private void notifyDoubleClickSelection() {
+		this.annotationDoubleClickListeners.forEach(l -> l.annotationDoubleClicked(getSelectedAnnotation()));
+	}
+
+	private Annotation getSelectedAnnotation() {
+		ListSelectionModel selectionModel = annotationTable.getSelectionModel();
+		int rowIndex = selectionModel.getMinSelectionIndex();
+		if (rowIndex != -1)
+			return ((AnnotationTableModel) annotationTable.getModel()).getAnnotationAt(rowIndex);
+		else
+			return null;
 	}
 
 	public void addAnnotationVisibilityListener(AnnotationVisibilityListener listener) {
@@ -124,5 +158,13 @@ public class AnnotationTable extends JScrollPane {
 
 	public void removeAnnotationSelectionListener(AnnotationSelectionListener listener) {
 		this.annotationSelectionListeners.remove(listener);
+	}
+
+	public void addAnnotationDoubleClickListener(AnnotationDoubleClickListener listener) {
+		this.annotationDoubleClickListeners.add(listener);
+	}
+
+	public void removeAnnotationDoubleClickListener(AnnotationDoubleClickListener listener) {
+		this.annotationDoubleClickListeners.remove(listener);
 	}
 }

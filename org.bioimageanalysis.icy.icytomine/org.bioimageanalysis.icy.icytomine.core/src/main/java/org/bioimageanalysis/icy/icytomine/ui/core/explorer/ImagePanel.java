@@ -6,6 +6,10 @@ import java.awt.Font;
 import java.awt.SystemColor;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
@@ -15,15 +19,31 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
+import javax.swing.event.ListSelectionListener;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
 
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
-import be.cytomine.client.collections.ImageInstanceCollection;
-
 public class ImagePanel extends JPanel {
+	public static class ImageItem {
+		private Image image;
+
+		public ImageItem(Image image) {
+			this.image = image;
+		}
+
+		public Image getImage() {
+			return image;
+		}
+
+		@Override
+		public String toString() {
+			return image.getName().orElse(String.format("Not specified (id=%d)", image.getId().longValue()));
+		}
+	}
+
 	@FunctionalInterface
 	public interface ImageSelectionListener {
 		public void imageSelected(Image image);
@@ -31,14 +51,16 @@ public class ImagePanel extends JPanel {
 
 	private static final long serialVersionUID = 5990256964181871478L;
 
-	private Cytomine	cytomine;
-	private Project		currentProject;
+	private CytomineClient client;
+	private Project currentProject;
 
-	private JList<Image> listImages;
+	private JList<ImageItem> listImages;
+
+	private Map<ImageSelectionListener, ListSelectionListener> listSelectionListeners;
 
 	/**
 	 * Creates an empty image panel. To fill with cytomine data use
-	 * {@link #ImagePanel(Cytomine)}.
+	 * {@link #setClient(CytomineClient)}.
 	 */
 	public ImagePanel() {
 		setMinimumSize(new Dimension(50, 50));
@@ -61,27 +83,15 @@ public class ImagePanel extends JPanel {
 		lblImages.setLabelFor(listImages);
 		scrollPane.setViewportView(listImages);
 
-		setCurrentProject(null);
+		listSelectionListeners = new HashMap<>();
 	}
 
-	/**
-	 * Create the panel.
-	 * 
-	 * @param cytomine
-	 *          Cytomine client.
-	 */
-	public ImagePanel(Cytomine cytomine, Project project) {
-		this();
-		setCytomine(cytomine);
-		setCurrentProject(project);
+	public void setClient(CytomineClient client) {
+		this.client = client;
 	}
 
-	public void setCytomine(Cytomine cytomine) {
-		this.cytomine = cytomine;
-	}
-
-	public Cytomine getCytomine() {
-		return this.cytomine;
+	public CytomineClient getClient() {
+		return client;
 	}
 
 	public Project getCurrentProject() {
@@ -90,12 +100,12 @@ public class ImagePanel extends JPanel {
 
 	public void setCurrentProject(Project project) {
 		this.currentProject = project;
-		if (getCytomine() != null) {
+		if (getClient() != null) {
 			try {
 				updateImageList();
-			} catch (CytomineException e) {
+			} catch (CytomineClientException e) {
 				e.printStackTrace();
-				setCurrentProject(null);
+				currentProject = null;
 			}
 		} else {
 			System.err.println("No cytomine instance at image panel yet.");
@@ -104,7 +114,25 @@ public class ImagePanel extends JPanel {
 
 	@SuppressWarnings("unchecked")
 	public void addImageSelectionListener(ImageSelectionListener listener) {
-		listImages.addListSelectionListener(e -> listener.imageSelected(((JList<Image>) e.getSource()).getSelectedValue()));
+		ListSelectionListener listSelectionListener = event -> {
+			if (!event.getValueIsAdjusting()) {
+				Optional<ImageItem> imageItem = Optional.ofNullable(((JList<ImageItem>) event.getSource()).getSelectedValue());
+				if (imageItem.isPresent()) {
+					listener.imageSelected(imageItem.get().getImage());
+				} else {
+					listener.imageSelected(null);
+				}
+			}
+		};
+		listSelectionListeners.put(listener, listSelectionListener);
+		listImages.addListSelectionListener(listSelectionListener);
+	}
+
+	public void removeImageSelectionListener(ImageSelectionListener listener) {
+		ListSelectionListener listSelectionListener = listSelectionListeners.get(listener);
+		if (listSelectionListener != null) {
+			listImages.removeListSelectionListener(listSelectionListener);
+		}
 	}
 
 	public void addImageDoubleClickListener(ImageSelectionListener listener) {
@@ -114,21 +142,17 @@ public class ImagePanel extends JPanel {
 				if (e.getClickCount() == 2) {
 					int index = listImages.locationToIndex(e.getPoint());
 					if (index > -1) {
-						listener.imageSelected(listImages.getSelectedValue());
+						listener.imageSelected(listImages.getSelectedValue().getImage());
 					}
 				}
 			}
 		});
 	}
 
-	public void updateImageList() throws CytomineException {
+	public void updateImageList() throws CytomineClientException {
 		if (getCurrentProject() != null) {
-			ImageInstanceCollection imageCollection = cytomine.getImageInstances(getCurrentProject().getId());
-			Image[] images = new Image[imageCollection.size()];
-			for (int i = 0; i < imageCollection.size(); i++) {
-				be.cytomine.client.models.ImageInstance image = imageCollection.get(i);
-				images[i] = new Image(image, cytomine);
-			}
+			List<Image> imageCollection = client.getProjectImages(getCurrentProject().getId());
+			ImageItem[] images = imageCollection.stream().map(i -> new ImageItem(i)).toArray(ImageItem[]::new);
 			listImages.setListData(images);
 			listImages.clearSelection();
 			listImages.setSelectedIndex(-1);

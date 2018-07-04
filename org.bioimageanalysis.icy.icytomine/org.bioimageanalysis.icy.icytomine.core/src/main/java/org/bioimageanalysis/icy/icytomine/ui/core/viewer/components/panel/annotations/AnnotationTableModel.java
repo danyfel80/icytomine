@@ -11,9 +11,8 @@ import java.util.stream.Collectors;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.AbstractTableModel;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
-
-import be.cytomine.client.CytomineException;
 
 @SuppressWarnings("serial")
 public class AnnotationTableModel extends AbstractTableModel {
@@ -95,15 +94,16 @@ public class AnnotationTableModel extends AbstractTableModel {
 
 	private List<String> getAnnotationTerms(int annotationIndex) {
 		try {
-			return annotations.get(annotationIndex).getTerms().stream().map(t -> t.getName()).collect(Collectors.toList());
-		} catch (CytomineException e) {
+			return annotations.get(annotationIndex).getAssociatedTerms().stream()
+					.map(t -> t.getName().orElse("Not specified")).collect(Collectors.toList());
+		} catch (CytomineClientException e) {
 			e.printStackTrace();
 			return new ArrayList<>(0);
 		}
 	}
 
 	private String getAnnotationAuthor(int annotationIndex) {
-		return annotations.get(annotationIndex).getUser().getUserName();
+		return annotations.get(annotationIndex).getUser().getName().orElse("Not specified");
 	}
 
 	@Override
@@ -154,7 +154,7 @@ public class AnnotationTableModel extends AbstractTableModel {
 		return this.annotationVisibility.keySet().stream().filter(a -> annotationVisibility.get(a))
 				.collect(Collectors.toSet());
 	}
-	
+
 	public Annotation getAnnotationAt(int index) {
 		return annotations.get(index);
 	}

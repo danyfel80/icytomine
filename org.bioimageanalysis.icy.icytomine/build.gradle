@@ -59,6 +59,8 @@ subprojects {
 		implementation files("${System.env.ICY_HOME}/lib/flamingo.jar") // substance UI
 		implementation files("${System.env.ICY_HOME}/lib/jai_core.jar") // substance UI
 		implementation files("${System.env.ICY_HOME}/lib/bioformats.jar") // substance UI
+		
+		testImplementation 'org.hamcrest:hamcrest-all:1.3'
 	}
 	
 	eclipse {

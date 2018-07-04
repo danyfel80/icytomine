@@ -5,19 +5,23 @@ import java.awt.EventQueue;
 import javax.swing.JFrame;
 import javax.swing.UIManager;
 
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.ViewerController;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.NullViewProvider;
+import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.core.view.AnnotationView;
+import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.CachedViewProvider;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
 import org.pushingpixels.substance.api.skin.SubstanceOfficeBlack2007LookAndFeel;
 
+import be.cytomine.client.CytomineException;
+import icy.gui.dialog.MessageDialog;
 import icy.gui.frame.IcyFrame;
 import icy.gui.frame.IcyFrameAdapter;
 import icy.gui.frame.IcyFrameEvent;
 
 public class ViewerFrame extends IcyFrame {
 
-	private ViewerComponentContainer viewerComponentContainer;
-	private ViewerController viewerController;
+	private ViewerPanel viewerComponentContainer;
+	private ViewerPanelController viewerController;
 
 	/**
 	 * Launch the application.
@@ -37,15 +41,26 @@ public class ViewerFrame extends IcyFrame {
 	}
 
 	public ViewerFrame() {
-		this(new NullViewProvider());
+		super("Viewer - Icytomine", true, true, true, false);
+		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		addToDesktopPane();
+		center();
+
 	}
 
-	public ViewerFrame(ViewProvider viewProvider) {
-		super(viewProvider.getImageInformation().getName() +" - Icytomine", true, true, true, false);
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+	public void setImageInstance(Image imageInstance) {
+		ViewProvider viewProvider;
+		try {
+			viewProvider = new CachedViewProvider(new CachedView(imageInstance), new AnnotationView(imageInstance));
+		} catch (CytomineException e) {
+			MessageDialog.showDialog("Error loading image - Icytomine", e.getMessage(), MessageDialog.ERROR_MESSAGE);
+			e.printStackTrace();
+			return;
+		}
 
-		viewerComponentContainer = new ViewerComponentContainer(viewProvider);
-		viewerController = new ViewerController(viewerComponentContainer);
+		setTitle(imageInstance.getName().orElse(String.valueOf(imageInstance.getId())) + " - Icytomine");
+		viewerComponentContainer = new ViewerPanel(viewProvider);
+		viewerController = new ViewerPanelController(viewerComponentContainer);
 		this.addFrameListener(new IcyFrameAdapter() {
 			@Override
 			public void icyFrameOpened(IcyFrameEvent e) {
@@ -58,12 +73,10 @@ public class ViewerFrame extends IcyFrame {
 				viewerController.stopViewer();
 			}
 		});
+
+		setContentPane(viewerComponentContainer);
 		setSize(viewerComponentContainer.getPreferredSize());
 		setMinimumSize(viewerComponentContainer.getMinimumSize());
-		setContentPane(viewerComponentContainer);
-		addToDesktopPane();
-		center();
-
 	}
 
 }

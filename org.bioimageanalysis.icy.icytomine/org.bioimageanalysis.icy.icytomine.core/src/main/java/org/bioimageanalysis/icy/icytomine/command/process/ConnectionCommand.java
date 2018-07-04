@@ -21,15 +21,14 @@ package org.bioimageanalysis.icy.icytomine.command.process;
 import java.net.URL;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.CytomineConnector;
-import org.bioimageanalysis.icy.icytomine.core.connection.user.Preferences;
-
-import be.cytomine.client.Cytomine;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.persistence.Preferences;
 
 /**
  * @author Daniel Felipe Gonzalez Obando
  *
  */
-public class ConnectionCommand implements CommandProcess<Cytomine> {
+public class ConnectionCommand implements CommandProcess<CytomineClient> {
 
 	private static final String COMMAND = "connect";
 	private static final String[] ARGUMENTS = new String[] { "host", "username", "(Optional) publicKey", "(Optional) privateKey" };
@@ -39,7 +38,7 @@ public class ConnectionCommand implements CommandProcess<Cytomine> {
 	private String[] args;
 
 	@Override
-	public Cytomine call() throws Exception {
+	public CytomineClient call() throws Exception {
 		Preferences.loadOrDefault();
 		Preferences prefs = Preferences.getInstance();
 		checkArgs();
@@ -51,13 +50,12 @@ public class ConnectionCommand implements CommandProcess<Cytomine> {
 
 		switch (args.length) {
 		case 0:
-			String hostVal = prefs.getDefaultHost();
-			if (hostVal == null)
+			if (!prefs.getDefaultHostURL().isPresent())
 				throw new IllegalArgumentException("No registered default host.");
-			hostURL = new URL(hostVal);
-			username = Preferences.getInstance().getDefaultUser();
-			if (username == null)
+			hostURL = new URL(prefs.getDefaultHostURL().get());
+			if (!prefs.getDefaultUserName().isPresent())
 				throw new IllegalArgumentException("No registered default user.");
+			username = prefs.getDefaultUserName().get();
 			break;
 
 		case 2:
@@ -113,8 +111,18 @@ public class ConnectionCommand implements CommandProcess<Cytomine> {
 	}
 
 	@Override
-	public CommandProcess<Cytomine> setPreviousResult(Object result) {
+	public CommandProcess<CytomineClient> setPreviousResult(Object result) {
 		return this; // Take nothing from before
+	}
+
+	@Override
+	public String[] getArguments() {
+		return args;
+	}
+
+	@Override
+	public Object getPreviousResult() {
+		return null;
 	}
 
 }

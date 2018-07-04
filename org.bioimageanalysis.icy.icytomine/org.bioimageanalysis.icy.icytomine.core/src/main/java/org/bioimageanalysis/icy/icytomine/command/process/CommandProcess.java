@@ -31,7 +31,7 @@ import java.util.concurrent.Callable;
  *          using the {@link #call()} method.
  */
 public interface CommandProcess<T> extends Callable<T> {
-	
+
 	/**
 	 * @return The command recognized to execute this command process.
 	 */
@@ -60,6 +60,8 @@ public interface CommandProcess<T> extends Callable<T> {
 	 */
 	CommandProcess<T> setArguments(String[] args);
 
+	String[] getArguments();
+
 	/**
 	 * @param result
 	 *          Result from immediate previously executed command.
@@ -69,4 +71,5 @@ public interface CommandProcess<T> extends Callable<T> {
 	 */
 	CommandProcess<T> setPreviousResult(Object result);
 
+	Object getPreviousResult();
 }

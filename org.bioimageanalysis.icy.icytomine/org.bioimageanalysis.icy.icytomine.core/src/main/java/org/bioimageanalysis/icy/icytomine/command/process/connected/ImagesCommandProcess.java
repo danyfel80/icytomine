@@ -18,9 +18,9 @@
  */
 package org.bioimageanalysis.icy.icytomine.command.process.connected;
 
-import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import java.util.List;
 
-import be.cytomine.client.collections.ImageInstanceCollection;
+import org.bioimageanalysis.icy.icytomine.core.model.Image;
 
 /**
  * @author Daniel Felipe Gonzalez Obando
@@ -55,20 +55,19 @@ public class ImagesCommandProcess extends ConnectedCommandProcess<String> {
 
 	@Override
 	public String call() throws Exception {
-		if (args.length < 1)
+		if (getArguments().length < 1)
 			throw new IllegalArgumentException("Expected at least 1 argument but got 0");
 		StringBuffer imageList = new StringBuffer();
-		
-		for (int p = 0; p < args.length; p++) {
-			Long projectId = Long.parseLong(args[p]);
-	
-			
-			ImageInstanceCollection imgs = client.getImageInstances(projectId);
+
+		for (int p = 0; p < getArguments().length; p++) {
+			Long projectId = Long.parseLong(getArguments()[p]);
+
+			List<Image> imgs = getClient().getProjectImages(projectId);
 			imageList.append("Projects (ID, Name, # User annotations, # Algorithm annotations ):\n");
-			for (int i = 0; i < imgs.size(); i++) {
-				Image img = new Image(imgs.get(i), client);
-				imageList.append(
-						img.getId() + " " + img.getName() + " " + img.getAnnotationsUser() + " " + img.getAnnotationsAlgo() + "\n");
+			for (Image img : imgs) {
+				imageList.append(img.getId() + " " + img.getName().orElse("Not specified") + " "
+						+ img.getAnnotationsOfUsersNumber().orElse(0L) + " " + img.getAnnotationsOfAlgorithmNumber().orElse(0L)
+						+ "\n");
 			}
 		}
 		return imageList.toString();

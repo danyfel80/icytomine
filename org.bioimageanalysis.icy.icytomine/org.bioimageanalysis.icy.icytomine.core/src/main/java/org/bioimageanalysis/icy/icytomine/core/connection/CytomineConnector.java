@@ -23,11 +23,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Future;
 
-import org.bioimageanalysis.icy.icytomine.core.connection.user.Preferences;
-import org.bioimageanalysis.icy.icytomine.core.connection.user.UserKeys;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.persistence.Preferences;
+import org.bioimageanalysis.icy.icytomine.core.connection.persistence.UserCredential;
 
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
 import icy.system.thread.ThreadUtil;
 
 /**
@@ -40,7 +39,7 @@ public class CytomineConnector {
 
 	public static void addHost(final URL url) throws IllegalArgumentException {
 		String urlString = url.toString();
-		Map<String, HashMap<String, UserKeys>> credentials = Preferences.getInstance().getAvailableCytomineCredentials();
+		Map<String, HashMap<String, UserCredential>> credentials = Preferences.getInstance().getAvailableCytomineCredentials();
 
 		if (credentials.containsKey(urlString))
 			throw new IllegalArgumentException("URL " + urlString + " is already registered");
@@ -50,7 +49,7 @@ public class CytomineConnector {
 
 	public static void addUser(URL url, String userName, String publicKey, String privateKey)
 			throws IllegalArgumentException {
-		Map<String, UserKeys> users = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString());
+		Map<String, UserCredential> users = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString());
 
 		if (users == null)
 			throw new IllegalArgumentException("URL " + url + " is not registered");
@@ -58,7 +57,7 @@ public class CytomineConnector {
 		if (users.containsKey(userName))
 			throw new IllegalArgumentException("User name " + userName + " is already registered");
 
-		UserKeys userData = new UserKeys();
+		UserCredential userData = new UserCredential();
 		userData.setPublicKey(publicKey);
 		userData.setPrivateKey(privateKey);
 		users.put(userName, userData);
@@ -66,7 +65,7 @@ public class CytomineConnector {
 
 	public static void addUserIfAbsent(URL url, String userName, String publicKey, String privateKey) {
 		addHostIfAbsent(url);
-		UserKeys userData = new UserKeys();
+		UserCredential userData = new UserCredential();
 		userData.setPublicKey(publicKey);
 		userData.setPrivateKey(privateKey);
 		Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString()).putIfAbsent(userName, userData);
@@ -77,7 +76,7 @@ public class CytomineConnector {
 	}
 
 	public static boolean removeHost(URL url) {
-		if (url != null && url.toString().equals(Preferences.getInstance().getDefaultHost())) {
+		if (url != null && url.toString().equals(Preferences.getInstance().getDefaultHostURL())) {
 			Preferences.getInstance().setDefaultHost(null);
 			Preferences.getInstance().setDefaultUser(null);
 		}
@@ -86,13 +85,13 @@ public class CytomineConnector {
 	}
 
 	public static boolean removeUser(URL url, String userName) throws IllegalArgumentException {
-		Map<String, UserKeys> users = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString());
+		Map<String, UserCredential> users = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString());
 
 		if (users == null)
 			throw new IllegalArgumentException("URL " + url + " is not registered");
 
-		if (url.toString().equals(Preferences.getInstance().getDefaultHost()) && userName != null
-				&& userName.equals(Preferences.getInstance().getDefaultUser())) {
+		if (url.toString().equals(Preferences.getInstance().getDefaultHostURL()) && userName != null
+				&& userName.equals(Preferences.getInstance().getDefaultUserName())) {
 			Preferences.getInstance().setDefaultUser(null);
 		}
 		if (users.size() == 1)
@@ -103,10 +102,10 @@ public class CytomineConnector {
 
 	public static void updateUser(URL oldUrl, String oldUserName, URL url, String userName, String publicKey,
 			String privateKey) throws IllegalArgumentException, RuntimeException {
-		Map<String, UserKeys> users = Preferences.getInstance().getAvailableCytomineCredentials().get(oldUrl.toString());
+		Map<String, UserCredential> users = Preferences.getInstance().getAvailableCytomineCredentials().get(oldUrl.toString());
 		if (users == null)
 			throw new IllegalArgumentException("Host URL " + oldUrl + " is not registered");
-		UserKeys userData = users.get(oldUserName);
+		UserCredential userData = users.get(oldUserName);
 		if (userData == null)
 			throw new IllegalArgumentException("User " + oldUserName + " is not registered");
 
@@ -119,47 +118,36 @@ public class CytomineConnector {
 		}
 	}
 
-	public static Future<Cytomine> login(URL url, String userName) throws IllegalArgumentException, RuntimeException {
-		HashMap<String, UserKeys> users = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString());
+	public static Future<CytomineClient> login(URL url, String userName) throws IllegalArgumentException {
+		HashMap<String, UserCredential> users = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString());
 		if (users == null)
 			throw new IllegalArgumentException("Host URL " + url + " is not registered");
-		UserKeys userData = users.get(userName);
+		UserCredential userData = users.get(userName);
 		if (userData == null)
 			throw new IllegalArgumentException("User " + userName + " is not registered");
 
 		return ThreadUtil.bgRun(() -> {
-			try {
-				Cytomine connection = new Cytomine(url.toString(), userData.getPublicKey(), userData.getPrivateKey());
-				System.out.print("Connecting as " + userName + "...");
-				if (!userName.equals(connection.getCurrentUser().get("username"))) {
-					System.out.println("Unsuccessful");
-					throw new IllegalArgumentException(
-							"\nUser " + userName + " is not registered in host server. Check your credentials");
-				}
-				System.out.println("Successful");
-				return connection;
-			} catch (CytomineException e) {
-				throw new RuntimeException("Error while connecting to the server. Check your credentials.", e);
-			}
+			System.out.print("Connecting as " + userName + "...");
+			CytomineClient client = CytomineClient.create(url, userData.getPublicKey(), userData.getPrivateKey());
+			return client;
 		});
 	}
 
-	public static Future<Cytomine> login(URL url, String userName, boolean remember) throws RuntimeException {
+	public static Future<CytomineClient> login(URL url, String userName, boolean remember) {
 		return ThreadUtil.bgRun(() -> {
+			UserCredential userData;
 			try {
-				UserKeys userData = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString())
-						.get(userName);
-				Cytomine connection = new Cytomine(url.toString(), userData.getPublicKey(), userData.getPrivateKey());
-				if (connection.getCurrentUser().get("username").equals(userName))
-					throw new RuntimeException("The user name does not match with that associated to the given keys");
-				if (remember) {
-					Preferences.getInstance().setDefaultHost(url.toString());
-					Preferences.getInstance().setDefaultUser(userName);
-				}
-				return connection;
-			} catch (CytomineException e) {
-				throw new RuntimeException("Exception while connecting to the server", e);
+				userData = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString()).get(userName);
+			} catch (NullPointerException e) {
+				throw new RuntimeException("User credentials could not be retrieved.", e);
 			}
+			
+			CytomineClient client = CytomineClient.create(url, userData.getPublicKey(), userData.getPrivateKey());
+			if (remember) {
+				Preferences.getInstance().setDefaultHost(url.toString());
+				Preferences.getInstance().setDefaultUser(userName);
+			}
+			return client;
 		});
 	}
 

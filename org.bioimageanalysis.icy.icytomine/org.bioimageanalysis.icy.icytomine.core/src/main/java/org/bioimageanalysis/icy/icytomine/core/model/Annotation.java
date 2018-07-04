@@ -19,285 +19,244 @@
 package org.bioimageanalysis.icy.icytomine.core.model;
 
 import java.awt.Color;
-import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.concurrent.CompletionService;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorCompletionService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
-
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
-import be.cytomine.client.collections.TermCollection;
-import icy.painter.Anchor2D;
-import icy.roi.ROI2D;
-import plugins.kernel.roi.roi2d.ROI2DLine;
-import plugins.kernel.roi.roi2d.ROI2DPoint;
-import plugins.kernel.roi.roi2d.ROI2DPolyLine;
-import plugins.kernel.roi.roi2d.ROI2DPolygon;
-import plugins.kernel.roi.roi2d.ROI2DRectShape;
-import plugins.kernel.roi.roi2d.ROI2DShape;
+import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
 
 /**
  * This class represents an annotation on an image.
  * 
  * @author Daniel Felipe Gonzalez Obando
  */
-public class Annotation {
+public class Annotation extends Entity {
 
-	private Cytomine cytomine;
-	private Image image;
-	private be.cytomine.client.models.Annotation internalAnnotation;
-	private User user;
+	public static Annotation retrieve(CytomineClient client, long annotationId) throws CytomineClientException {
+		return client.getAnnotation(annotationId);
+	}
 
 	private String location;
+	Geometry geometry;
+	Geometry latestSimplifiedGeometry;
+	int latestSimplifiedGeometryResolution;
+	private List<AnnotationTerm> annotationTerms;
+	private Map<Long, Set<Long>> termUsers;
+	private Rectangle2D approximativeBounds;
+	private Rectangle2D adjustedApproximativeBounds;
 
-	private int resolution;
-	private List<Point2D> points;
-	private ROI2DShape roi;
-	private List<Term> terms;
-
-	public Annotation(be.cytomine.client.models.Annotation internalAnnotation, Image image, Cytomine cytomine) {
-		this.internalAnnotation = internalAnnotation;
-		this.image = image;
-		this.cytomine = cytomine;
-	}
-
-	public Cytomine getClient() {
-		return this.cytomine;
-	}
-
-	public Image getImage() {
-		return this.image;
+	public Annotation(CytomineClient client, be.cytomine.client.models.Annotation internalAnnotation) {
+		super(client, internalAnnotation);
+		latestSimplifiedGeometryResolution = 0;
 	}
 
 	public be.cytomine.client.models.Annotation getInternalAnnotation() {
-		return this.internalAnnotation;
+		return (be.cytomine.client.models.Annotation) getModel();
 	}
 
-	public Long getId() {
-		return getInternalAnnotation().getId();
+	public Optional<Long> getImageInstanceId() {
+		return getLong("image");
 	}
 
-	public String getLocation() throws CytomineException {
-		if (this.location == null) {
-			this.location = getInternalAnnotation().getStr("location");
-			if (this.location == null) {
-				this.internalAnnotation = getClient().getAnnotation(getId());
-				this.location = getInternalAnnotation().getStr("location");
-			}
-		}
-		return location;
+	public Optional<Long> getUserId() {
+		return getLong("user");
 	}
 
 	/**
-	 * Converts a ROI2DShape to a WKT formatted string.
-	 * 
-	 * @param shape
-	 *          ROI with point-coordinates relative to full image on server at
-	 *          resolution 0.
-	 * @return Shape description in WKT format.
+	 * @throws CytomineClientException
+	 *           If the user cannot be retrieved from the host server.
+	 * @throws NoSuchElementException
+	 *           If the annotation does not have an associated user.
 	 */
-	public static String convertToWKT(ROI2DShape shape) {
-		List<Anchor2D> points = new ArrayList<>(shape.getControlPoints());
+	public User getUser() throws CytomineClientException, NoSuchElementException {
+		long userId = getUserId().get();
+		return User.retrieve(getClient(), userId);
+	}
 
-		StringBuffer buffer = new StringBuffer();
-		if (shape instanceof ROI2DPoint) {
-			buffer.append("POINT(");
-			buffer.append(String.format("%f %f", points.get(0).getPositionX(), points.get(0).getPositionY()));
-			buffer.append(")");
-		} else if (shape instanceof ROI2DLine || shape instanceof ROI2DPolyLine) {
-			buffer.append("LINESTRING (");
-			buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
-					.collect(Collectors.joining(",")));
-			buffer.append(")");
-		} else {
-			buffer.append("POLYGON((");
-			if (shape instanceof ROI2DRectShape) {
-				Rectangle2D rect = ((ROI2DRectShape) shape).getBounds2D();
-				buffer.append(String.format("%f %f, ", rect.getMinX(), rect.getMinY()));
-				buffer.append(String.format("%f %f, ", rect.getMinX(), rect.getMaxY()));
-				buffer.append(String.format("%f %f, ", rect.getMaxX(), rect.getMaxY()));
-				buffer.append(String.format("%f %f, ", rect.getMaxX(), rect.getMinY()));
-				buffer.append(String.format("%f %f", rect.getMinX(), rect.getMinY()));
-			} else {
-				buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
-						.collect(Collectors.joining(",")));
-				buffer.append(String.format(",%f %f", points.get(0).getPositionX(), points.get(0).getPositionY()));
-			}
-			buffer.append("))");
+	public Geometry getSimplifiedGeometryForResolution(int resolution) throws CytomineClientException {
+		double pixelTolerance = 1;
+		if (resolution > 0)
+			for (int i = 0; i < resolution; i++)
+				pixelTolerance *= 2d;
+		else if (resolution < 0)
+			for (int i = 0; i < -resolution; i++)
+				pixelTolerance /= 2d;
+
+		if (geometry == null || latestSimplifiedGeometryResolution != resolution) {
+			latestSimplifiedGeometry = getSimplifiedGeometry(pixelTolerance);
+			latestSimplifiedGeometryResolution = resolution;
 		}
-		return buffer.toString();
+		return latestSimplifiedGeometry;
+	}
+
+	public Rectangle2D getApproximativeBounds() throws CytomineClientException {
+		if (approximativeBounds == null) {
+			Geometry simplifiedGeometry = getSimplifiedGeometry(10);
+			Envelope envelope = simplifiedGeometry.getEnvelopeInternal();
+			approximativeBounds = new Rectangle2D.Double(envelope.getMinX(), envelope.getMinY(), envelope.getWidth(),
+					envelope.getHeight());
+		}
+		return approximativeBounds;
+	}
+
+	public Rectangle2D getYAdjustedApproximativeBounds() throws CytomineClientException {
+		if (adjustedApproximativeBounds == null) {
+			Geometry simplifiedGeometry = getSimplifiedGeometry(10);
+			Envelope envelope = simplifiedGeometry.getEnvelopeInternal();
+			adjustedApproximativeBounds = new Rectangle2D.Double(envelope.getMinX(),
+					getImage().getSizeY().get() - envelope.getMaxY(), envelope.getWidth(), envelope.getHeight());
+			if (adjustedApproximativeBounds.isEmpty()) {
+				adjustedApproximativeBounds = new Rectangle2D.Double(adjustedApproximativeBounds.getX() - Double.MIN_VALUE,
+						adjustedApproximativeBounds.getY() - Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
+			}
+		}
+		return adjustedApproximativeBounds;
+	}
+
+	private Geometry getSimplifiedGeometry(double pixelTolerance) throws CytomineClientException {
+		pixelTolerance = pixelTolerance > 0 ? pixelTolerance : 0;
+		TopologyPreservingSimplifier simplifier = new TopologyPreservingSimplifier(getGeometryAtZeroResolution(false));
+		simplifier.setDistanceTolerance(pixelTolerance);
+		return simplifier.getResultGeometry();
 	}
 
 	/**
-	 * Returns a Point, Polyline or Polygon according to the data obtained from
-	 * the location attribute of this annotation. The ROI is scaled to the given
-	 * resolution level.
-	 * 
-	 * @param resolution
-	 *          Resolution level.
-	 * @return ROI2D with the points presented in location attribute.
-	 * @throws ParseException
-	 *           If the location cannot be parsed to a geometry.
-	 * @throws CytomineException
-	 *           If terms for this annotation cannot be retrieved.
+	 * @return Geometry of the annotation without any simplification.
+	 * @throws CytomineClientException
+	 *           If the geometry cannot be retrieved from host server.
 	 */
-	public ROI2DShape getROI(int resolution) throws ParseException, CytomineException {
+	public Geometry getGeometryAtZeroResolution(boolean recompute) throws CytomineClientException {
+		if (this.geometry == null || recompute) {
+			retrieveGeometry();
+		}
+		return geometry;
+	}
 
-		// Create points just once
-		if (this.points == null) {
-			String location = getLocation();
+	/**
+	 * @throws CytomineClientException
+	 *           If the location cannot be retrieved from host server. Also, if
+	 *           the geometry cannot be constructed from server response.
+	 */
+	private void retrieveGeometry() throws CytomineClientException {
+		geometry = null;
+		Optional<String> location = getLocation();
+		if (location.isPresent()) {
 			WKTReader reader = new WKTReader();
-			Geometry geo = reader.read(location);
-			Coordinate[] coords = geo.getCoordinates();
-			this.points = Arrays.stream(coords).map(c -> new Point2D.Double(c.x, c.y)).collect(Collectors.toList());
-		}
-
-		// Create new roi only if the resolution changes or if it's the first
-		// request
-		if (this.resolution != resolution || this.roi == null) {
-			this.resolution = resolution;
-			double ratio = Stream.iterate(1d, r -> r / 2d).skip(resolution).findFirst().get();
-
-			List<Point2D> scaledPoints = points.stream()
-					.map(p -> new Point2D.Double(p.getX() * ratio, (getImage().getSizeY() - p.getY()) * ratio))
-					.collect(Collectors.toList());
-
-			if (scaledPoints.size() == 0) {
-				this.roi = null;
-			} else if (scaledPoints.size() == 1)
-				this.roi = new ROI2DPoint(scaledPoints.get(0));
-			else if (!(scaledPoints.get(0).equals(scaledPoints.get(scaledPoints.size() - 1)))) {
-				this.roi = new ROI2DPolyLine(scaledPoints);
-			} else {
-				this.roi = new ROI2DPolygon(scaledPoints.subList(0, scaledPoints.size() - 1));
-			}
-
-			List<Term> terms = getTerms();
-			if (!terms.isEmpty()) {
-				Color color = terms.get(0).getColor();
-				this.roi.setColor(color);
-			}
-
-			this.roi.setProperty("cytomineId", Objects.toString(this.getId()));
-		}
-
-		return roi;
-	}
-
-	public List<Term> getTerms() throws CytomineException {
-		if (terms == null) {
-			TermCollection nativeAnnotationTerms = Optional.ofNullable(getClient().getTermsByAnnotation(getId()))
-					.orElse(new TermCollection(0, 0));
-			ThreadPoolExecutor tp = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
-			CompletionService<Term> cs = new ExecutorCompletionService<>(tp);
-			IntStream.range(0, nativeAnnotationTerms.size()).mapToObj(i -> nativeAnnotationTerms.get(i))
-					.forEach(aTerm -> cs.submit(() -> new Term(getClient(), getClient().getTerm(aTerm.getLong("term")))));
-			tp.shutdown();
-			terms = new ArrayList<>(nativeAnnotationTerms.size());
-			for (int i = 0; i < nativeAnnotationTerms.size(); i++) {
-				try {
-					terms.add(cs.take().get());
-				} catch (ExecutionException | InterruptedException e) {
-					e.printStackTrace();
-					return new ArrayList<>(0);
-				}
-			}
-			if (terms.size() == 0)
-				terms.add(Term.getNoTerm(getClient()));
-		}
-		return terms;
-	}
-
-	public Long getUserId() {
-		return internalAnnotation.getLong("user");
-	}
-
-	public Rectangle2D getBounds() throws ParseException, CytomineException {
-		ROI2D roi = getROI(0);
-		Rectangle2D bounds = roi.getBounds2D();
-		return bounds;
-	}
-
-	public User getUser() {
-		if (user == null) {
 			try {
-				user = new User(getClient().getUser(getUserId()));
-			} catch (CytomineException e) {
-				e.printStackTrace();
-				be.cytomine.client.models.User dummyUser = new be.cytomine.client.models.User();
-				dummyUser.set("id", 0L);
-				user = new User(dummyUser);
+				geometry = reader.read(location.get());
+			} catch (ParseException e) {
+				throw new CytomineClientException(String.format("Couldn't create geometry for annotation %d", getId()), e);
 			}
 		}
-		return user;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
+	/**
+	 * @return WKT formated string with this annotation geometry.
+	 * @throws CytomineClientException
+	 *           If the geometry cannot be retrieved.
 	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((cytomine == null) ? 0 : cytomine.hashCode());
-		result = prime * result + ((internalAnnotation == null) ? 0 : internalAnnotation.getId().hashCode());
-		return result;
+	public Optional<String> getLocation() throws CytomineClientException {
+		if (this.location == null) {
+			Optional<String> locationString = getStr("location");
+			if (locationString.isPresent()) {
+				this.location = locationString.get();
+			} else {
+				this.location = getClient().getAnnotationLocation(getId()).orElse(null);
+			}
+		}
+		return Optional.ofNullable(location);
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
+	/**
+	 * @throws CytomineClientException
+	 *           If the image instance cannot be retrieved from host server.
 	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
+	public Image getImage() throws CytomineClientException {
+		return Image.retrieve(getClient(), getImageInstanceId().get());
+	}
+
+	public Color getColor() {
+		// Use current user terms first.
+		Set<Term> terms = getAssociatedTermsByCurrentUser();
+		if (terms.isEmpty()) {
+			terms = getAssociatedTerms();
 		}
-		if (obj == null) {
-			return false;
+
+		Color color;
+		if (!terms.isEmpty()) {
+			color = terms.iterator().next().getColor();
+		} else {
+			color = Term.DEFAULT_TERM_COLOR;
 		}
-		if (!(obj instanceof Annotation)) {
-			return false;
-		}
-		Annotation other = (Annotation) obj;
-		if (cytomine == null) {
-			if (other.cytomine != null) {
-				return false;
+		return color;
+	}
+
+	/**
+	 * @throws CytomineClientException
+	 *           If the terms of any annotation cannot be retrieved.
+	 */
+	public Set<Term> getAssociatedTerms() throws CytomineClientException {
+		return getTermUsers().keySet().stream().map(id -> getClient().getTerm(id)).collect(Collectors.toSet());
+	}
+
+	private Map<Long, Set<Long>> getTermUsers() throws CytomineClientException {
+		if (termUsers == null) {
+			try {
+				termUsers = new HashMap<>();
+				JSONArray termUsersArray = (JSONArray) getInternalAnnotation().get("userByTerm");
+				for (Object tObject : termUsersArray) {
+					JSONObject termUser = (JSONObject) tObject;
+					long termId = (Long) termUser.get("term");
+					termUsers.putIfAbsent(termId, new HashSet<>());
+					JSONArray userIds = (JSONArray) termUser.get("user");
+					for (Object uObject : userIds) {
+						long userId = (Long) uObject;
+						termUsers.get(termId).add(userId);
+					}
+				}
+			} catch (Exception e) {
+				throw new CytomineClientException(String.format("Could not create term users map for annotation %d", getId()),
+						e);
 			}
-		} else if (!cytomine.equals(other.cytomine)) {
-			return false;
 		}
-		if (internalAnnotation == null) {
-			if (other.internalAnnotation != null) {
-				return false;
-			}
-		} else if (!internalAnnotation.getId().equals(other.internalAnnotation.getId())) {
-			return false;
+		return termUsers;
+	}
+
+	public Set<Term> getAssociatedTermsByCurrentUser() throws CytomineClientException {
+		Long userId = getClient().getCurrentUser().getId();
+		return getAssociatedTermsByUser(userId);
+	}
+
+	public Set<Term> getAssociatedTermsByUser(long userId) throws CytomineClientException {
+		return getTermUsers().entrySet().stream().filter(entry -> entry.getValue().contains(userId)).map(e -> e.getKey())
+				.distinct().map(id -> getClient().getTerm(id)).collect(Collectors.toSet());
+	}
+
+	public List<AnnotationTerm> getAnnotationTerms(boolean recompute) throws CytomineClientException {
+		if (annotationTerms == null || recompute) {
+			annotationTerms = getClient().downloadAnnotationTerms(getId());
 		}
-		return true;
+		return annotationTerms;
 	}
 
 	@Override
 	public String toString() {
-		return Objects.toString(internalAnnotation.getId());
+		return String.format("Annotation: id=%s", String.valueOf(getId()));
 	}
+
 }

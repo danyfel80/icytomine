@@ -7,18 +7,18 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.SystemColor;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.swing.BoxLayout;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
-
-import be.cytomine.client.CytomineException;
-import javax.swing.BoxLayout;
 import javax.swing.UIManager;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
 
 public class ProjectDetailsPanel extends JPanel {
@@ -26,13 +26,13 @@ public class ProjectDetailsPanel extends JPanel {
 
 	private Project currentProject;
 
-	private JTextArea		lblProjectName;
-	private JTextArea	txtrProjectDescription;
-	private JTextArea		lblIdValue;
-	private JTextArea		lblOntologyValue;
-	private JTextArea		lblImagesValue;
-	private JTextArea		lblAnnotationsValue;
-	private JTextArea	txtrUsers;
+	private JTextArea lblProjectName;
+	private JTextArea txtrProjectDescription;
+	private JTextArea lblIdValue;
+	private JTextArea lblOntologyValue;
+	private JTextArea lblImagesValue;
+	private JTextArea lblAnnotationsValue;
+	private JTextArea txtrUsers;
 
 	public ProjectDetailsPanel() {
 		setMinimumSize(new Dimension(150, 300));
@@ -213,14 +213,6 @@ public class ProjectDetailsPanel extends JPanel {
 		panel.add(txtrUsers, gbc_txtrUsers);
 	}
 
-	/**
-	 * Create the panel.
-	 */
-	public ProjectDetailsPanel(Project project) {
-		this();
-		setCurrentProject(project);
-	}
-
 	public void setCurrentProject(Project project) {
 		this.currentProject = project;
 		updateProjectDetails();
@@ -232,38 +224,49 @@ public class ProjectDetailsPanel extends JPanel {
 
 	public void updateProjectDetails() {
 		if (getCurrentProject() != null) {
-			String name = getCurrentProject().getName();
-			if (name == null) name = "Unavailable";
+			String name = getCurrentProject().getName().orElse("Not specified");
 			this.lblProjectName.setText(name);
 			String description;
+
 			try {
-				description = getCurrentProject().getDescription();
-			} catch (CytomineException e) {
-				description = null;
+				description = getCurrentProject().getDescription().getData().orElse("Not specified");
+			} catch (CytomineClientException e) {
+				description = "Not specified";
 			}
-			if (description == null) description = "Unavailable";
 			this.txtrProjectDescription.setText(description);
-			String id = "" + getCurrentProject().getId();
-			if (id.equals("null")) id = "Unavailable";
-			this.lblIdValue.setText(id);
-			String ontology = getCurrentProject().getOntologyName();
-			if (ontology == null) ontology = "Unavailable";
+
+			Long id = getCurrentProject().getId();
+			if (id == null) {
+				this.lblIdValue.setText("not Specified");
+			} else {
+				this.lblIdValue.setText(id.toString());
+			}
+
+			String ontology = getCurrentProject().getOntologyName().orElse("Not specified");
 			this.lblOntologyValue.setText(ontology);
-			String numImages = "" + getCurrentProject().getNumberOfImages();
-			if (numImages.equals("null")) numImages = "Unavailable";
-			this.lblImagesValue.setText(numImages);
-			String annotations = "" + getCurrentProject().getTotalNumberOfAnnotations();
-			if (annotations.equals("null")) annotations = "Unavailable";
-			this.lblAnnotationsValue.setText(annotations);
+
+			Optional<Long> numImages = getCurrentProject().getNumberOfImages();
+			if (numImages.isPresent())
+				this.lblImagesValue.setText(numImages.get().toString());
+			else
+				this.lblImagesValue.setText("Not specified");
+
+			Long numAnnotations = getCurrentProject().getTotalNumberOfAnnotations();
+			if (numAnnotations == null)
+				this.lblAnnotationsValue.setText("Not specified");
+			else
+				this.lblAnnotationsValue.setText(numAnnotations.toString());
+
 			String users;
 			try {
-				users = getCurrentProject().getUsers().stream().map(u -> u.getUserName())
+				users = getCurrentProject().getUsers(true).stream()
+						.map(u -> u.getName().orElse(String.format("Not specified (id=%d)", u.getId().longValue())))
 						.collect(Collectors.joining(System.lineSeparator()));
-			} catch (CytomineException e) {
-				users = null;
+			} catch (CytomineClientException e) {
+				users = "Not specified";
 			}
-			if (users == null) users = "Unavailable";
 			this.txtrUsers.setText(users);
+
 		} else {
 			this.lblProjectName.setText("Unavailable");
 			this.txtrProjectDescription.setText("Unavailable");

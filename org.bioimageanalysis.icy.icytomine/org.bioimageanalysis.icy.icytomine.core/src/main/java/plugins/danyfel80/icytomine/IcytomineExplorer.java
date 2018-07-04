@@ -21,9 +21,13 @@ package plugins.danyfel80.icytomine;
 import java.io.IOException;
 
 import org.bioimageanalysis.icy.icytomine.command.CommandProcessor;
-import org.bioimageanalysis.icy.icytomine.core.connection.user.Preferences;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
+import org.bioimageanalysis.icy.icytomine.core.connection.persistence.Preferences;
+import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ExplorerFrame;
 import org.bioimageanalysis.icy.icytomine.ui.core.login.LoginFrame;
+import org.bioimageanalysis.icy.icytomine.ui.core.login.LoginPanelController.LoginListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerFrame;
 
 import be.cytomine.client.CytomineException;
 import icy.gui.dialog.MessageDialog;
@@ -47,7 +51,9 @@ public class IcytomineExplorer extends PluginActionable {
 		try {
 			Preferences.loadOrDefault();
 		} catch (IOException e) {
-			MessageDialog.showDialog("Error - Icytomine", e.getMessage(), MessageDialog.ERROR_MESSAGE);
+			if (!Icy.getMainInterface().isHeadLess()) {
+				MessageDialog.showDialog("Error - Icytomine", e.getMessage(), MessageDialog.ERROR_MESSAGE);
+			}
 			e.printStackTrace();
 		}
 
@@ -65,21 +71,44 @@ public class IcytomineExplorer extends PluginActionable {
 			System.out.println("Showing Login...");
 			// Login to Cytomine
 			LoginFrame loginFrame = new LoginFrame();
-			loginFrame.getLoginPanel().setLoginListener(c -> {
-				try {
-					String username = (String) c.getCurrentUser().get("username");
-					System.out.println("Logged in as " + username);
-					ExplorerFrame explorerFrame = new ExplorerFrame(c);
-					explorerFrame.setVisible(true);
-					loginFrame.setVisible(false);
-					loginFrame.dispose();
-					System.out.println("Login done");
-				} catch (CytomineException e) {
-					MessageDialog.showDialog("Icytomine: Error", e.getMessage(), MessageDialog.ERROR_MESSAGE);
-				}
-			});
+			loginFrame.getLoginPanel().addLoginListener(getLoginHandler(loginFrame));
 			loginFrame.setVisible(true);
 		}
+	}
+
+	private LoginListener getLoginHandler(LoginFrame loginFrame) {
+		return client -> {
+			try {
+				String username = client.getCurrentUser().getName().orElse("not specified");
+				System.out.println("Logged in as " + username);
+				ExplorerFrame explorerFrame = new ExplorerFrame();
+				explorerFrame.setClient(client);
+				explorerFrame.addOpenViewerListener(imageInformation -> {
+					try {
+						openViewer(imageInformation);
+					} catch (CytomineException e) {
+						throw new RuntimeException(e);
+					}
+				});
+				explorerFrame.setVisible(true);
+				loginFrame.setVisible(false);
+				loginFrame.dispose();
+				System.out.println("Login done");
+			} catch (CytomineClientException e) {
+				MessageDialog.showDialog("Icytomine: Error", e.getMessage(), MessageDialog.ERROR_MESSAGE);
+			}
+		};
+	}
+
+	private void openViewer(Image imageInformation) throws CytomineException {
+		ViewerFrame viewer = createViewerFrame(imageInformation);
+		viewer.setVisible(true);
+	}
+
+	private ViewerFrame createViewerFrame(Image imageInstance) throws CytomineException {
+		ViewerFrame viewer = new ViewerFrame();
+		viewer.setImageInstance(imageInstance);
+		return viewer;
 	}
 
 }

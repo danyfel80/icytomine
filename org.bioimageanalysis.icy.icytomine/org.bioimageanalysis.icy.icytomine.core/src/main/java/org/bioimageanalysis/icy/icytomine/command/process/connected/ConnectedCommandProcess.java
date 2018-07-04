@@ -19,6 +19,7 @@
 package org.bioimageanalysis.icy.icytomine.command.process.connected;
 
 import org.bioimageanalysis.icy.icytomine.command.process.CommandProcess;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
 
 import be.cytomine.client.Cytomine;
 
@@ -32,12 +33,16 @@ import be.cytomine.client.Cytomine;
  */
 public abstract class ConnectedCommandProcess<T> implements CommandProcess<T> {
 
-	protected Cytomine client;
-	protected String[] args;
-	protected Object previousResult;
+	private CytomineClient client;
+	private String[] args;
+	private Object previousResult;
 
-	public void setCytomineClient(Cytomine client) {
+	public void setClient(CytomineClient client) {
 		this.client = client;
+	}
+
+	public CytomineClient getClient() {
+		return client;
 	}
 
 	@Override
@@ -47,8 +52,19 @@ public abstract class ConnectedCommandProcess<T> implements CommandProcess<T> {
 	}
 
 	@Override
+	public String[] getArguments() {
+		return args;
+	}
+
+	@Override
 	public ConnectedCommandProcess<T> setPreviousResult(Object result) {
 		this.previousResult = result;
 		return this;
 	}
+
+	@Override
+	public Object getPreviousResult() {
+		return previousResult;
+	}
+
 }

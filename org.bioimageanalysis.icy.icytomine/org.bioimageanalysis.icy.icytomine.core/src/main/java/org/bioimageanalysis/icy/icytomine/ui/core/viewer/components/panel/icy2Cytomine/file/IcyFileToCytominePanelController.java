@@ -87,7 +87,7 @@ public class IcyFileToCytominePanelController {
 				RoiAnnotationSender sender = new RoiAnnotationSender(viewController.getImageInformation(), sequence, false);
 				sender.addProgressListener(getProgressUpdateHandler());
 				List<Annotation> createdAnnotations = sender.send();
-				viewController.getImageInformation().getAnnotations().addAll(createdAnnotations);
+				viewController.getImageInformation().getAnnotations(false).addAll(createdAnnotations);
 				notifySuccess(createdAnnotations);
 			} catch (Exception e) {
 				notifyFailure(e);

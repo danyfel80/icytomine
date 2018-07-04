@@ -45,7 +45,7 @@ public class TileGridImporter {
 		this.imageInformation = imageInformation;
 		this.resolution = resolution;
 		this.grid = grid;
-		this.tileSize = imageInformation.getTileSize();
+		this.tileSize = imageInformation.getTileSize().get();
 
 		tileImportationListeners = new HashSet<>();
 		tileImportationEndListeners = new HashSet<>();

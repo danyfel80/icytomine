@@ -99,7 +99,7 @@ public class IcyFolderToCytominePanelController {
 					RoiAnnotationSender sender = new RoiAnnotationSender(viewController.getImageInformation(), sequence, false);
 					sender.addProgressListener(getProgressUpdateHandler());
 					createdAnnotations.addAll(sender.send());
-					viewController.getImageInformation().getAnnotations().addAll(createdAnnotations);
+					viewController.getImageInformation().getAnnotations(false).addAll(createdAnnotations);
 				}
 				notifySuccess(createdAnnotations);
 			} catch (Exception e) {

@@ -12,12 +12,11 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.ViewTileCache.ViewTileLoadListener;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider.ViewProcessListener;
-
-import be.cytomine.client.CytomineException;
 
 public class CachedView implements ViewTileLoadListener {
 
@@ -74,13 +73,13 @@ public class CachedView implements ViewTileLoadListener {
 	}
 
 	private void computeImageBoundsAtZeroResolution() {
-		this.imageBoundsAtZeroResolution = new Rectangle(new Point(), imageInformation.getSize());
+		this.imageBoundsAtZeroResolution = new Rectangle(imageInformation.getSize().get());
 	}
 
 	private void loadLowResImage() {
 		try {
 			lowResImage = imageInformation.getThumbnail(512);
-		} catch (CytomineException e) {
+		} catch (CytomineClientException e) {
 			lowResImage = new BufferedImage(512, 512, BufferedImage.TYPE_INT_ARGB);
 			System.out.println("No thumbnail available...");
 		}
@@ -159,7 +158,7 @@ public class CachedView implements ViewTileLoadListener {
 	}
 
 	private void computeRequestedResolution() {
-		requestedResolution = Math.min(Math.max(0, (long) targetResolution), imageInformation.getDepth());
+		requestedResolution = Math.min(Math.max(0, (long) targetResolution), imageInformation.getDepth().get());
 	}
 
 	private void computeRequestedParameters() {
@@ -207,7 +206,7 @@ public class CachedView implements ViewTileLoadListener {
 	}
 
 	private void computeTileSize() {
-		tileSizeAtRequestedResolution = imageInformation.getTileSize();
+		tileSizeAtRequestedResolution = imageInformation.getTileSize().get();
 		tileSizeAtTargetResolution = MagnitudeResolutionConverter.convertDimension2D(tileSizeAtRequestedResolution,
 				requestedResolution, targetResolution);
 	}

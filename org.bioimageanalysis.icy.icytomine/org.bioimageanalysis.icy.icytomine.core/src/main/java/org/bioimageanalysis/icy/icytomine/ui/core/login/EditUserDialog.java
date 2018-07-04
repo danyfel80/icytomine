@@ -18,8 +18,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.CytomineConnector;
-import org.bioimageanalysis.icy.icytomine.core.connection.user.Preferences;
-import org.bioimageanalysis.icy.icytomine.core.connection.user.UserKeys;
+import org.bioimageanalysis.icy.icytomine.core.connection.persistence.Preferences;
+import org.bioimageanalysis.icy.icytomine.core.connection.persistence.UserCredential;
 
 import icy.gui.dialog.MessageDialog;
 
@@ -94,14 +94,14 @@ public class EditUserDialog extends JDialog {
 		tFieldUser.setColumns(10);
 		tFieldUser.setText(userName);
 
-		UserKeys userData;
+		UserCredential userData;
 		try {
 			userData = Preferences.getInstance().getAvailableCytomineCredentials().get(host).get(userName);
 		} catch (Exception e) {
 			userData = null;
 		}
 		if (userData == null) {
-			userData = new UserKeys();
+			userData = new UserCredential();
 			userData.setPublicKey("");
 			userData.setPrivateKey("");
 		}

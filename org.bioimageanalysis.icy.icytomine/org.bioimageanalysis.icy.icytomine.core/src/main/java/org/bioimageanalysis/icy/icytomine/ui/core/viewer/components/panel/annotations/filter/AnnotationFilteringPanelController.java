@@ -5,6 +5,7 @@ import java.util.LinkedList;
 import java.util.Objects;
 import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
@@ -13,8 +14,6 @@ import org.bioimageanalysis.icy.icytomine.core.model.filters.AnnotationFilter;
 import org.bioimageanalysis.icy.icytomine.core.model.filters.AnnotationFilter.AnnotationFilterUpdateListener;
 import org.bioimageanalysis.icy.icytomine.core.model.filters.AnnotationFilter.ComputationMode;
 import org.bioimageanalysis.icy.icytomine.core.model.filters.AnnotationFilterInput;
-
-import be.cytomine.client.CytomineException;
 
 public class AnnotationFilteringPanelController {
 
@@ -39,8 +38,8 @@ public class AnnotationFilteringPanelController {
 		this.imageInformation = imageInformation;
 		Set<Annotation> annotations;
 		try {
-			annotations = new HashSet<>(imageInformation.getAnnotations());
-		} catch (CytomineException e) {
+			annotations = new HashSet<>(imageInformation.getAnnotations(false));
+		} catch (CytomineClientException e) {
 			e.printStackTrace();
 			annotations = new HashSet<>();
 		}
@@ -102,8 +101,8 @@ public class AnnotationFilteringPanelController {
 
 	private Set<Term> getImageTerms() {
 		try {
-			return new HashSet<>(imageInformation.getAvailableTerms());
-		} catch (Exception e) {
+			return imageInformation.getProject().getOntology().getTerms(false);
+		} catch (CytomineClientException e) {
 			e.printStackTrace();
 			return new HashSet<>(0);
 		}

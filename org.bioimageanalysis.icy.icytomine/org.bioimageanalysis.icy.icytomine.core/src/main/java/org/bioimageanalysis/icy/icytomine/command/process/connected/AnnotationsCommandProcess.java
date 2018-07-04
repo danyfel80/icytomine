@@ -18,10 +18,10 @@
  */
 package org.bioimageanalysis.icy.icytomine.command.process.connected;
 
-import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
-import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import be.cytomine.client.collections.AnnotationCollection;
+import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 
 /**
  * @author Daniel Felipe Gonzalez Obando
@@ -56,20 +56,18 @@ public class AnnotationsCommandProcess extends ConnectedCommandProcess<String> {
 
 	@Override
 	public String call() throws Exception {
-		if (args.length < 1)
+		if (getArguments().length < 1)
 			throw new IllegalArgumentException("Expected at least 1 argument but got 0");
 		StringBuffer annotationList = new StringBuffer();
-		
-		for (int p = 0; p < args.length; p++) {
-			Long imgId = Long.parseLong(args[p]);
-			Image image = new Image(client.getImageInstance(imgId), client);
-			
-			AnnotationCollection annots = client.getAnnotationsByImage(imgId);
+
+		for (int p = 0; p < getArguments().length; p++) {
+			long imgId = Long.parseLong(getArguments()[p]);
+			List<Annotation> annots = getClient().getImageAnnotations(imgId);
 			annotationList.append("Annotations (ID, terms, Polygon):\n");
-			for (int i = 0; i < annots.size(); i++) {
-				Annotation annot = new Annotation(annots.get(i), image, client);
+			for (Annotation annot : annots) {
 				annotationList.append(
-						annot.getId() + " " + annot.getTerms() + " " + annot.getLocation() + "\n");
+						annot.getId() + " " + annot.getAssociatedTerms().stream().map(t -> t.getName().orElse("Not specified"))
+								.collect(Collectors.toSet()) + " " + annot.getLocation().orElse("Not specified") + "\n");
 			}
 		}
 		return annotationList.toString();

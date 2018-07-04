@@ -5,13 +5,12 @@ import java.awt.image.BufferedImage;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.AnnotationView;
 import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
 import org.bioimageanalysis.icy.icytomine.core.view.ViewListener;
-
-import be.cytomine.client.CytomineException;
 
 public class CachedViewProvider extends ViewProvider {
 	private CachedView cachedView;
@@ -80,7 +79,7 @@ public class CachedViewProvider extends ViewProvider {
 	}
 	
 	@Override
-	public void updateAnnotations() throws CytomineException {
+	public void updateAnnotations() throws CytomineClientException {
 		annotationView.updateModel();
 	}
 

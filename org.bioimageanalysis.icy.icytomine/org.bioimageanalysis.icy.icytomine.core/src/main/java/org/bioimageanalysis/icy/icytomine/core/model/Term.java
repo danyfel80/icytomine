@@ -19,77 +19,48 @@
 package org.bioimageanalysis.icy.icytomine.core.model;
 
 import java.awt.Color;
+import java.util.Optional;
 
-import be.cytomine.client.Cytomine;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 
-/**
- * @author Daniel Felipe Gonzalez Obando
- *
- */
-public class Term {
+public class Term extends Entity {
 
-	private static final be.cytomine.client.models.Term internalNoTerm;
-	static {
-		internalNoTerm = new be.cytomine.client.models.Term();
-		internalNoTerm.set("id", 0L);
-		internalNoTerm.set("name", "No term");
-	};
+	public static final Color DEFAULT_TERM_COLOR = Color.GREEN;
 
-	public static Term getNoTerm(Cytomine client) {
-		return new Term(client, internalNoTerm);
+	public static Term retrieve(CytomineClient client, long termId) throws CytomineClientException {
+		return client.getTerm(termId);
 	}
 
-	private Cytomine client;
-	private be.cytomine.client.models.Term internalTerm;
-
-	private String name;
-	private String comment;
-
-	public Term(Cytomine client, be.cytomine.client.models.Term internalTerm) {
-		this.client = client;
-		this.internalTerm = internalTerm;
-	}
-
-	public Cytomine getClient() {
-		return this.client;
+	public Term(CytomineClient client, be.cytomine.client.models.Term internalTerm) {
+		super(client, internalTerm);
 	}
 
 	public be.cytomine.client.models.Term getInternalTerm() {
-		return this.internalTerm;
+		return (be.cytomine.client.models.Term) getModel();
 	}
 
-	public Long getId() {
-		return getInternalTerm().getId();
+	public Optional<String> getName() {
+		return getStr("name");
 	}
 
-	public String getName() {
-		if (name == null) {
-			name = getInternalTerm().getStr("name");
-			name = CytomineUtils.convertFromSystenEncodingToUTF8(name);
-		}
-		return name;
+	public Optional<String> getComment() {
+		return getStr("comment");
 	}
 
-	public String getComment() {
-		if (comment == null) {
-			comment = getInternalTerm().getStr("comment");
-			comment = CytomineUtils.convertFromSystenEncodingToUTF8(comment);
-		}
-		return comment;
-	}
-
-	public String getHexColor() {
-		return getInternalTerm().getStr("color");
+	public Optional<String> getHexColor() {
+		return getStr("color");
 	}
 
 	public Color getColor() {
-		String hexColor = getHexColor();
-		if (hexColor == null) {
-			return Color.DARK_GRAY;
+		Optional<String> hexColor = getHexColor();
+		if (!hexColor.isPresent()) {
+			return DEFAULT_TERM_COLOR;
 		} else {
-			final int red = Integer.parseInt(hexColor.substring(1, 3), 16);
-			final int green = Integer.parseInt(hexColor.substring(3, 5), 16);
-			final int blue = Integer.parseInt(hexColor.substring(5, 7), 16);
+			String hexColorString = hexColor.get();
+			final int red = Integer.parseInt(hexColorString.substring(1, 3), 16);
+			final int green = Integer.parseInt(hexColorString.substring(3, 5), 16);
+			final int blue = Integer.parseInt(hexColorString.substring(5, 7), 16);
 			final Color termColor = new Color(red, green, blue);
 			return termColor;
 		}
@@ -97,55 +68,7 @@ public class Term {
 
 	@Override
 	public String toString() {
-		return getId() + " " + getName();
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((client == null) ? 0 : client.getHost().hashCode());
-		result = prime * result + ((internalTerm == null) ? 0 : internalTerm.getId().hashCode());
-		return result;
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (!(obj instanceof Term)) {
-			return false;
-		}
-		Term other = (Term) obj;
-		if (client == null) {
-			if (other.client != null) {
-				return false;
-			}
-		} else if (!client.getHost().equals(other.client.getHost())) {
-			return false;
-		}
-		if (internalTerm == null) {
-			if (other.internalTerm != null) {
-				return false;
-			}
-		} else if (!internalTerm.getId().equals(other.internalTerm.getId())) {
-			return false;
-		}
-		return true;
+		return String.format("Term: id=%s, name=%s", String.valueOf(getId()), getName().orElse("Not specified"));
 	}
 
 }

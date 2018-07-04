@@ -94,7 +94,7 @@ public class IcySequenceToCytominePanelController {
 						selectedRois);
 				sender.addProgressListener(getProgressHandler());
 				List<Annotation> createdAnnotations = sender.send();
-				viewController.getImageInformation().getAnnotations().addAll(createdAnnotations);
+				viewController.getImageInformation().getAnnotations(false).addAll(createdAnnotations);
 				notifySuccess(createdAnnotations);
 			} catch (Exception e) {
 				notifyFailure(e);

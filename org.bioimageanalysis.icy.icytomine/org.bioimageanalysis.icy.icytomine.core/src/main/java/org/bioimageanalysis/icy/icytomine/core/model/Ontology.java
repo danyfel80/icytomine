@@ -18,63 +18,42 @@
  */
 package org.bioimageanalysis.icy.icytomine.core.model;
 
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.Optional;
+import java.util.Set;
 
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
-import be.cytomine.client.collections.TermCollection;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 
-/**
- * @author Daniel Felipe Gonzalez Obando
- *
- */
-public class Ontology {
-	private Cytomine client;
-	private be.cytomine.client.models.Ontology internalOntology;
+public class Ontology extends Entity {
 
-	// Cached terms
-	private String name;
-	private TermCollection nativeTerms;
-
-	public Ontology(be.cytomine.client.models.Ontology internalOntology, Cytomine client) {
-		this.client = client;
-		this.internalOntology = internalOntology;
+	public static Ontology retrieve(CytomineClient client, long ontologyId) throws CytomineClientException {
+		return client.getOntology(ontologyId);
 	}
 
-	public Cytomine getClient() {
-		return client;
+	private Set<Term> terms;
+
+	public Ontology(CytomineClient client, be.cytomine.client.models.Ontology internalOntology) {
+		super(client, internalOntology);
 	}
 
 	public be.cytomine.client.models.Ontology getInternalOntology() {
-		return internalOntology;
+		return (be.cytomine.client.models.Ontology) getModel();
 	}
 
-	public Long getId() {
-		return getInternalOntology().getId();
+	public Optional<String> getName() {
+		return getStr("name");
 	}
 
-	public String getName() {
-		if (name == null) {
-			name = getInternalOntology().getStr("name");
-			name = CytomineUtils.convertFromSystenEncodingToUTF8(name);
+	public Set<Term> getTerms(boolean recompute) throws CytomineClientException {
+		if (terms == null || recompute) {
+			terms = null;
+			terms = getClient().getOntologyTerms(getId());
 		}
-		return name;
+		return terms;
 	}
 
-	public static List<Term> getTerms(Cytomine client, Long ontologyId) throws CytomineException {
-		TermCollection nativeTerms = client.getTermsByOntology(ontologyId);
-
-		return IntStream.range(0, nativeTerms.size()).mapToObj(i -> nativeTerms.get(i)).map(t -> new Term(client, t))
-				.collect(Collectors.toList());
-	}
-
-	public List<Term> getTerms() throws CytomineException {
-		if (this.nativeTerms == null) {
-			this.nativeTerms = getClient().getTermsByOntology(getId());
-		}
-		return IntStream.range(0, this.nativeTerms.size()).mapToObj(i -> this.nativeTerms.get(i))
-				.map(t -> new Term(getClient(), t)).collect(Collectors.toList());
+	@Override
+	public String toString() {
+		return String.format("Ontology: id=%s, name=%s", String.valueOf(getId()), getName().orElse("Not specified"));
 	}
 }

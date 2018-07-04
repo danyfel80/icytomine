@@ -63,4 +63,14 @@ public class ExitCommand implements CommandProcess<Void> {
 		return this; // Does nothing with previous result
 	}
 
+	@Override
+	public String[] getArguments() {
+		return null;
+	}
+
+	@Override
+	public Object getPreviousResult() {
+		return null;
+	}
+
 }

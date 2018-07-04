@@ -20,14 +20,9 @@ package org.bioimageanalysis.icy.icytomine.ui.core.explorer;
 
 import javax.swing.JFrame;
 
-import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.view.AnnotationView;
-import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerFrame;
-import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.CachedViewProvider;
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
+import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImagePanel.ImageSelectionListener;
 
-import be.cytomine.client.Cytomine;
-import be.cytomine.client.CytomineException;
 import icy.gui.frame.IcyFrame;
 
 /**
@@ -35,13 +30,10 @@ import icy.gui.frame.IcyFrame;
  */
 public class ExplorerFrame extends IcyFrame {
 
-	private Cytomine cytomineClient;
-
 	private ExplorerPanel explorerPanel;
 
-	public ExplorerFrame(Cytomine cytomine) {
+	public ExplorerFrame() {
 		super("Explorer - Icytomine", true, true, true, false);
-		this.cytomineClient = cytomine;
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		createExplorerPanel();
 		addToDesktopPane();
@@ -49,32 +41,21 @@ public class ExplorerFrame extends IcyFrame {
 	}
 
 	private void createExplorerPanel() {
-		explorerPanel = new ExplorerPanel(cytomineClient);
-		explorerPanel.setOpenViewerListener(imageInformation -> {
-			try {
-				openViewer(imageInformation);
-			} catch (CytomineException e) {
-				throw new RuntimeException(e);
-			}
-		});
+		explorerPanel = new ExplorerPanel();
 		setSize(explorerPanel.getPreferredSize());
 		setMinimumSize(explorerPanel.getMinimumSize());
 		setContentPane(explorerPanel);
 	}
 
-	private void openViewer(Image imageInformation) throws CytomineException {
-		ViewerFrame viewer = getViewerFrame(imageInformation);
-		viewer.setVisible(true);
+	public void setClient(CytomineClient client) {
+		explorerPanel.setClient(client);
 	}
 
-	private ViewerFrame getViewerFrame(Image imageInformation) throws CytomineException {
-		return new ViewerFrame(new CachedViewProvider(new CachedView(imageInformation), new AnnotationView(imageInformation)));
-	}
-
-	/**
-	 * @return The login panel
-	 */
 	public ExplorerPanel getExplorerPanel() {
 		return explorerPanel;
+	}
+
+	public void addOpenViewerListener(ImageSelectionListener listener) {
+		explorerPanel.addOpenViewerListener(listener);
 	}
 }

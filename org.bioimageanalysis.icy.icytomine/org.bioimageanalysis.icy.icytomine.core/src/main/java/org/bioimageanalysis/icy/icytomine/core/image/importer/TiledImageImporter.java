@@ -40,18 +40,20 @@ public class TiledImageImporter {
 
 	private TileGridImporter tileGridImporter;
 
+	private CompletableFuture<BufferedImage> requestResult;
+
 	public TiledImageImporter(Image imageInformation) {
 		this.imageInformation = imageInformation;
 		tiledImageImportationListeners = new HashSet<>();
 		importationProgressListeners = new HashSet<>();
 	}
 
-	public void requestImage(double resolution, Rectangle2D boundsAtZeroResolution) {
+	public Future<BufferedImage> requestImage(double resolution, Rectangle2D boundsAtZeroResolution) {
 		this.targetResolution = resolution;
 		this.boundsAtZeroResolution = boundsAtZeroResolution;
 
 		computeRequestParameters();
-		requestImage();
+		return requestImage();
 	}
 
 	private void computeRequestParameters() {
@@ -69,7 +71,7 @@ public class TiledImageImporter {
 
 	private void computeRequestResolution() {
 		int minResolution = zeroResolution;
-		int maxResolution = imageInformation.getDepth().intValue();
+		int maxResolution = imageInformation.getDepth().get().intValue();
 		requestResolution = Math.max(minResolution, Math.min((int) targetResolution, maxResolution));
 	}
 
@@ -79,44 +81,44 @@ public class TiledImageImporter {
 	}
 
 	private void computeTileDimensionAtRequestResolution() {
-		tileDimensionAtRequestResolution = imageInformation.getTileSize();
+		tileDimensionAtRequestResolution = imageInformation.getTileSize().get();
 	}
 
 	private void computeTileGridToRequest() {
 		Dimension tileDim = new Dimension((int) tileDimensionAtRequestResolution.getWidth(),
 				(int) tileDimensionAtRequestResolution.getHeight());
-		TileCalculator calculator = new TileCalculator(boundsAtRequestResolution, requestResolution, tileDim);
+		TileCalculator calculator = new TileCalculator(boundsAtRequestResolution, tileDim);
 		Dimension2D imageDim = getImageSizeAtRequestResolution();
-		tileGrigToRequest = calculator.getLimitedTileBounds(imageDim);
+		tileGrigToRequest = calculator.getLimitedTileGridBounds(imageDim);
 	}
 
 	private Dimension2D getImageSizeAtRequestResolution() {
-		Dimension dimAtZeroRes = imageInformation.getSize();
+		Dimension dimAtZeroRes = imageInformation.getSize().get();
 		return MagnitudeResolutionConverter.convertDimension2D(dimAtZeroRes, 0, requestResolution);
 	}
 
-	private void requestImage() {
+	private Future<BufferedImage> requestImage() {
 		tileGridImporter = new TileGridImporter(imageInformation, requestResolution, tileGrigToRequest);
 		TileGridStitcher tileStitcher = new TileGridStitcher(targetResolution, boundsAtTargetResolution, tileGridImporter);
 		tileStitcher.addStitchingFinishListener((Future<Void> endResult) -> stitchingFinished(tileStitcher, endResult));
 		importationProgressListeners.forEach(listener -> tileStitcher.addProgressListener(listener));
 		tileStitcher.startStitchingTiles();
-
+		requestResult = new CompletableFuture<>();
+		return requestResult;
 	}
 
 	private void stitchingFinished(TileGridStitcher tileStitcher, Future<Void> endResult) {
-		CompletableFuture<BufferedImage> result = new CompletableFuture<>();
 		try {
 			if (!endResult.isCancelled()) {
 				endResult.get();
-				result.complete(tileStitcher.getTargetImage());
+				requestResult.complete(tileStitcher.getTargetImage());
 			} else {
-				result.cancel(true);
+				requestResult.cancel(true);
 			}
 		} catch (InterruptedException | ExecutionException e) {
-			result.completeExceptionally(e);
+			requestResult.completeExceptionally(e);
 		}
-		tiledImageImportationListeners.forEach(l -> l.imageImported(result));
+		tiledImageImportationListeners.forEach(l -> l.imageImported(requestResult));
 	}
 
 	public void addTiledImageImportationListener(TiledImageImportationListener listener) {

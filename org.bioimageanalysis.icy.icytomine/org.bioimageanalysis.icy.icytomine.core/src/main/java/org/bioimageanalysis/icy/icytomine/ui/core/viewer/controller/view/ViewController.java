@@ -43,5 +43,7 @@ public interface ViewController {
 
 	ViewProvider getViewProvider();
 
+	void focusOnAnnotation(Annotation a);
+
 
 }

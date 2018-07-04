@@ -7,13 +7,10 @@ import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.SystemColor;
-import java.awt.event.ItemEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.net.URL;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.awt.event.ItemListener;
+import java.awt.event.MouseListener;
+import java.util.Optional;
+import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -21,41 +18,23 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
-import org.bioimageanalysis.icy.icytomine.core.connection.CytomineConnector;
-import org.bioimageanalysis.icy.icytomine.core.connection.user.Preferences;
-
-import be.cytomine.client.Cytomine;
-import icy.gui.dialog.ConfirmDialog;
-import icy.gui.dialog.MessageDialog;
+import org.bioimageanalysis.icy.icytomine.ui.core.login.LoginPanelController.LoginListener;
 
 public class LoginPanel extends JPanel {
 
-	@FunctionalInterface
-	public interface LoginListener {
-		void logged(Cytomine cytomine);
-	}
-
 	private static final long serialVersionUID = 885665565700074663L;
 
-	private JComboBox<String>	cBoxHost;
-	private JComboBox<String>	cBoxUser;
-	private JButton						btnAddUser;
-	private JButton						btnRemoveUser;
-	private JButton						btnLogin;
+	private JComboBox<String> hostComboBox;
+	private JComboBox<String> userComboBox;
+	private JPanel credentialsManagementPanel;
+	private JButton addUserButton;
+	private JButton editUserButton;
+	private JButton removeUserButton;
+	private JButton loginButton;
 
-	private LoginListener	onLoggedIn;
-	private final JPanel	panel	= new JPanel();
-	private JButton				btnEditUser;
+	private LoginPanelController controller;
 
-	/**
-	 * Listener that handles login event.
-	 * 
-	 * @param onLoggedIn
-	 *          Method called when connection to cytomine is succesfull.
-	 */
-	public void setLoginListener(LoginListener onLoggedIn) {
-		this.onLoggedIn = onLoggedIn;
-	}
+	private Frame parentFrame;
 
 	/**
 	 * Create the panel.
@@ -63,178 +42,206 @@ public class LoginPanel extends JPanel {
 	 * @param parent
 	 */
 	public LoginPanel(Frame parent) {
+		parentFrame = parent;
+		setView();
+		setController();
+	}
+
+	public Frame getParentFrame() {
+		return this.parentFrame;
+	}
+
+	private void setView() {
 		this.setPreferredSize(new Dimension(320, 150));
 		this.setMinimumSize(new Dimension(320, 150));
+		setGridBagLayout();
+		setHostServerField();
+		setUserField();
+		setLoginButton();
+		setCredentialsManagementPanel();
+	}
+
+	private void setGridBagLayout() {
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 40, 100, 110 };
 		gridBagLayout.rowHeights = new int[] { 30, 30, 30, 0 };
 		gridBagLayout.columnWeights = new double[] { 0.0, 0.0, 0.0 };
 		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
 		setLayout(gridBagLayout);
-
-		JLabel lblHost = new JLabel("Host");
-		lblHost.setHorizontalAlignment(SwingConstants.RIGHT);
-		GridBagConstraints gbc_lblHost = new GridBagConstraints();
-		gbc_lblHost.fill = GridBagConstraints.HORIZONTAL;
-		gbc_lblHost.insets = new Insets(0, 0, 10, 5);
-		gbc_lblHost.gridx = 0;
-		gbc_lblHost.gridy = 0;
-		add(lblHost, gbc_lblHost);
-
-		cBoxHost = new JComboBox<>();
-		cBoxHost.addItemListener(e -> {
-			if (e.getStateChange() == ItemEvent.SELECTED) {
-				String host = (String) e.getItem();
-				cBoxUser.removeAllItems();
-				Preferences.getInstance().getAvailableCytomineCredentials().get(host).keySet()
-						.forEach(user -> cBoxUser.addItem(user));
-				cBoxUser.setSelectedIndex(0);
-			}
-		});
-		lblHost.setLabelFor(cBoxHost);
-		GridBagConstraints gbc_cBoxHost = new GridBagConstraints();
-		gbc_cBoxHost.insets = new Insets(0, 0, 10, 0);
-		gbc_cBoxHost.fill = GridBagConstraints.BOTH;
-		gbc_cBoxHost.gridwidth = 2;
-		gbc_cBoxHost.gridx = 1;
-		gbc_cBoxHost.gridy = 0;
-		add(cBoxHost, gbc_cBoxHost);
-
-		JLabel lblUser = new JLabel("User");
-		lblUser.setHorizontalAlignment(SwingConstants.RIGHT);
-		GridBagConstraints gbc_lblUser = new GridBagConstraints();
-		gbc_lblUser.anchor = GridBagConstraints.EAST;
-		gbc_lblUser.insets = new Insets(0, 0, 10, 5);
-		gbc_lblUser.gridx = 0;
-		gbc_lblUser.gridy = 1;
-		add(lblUser, gbc_lblUser);
-
-		cBoxUser = new JComboBox<>();
-		GridBagConstraints gbc_cBoxUser = new GridBagConstraints();
-		gbc_cBoxUser.gridwidth = 2;
-		gbc_cBoxUser.insets = new Insets(0, 0, 10, 0);
-		gbc_cBoxUser.fill = GridBagConstraints.BOTH;
-		gbc_cBoxUser.gridx = 1;
-		gbc_cBoxUser.gridy = 1;
-		add(cBoxUser, gbc_cBoxUser);
-
-		btnLogin = new JButton("Login");
-		btnLogin.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				try {
-					if (cBoxHost.getSelectedItem() == null || cBoxUser.getSelectedItem() == null)
-						throw new NullPointerException("Please select a host and a user");
-					Future<Cytomine> cytomineFuture = CytomineConnector.login(new URL(cBoxHost.getSelectedItem().toString()),
-							cBoxUser.getSelectedItem().toString());
-					Cytomine c = cytomineFuture.get();
-					Preferences.getInstance().setDefaultHost(cBoxHost.getSelectedItem().toString());
-					Preferences.getInstance().setDefaultUser(cBoxUser.getSelectedItem().toString());
-					Preferences.save();
-					if (onLoggedIn != null) onLoggedIn.logged(c);
-
-				} catch (IllegalArgumentException | InterruptedException | ExecutionException | NullPointerException
-						| IOException e1) {
-					MessageDialog.showDialog("Error", e1.getMessage(), MessageDialog.ERROR_MESSAGE);
-				}
-			}
-		});
-		GridBagConstraints gbc_panel = new GridBagConstraints();
-		gbc_panel.fill = GridBagConstraints.HORIZONTAL;
-		gbc_panel.anchor = GridBagConstraints.EAST;
-		gbc_panel.gridwidth = 3;
-		gbc_panel.gridx = 0;
-		gbc_panel.gridy = 2;
-		add(panel, gbc_panel);
-		panel.setLayout(new GridLayout(1, 0, 0, 0));
-		{
-			btnAddUser = new JButton("Add user");
-			panel.add(btnAddUser);
-			btnAddUser.setForeground(SystemColor.textHighlight);
-			btnAddUser.setContentAreaFilled(false);
-			btnAddUser.setBorderPainted(false);
-			btnAddUser.addMouseListener(new MouseAdapter() {
-				@Override
-				public void mouseClicked(MouseEvent e) {
-					new AddUserDialog("", "", parent);
-					updateCredentials();
-				}
-			});
-
-			btnEditUser = new JButton("Edit user");
-			panel.add(btnEditUser);
-			btnEditUser.setForeground(SystemColor.textHighlight);
-			btnEditUser.setContentAreaFilled(false);
-			btnEditUser.setBorderPainted(false);
-			btnEditUser.addMouseListener(new MouseAdapter() {
-				@Override
-				public void mouseClicked(MouseEvent e) {
-					try {
-						String host, userName;
-						if (cBoxHost.getSelectedItem() == null || cBoxUser.getSelectedItem() == null)
-							throw new IllegalArgumentException("Please select a host and a user");
-
-						host = cBoxHost.getSelectedItem().toString();
-						userName = cBoxUser.getSelectedItem().toString();
-
-						new EditUserDialog(host, userName, parent);
-						updateCredentials();
-					} catch (IllegalArgumentException e1) {
-						e1.printStackTrace();
-						MessageDialog.showDialog("Error", e1.getMessage(), MessageDialog.ERROR_MESSAGE);
-					}
-				}
-			});
-
-			btnRemoveUser = new JButton("Remove user");
-			panel.add(btnRemoveUser);
-			btnRemoveUser.setForeground(SystemColor.textHighlight);
-			btnRemoveUser.setContentAreaFilled(false);
-			btnRemoveUser.setBorderPainted(false);
-			btnRemoveUser.addMouseListener(new MouseAdapter() {
-				@Override
-				public void mouseClicked(MouseEvent e) {
-					try {
-						if (cBoxHost.getSelectedItem() == null || cBoxUser.getSelectedItem() == null)
-							throw new IllegalArgumentException("Please select a host and a user");
-						if (!ConfirmDialog.confirm("Remove User Locally - Icytomine",
-								"Are you sure to locally remove user " + cBoxUser.getSelectedItem().toString(),
-								ConfirmDialog.YES_NO_OPTION))
-							return;
-
-						CytomineConnector.removeUser(new URL(cBoxHost.getSelectedItem().toString()),
-								cBoxUser.getSelectedItem().toString());
-						Preferences.save();
-						updateCredentials();
-					} catch (IllegalArgumentException | IOException e1) {
-						e1.printStackTrace();
-						MessageDialog.showDialog("Error", e1.getMessage(), MessageDialog.ERROR_MESSAGE);
-					}
-				}
-			});
-
-		}
-		GridBagConstraints gbc_btnLogin = new GridBagConstraints();
-		gbc_btnLogin.fill = GridBagConstraints.HORIZONTAL;
-		gbc_btnLogin.gridx = 2;
-		gbc_btnLogin.gridy = 3;
-		add(btnLogin, gbc_btnLogin);
-		updateCredentials();
 	}
 
-	public void updateCredentials() {
-		cBoxHost.removeAllItems();
-		cBoxUser.removeAllItems();
-		Preferences.getInstance().getAvailableCytomineCredentials().keySet().stream()
-				.forEach(host -> cBoxHost.addItem(host));
-		String selection = Preferences.getInstance().getDefaultHost();
-		if (selection != null) {
-			cBoxHost.setSelectedItem(selection);
-		} else {
-			try {
-				cBoxHost.setSelectedIndex(0);
-			} catch (IllegalArgumentException e) {}
+	private void setHostServerField() {
+		JLabel hostLabel = new JLabel("Host");
+		hostLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		GridBagConstraints hostLabelConstraints = new GridBagConstraints();
+		hostLabelConstraints.fill = GridBagConstraints.HORIZONTAL;
+		hostLabelConstraints.insets = new Insets(0, 0, 10, 5);
+		hostLabelConstraints.gridx = 0;
+		hostLabelConstraints.gridy = 0;
+
+		add(hostLabel, hostLabelConstraints);
+
+		hostComboBox = new JComboBox<>();
+		hostLabel.setLabelFor(hostComboBox);
+
+		GridBagConstraints hostComboBoxConstraints = new GridBagConstraints();
+		hostComboBoxConstraints.insets = new Insets(0, 0, 10, 0);
+		hostComboBoxConstraints.fill = GridBagConstraints.BOTH;
+		hostComboBoxConstraints.gridwidth = 2;
+		hostComboBoxConstraints.gridx = 1;
+		hostComboBoxConstraints.gridy = 0;
+
+		add(hostComboBox, hostComboBoxConstraints);
+	}
+
+	private void setUserField() {
+		JLabel userLabel = new JLabel("User");
+		userLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		GridBagConstraints userLabelConstraints = new GridBagConstraints();
+		userLabelConstraints.anchor = GridBagConstraints.EAST;
+		userLabelConstraints.insets = new Insets(0, 0, 10, 5);
+		userLabelConstraints.gridx = 0;
+		userLabelConstraints.gridy = 1;
+
+		add(userLabel, userLabelConstraints);
+
+		userComboBox = new JComboBox<>();
+
+		GridBagConstraints userComboBoxConstraints = new GridBagConstraints();
+		userComboBoxConstraints.gridwidth = 2;
+		userComboBoxConstraints.insets = new Insets(0, 0, 10, 0);
+		userComboBoxConstraints.fill = GridBagConstraints.BOTH;
+		userComboBoxConstraints.gridx = 1;
+		userComboBoxConstraints.gridy = 1;
+
+		add(userComboBox, userComboBoxConstraints);
+	}
+
+	private void setLoginButton() {
+		loginButton = new JButton("Login");
+
+		GridBagConstraints loginButtonConstraints = new GridBagConstraints();
+		loginButtonConstraints.fill = GridBagConstraints.HORIZONTAL;
+		loginButtonConstraints.gridx = 2;
+		loginButtonConstraints.gridy = 3;
+
+		add(loginButton, loginButtonConstraints);
+	}
+
+	private void setCredentialsManagementPanel() {
+		credentialsManagementPanel = new JPanel();
+		credentialsManagementPanel.setLayout(new GridLayout(1, 0, 0, 0));
+		setAddUserButton();
+		setEditUserButton();
+		setRemoveUserButton();
+
+		GridBagConstraints credentialManagementPanelConstraints = new GridBagConstraints();
+		credentialManagementPanelConstraints.fill = GridBagConstraints.HORIZONTAL;
+		credentialManagementPanelConstraints.anchor = GridBagConstraints.EAST;
+		credentialManagementPanelConstraints.gridwidth = 3;
+		credentialManagementPanelConstraints.gridx = 0;
+		credentialManagementPanelConstraints.gridy = 2;
+
+		add(credentialsManagementPanel, credentialManagementPanelConstraints);
+	}
+
+	private void setAddUserButton() {
+		addUserButton = new JButton("Add user");
+
+		addUserButton.setForeground(SystemColor.textHighlight);
+		addUserButton.setContentAreaFilled(false);
+		addUserButton.setBorderPainted(false);
+
+		credentialsManagementPanel.add(addUserButton);
+	}
+
+	private void setEditUserButton() {
+		editUserButton = new JButton("Edit user");
+
+		editUserButton.setForeground(SystemColor.textHighlight);
+		editUserButton.setContentAreaFilled(false);
+		editUserButton.setBorderPainted(false);
+
+		credentialsManagementPanel.add(editUserButton);
+	}
+
+	private void setRemoveUserButton() {
+		removeUserButton = new JButton("Remove user");
+
+		removeUserButton.setForeground(SystemColor.textHighlight);
+		removeUserButton.setContentAreaFilled(false);
+		removeUserButton.setBorderPainted(false);
+
+		credentialsManagementPanel.add(removeUserButton);
+	}
+
+	private void setController() {
+		controller = new LoginPanelController(this);
+	}
+
+	protected void addHostServerSelectionListener(ItemListener listener) {
+		hostComboBox.addItemListener(listener);
+	}
+
+	protected void addLoginButtonListener(MouseListener listener) {
+		loginButton.addMouseListener(listener);
+	}
+
+	public void addAddUserButtonListener(MouseListener listener) {
+		addUserButton.addMouseListener(listener);
+	}
+
+	public void addEditUserButtonListener(MouseListener listener) {
+		editUserButton.addMouseListener(listener);
+	}
+
+	public void addRemoveUserButtonListener(MouseListener listener) {
+		removeUserButton.addMouseListener(listener);
+	}
+
+	protected void setHosts(Set<String> hosts, Optional<String> selection) {
+		hostComboBox.removeAllItems();
+		userComboBox.removeAllItems();
+		for (String host : hosts) {
+			hostComboBox.addItem(host);
 		}
+		if (selection.isPresent())
+			hostComboBox.setSelectedItem(selection.get());
+		
+		hostComboBox.updateUI();
+	}
+
+	protected void setUsers(Set<String> users, Optional<String> selection) {
+		userComboBox.removeAllItems();
+		for (String user : users) {
+			userComboBox.addItem(user);
+		}
+		if (selection.isPresent())
+			userComboBox.setSelectedItem(selection.get());
+		else
+			userComboBox.setSelectedIndex(0);
+	}
+
+	public Optional<String> getSelectedHost() {
+		return Optional.ofNullable((String) hostComboBox.getSelectedItem());
+	}
+
+	public Optional<String> getSelectedUser() {
+		return Optional.ofNullable((String) userComboBox.getSelectedItem());
+	}
+
+	public void addLoginListener(LoginListener listener) {
+		controller.addLoginListener(listener);
+	}
+
+	public void removeLoginListener(LoginListener listener) {
+		controller.removeLoginListener(listener);
+	}
+
+	public void start() {
+		controller.updateCredentials();
 	}
 
 }
