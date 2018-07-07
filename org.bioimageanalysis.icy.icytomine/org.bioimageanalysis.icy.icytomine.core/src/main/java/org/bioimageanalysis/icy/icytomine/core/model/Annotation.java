@@ -47,7 +47,7 @@ import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
  */
 public class Annotation extends Entity {
 
-	public static Annotation retrieve(CytomineClient client, long annotationId) throws CytomineClientException {
+	public static Entity retrieve(CytomineClient client, long annotationId) throws CytomineClientException {
 		return client.getAnnotation(annotationId);
 	}
 
@@ -97,7 +97,7 @@ public class Annotation extends Entity {
 			for (int i = 0; i < -resolution; i++)
 				pixelTolerance /= 2d;
 
-		if (geometry == null || latestSimplifiedGeometryResolution != resolution) {
+		if (geometry == null || latestSimplifiedGeometry == null || latestSimplifiedGeometryResolution != resolution) {
 			latestSimplifiedGeometry = getSimplifiedGeometry(pixelTolerance);
 			latestSimplifiedGeometryResolution = resolution;
 		}
@@ -130,7 +130,10 @@ public class Annotation extends Entity {
 
 	private Geometry getSimplifiedGeometry(double pixelTolerance) throws CytomineClientException {
 		pixelTolerance = pixelTolerance > 0 ? pixelTolerance : 0;
-		TopologyPreservingSimplifier simplifier = new TopologyPreservingSimplifier(getGeometryAtZeroResolution(false));
+		Geometry baseGeometry = getGeometryAtZeroResolution(false);
+		if (baseGeometry == null)
+			throw new CytomineClientException(String.format("Null base geometry (annotation id=%d)", getId()));
+		TopologyPreservingSimplifier simplifier = new TopologyPreservingSimplifier(baseGeometry);
 		simplifier.setDistanceTolerance(pixelTolerance);
 		return simplifier.getResultGeometry();
 	}
@@ -252,6 +255,18 @@ public class Annotation extends Entity {
 			annotationTerms = getClient().downloadAnnotationTerms(getId());
 		}
 		return annotationTerms;
+	}
+
+	public void associateTerms(Map<Term, Boolean> termSelection) throws CytomineClientException {
+		getClient().associateTerms(this, termSelection);
+		updateModel();
+	}
+
+	private void updateModel() {
+		Annotation updatedAnnotation = getClient().getAnnotation(this.getId());
+		setModel(updatedAnnotation.getInternalAnnotation());
+		this.termUsers = null;
+		this.annotationTerms = null;
 	}
 
 	@Override

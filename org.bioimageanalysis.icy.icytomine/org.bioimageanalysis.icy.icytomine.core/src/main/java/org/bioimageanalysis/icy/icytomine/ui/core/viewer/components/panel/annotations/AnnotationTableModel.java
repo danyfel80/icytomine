@@ -13,11 +13,12 @@ import javax.swing.table.AbstractTableModel;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
+import org.bioimageanalysis.icy.icytomine.core.model.Entity;
 
 @SuppressWarnings("serial")
 public class AnnotationTableModel extends AbstractTableModel {
 	public interface AnnotationVisibilityListener {
-		void annotationVisibilityChanged(Annotation annotation, boolean visible);
+		void annotationVisibilityChanged(Entity annotation, boolean visible);
 	}
 
 	private static final String[] columnNames = new String[] { "Visible", "Name", "Terms", "Author" };
@@ -114,7 +115,7 @@ public class AnnotationTableModel extends AbstractTableModel {
 		}
 	}
 
-	public boolean isAnnotationVisible(Annotation annotation) {
+	public boolean isAnnotationVisible(Entity annotation) {
 		return annotationVisibility.get(annotation);
 	}
 
@@ -137,9 +138,11 @@ public class AnnotationTableModel extends AbstractTableModel {
 	}
 
 	private void notifyAnnotationVisibilityChanged(int annotationIndex) {
-		Annotation annotation = annotations.get(annotationIndex);
-		this.annotationVisibilityListeners
-				.forEach(listener -> listener.annotationVisibilityChanged(annotation, annotationVisibility.get(annotation)));
+		if (annotations.size() > 0) {
+			Entity annotation = annotations.get(annotationIndex);
+			this.annotationVisibilityListeners
+					.forEach(listener -> listener.annotationVisibilityChanged(annotation, annotationVisibility.get(annotation)));
+		}
 	}
 
 	public Set<Annotation> getAnnotations() {

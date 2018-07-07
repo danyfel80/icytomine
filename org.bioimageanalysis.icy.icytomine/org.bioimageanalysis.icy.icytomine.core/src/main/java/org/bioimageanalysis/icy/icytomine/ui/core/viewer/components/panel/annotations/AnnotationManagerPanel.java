@@ -101,4 +101,8 @@ public class AnnotationManagerPanel extends JPanel {
 		panelController.addAnnotationTermSelectionCommitListener(listener);
 	}
 
+	public void updateAnnotations() {
+		panelController.updateAnnotations();
+	}
+
 }

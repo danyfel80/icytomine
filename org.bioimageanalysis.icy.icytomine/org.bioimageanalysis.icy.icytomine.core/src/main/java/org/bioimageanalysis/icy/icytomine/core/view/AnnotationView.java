@@ -21,6 +21,7 @@ import java.util.stream.IntStream;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
+import org.bioimageanalysis.icy.icytomine.core.model.Entity;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 import org.bioimageanalysis.icy.icytomine.geom.GeometricHash;
@@ -184,7 +185,7 @@ public class AnnotationView {
 				.filter(a -> isVisible(a)).collect(Collectors.toSet());
 	}
 
-	private boolean isVisible(Annotation a) {
+	private boolean isVisible(Entity a) {
 		return visibleAnnotations.contains(a);
 	}
 
@@ -215,26 +216,32 @@ public class AnnotationView {
 			drawLineString((LineString) geometry, color, selected);
 		} else if (geometry instanceof Polygon) {
 			drawPolygon((Polygon) geometry, color, selected);
-		} else {
-			// TODO implement multi point
-			// TODO implement multi line string
-			// TODO implement multi polygon
+		}
+		// TODO implement multi point
+		// TODO implement multi line string
+		// TODO implement multi polygon
+		else if (geometry != null) {
 			throw new AnnotationViewException(
 					String.format("Unsupported annotation geometry (%s)", geometry.getGeometryType()));
+		} else {
+			throw new AnnotationViewException("Null geometry");
 		}
 	}
 
 	private void drawPoint(Point point, Color color, boolean selected) {
 		int maxY = imageInformation.getSizeY().get();
-		Graphics2D g2;
-		synchronized (currentView) {
-			g2 = currentView.createGraphics();
-		}
-
+		
 		int x = (int) MagnitudeResolutionConverter.convertMagnitude(point.getX() - viewBoundsAtZeroResolution.getMinX(), 0d,
 				targetResolution);
 		int y = (int) MagnitudeResolutionConverter
 				.convertMagnitude((maxY - point.getY()) - viewBoundsAtZeroResolution.getMinY(), 0d, targetResolution);
+
+		Graphics2D g2 = currentView.createGraphics();
+		if (selected) {
+			g2.setColor(Color.BLACK);
+			g2.setStroke(new BasicStroke(getStrokeThickness(selected) + 2));
+			g2.drawOval(x - 2, y - 2, 8, 8);
+		}
 		g2.setColor(color);
 		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
 		g2.drawOval(x - 2, y - 2, 8, 8);
@@ -246,7 +253,7 @@ public class AnnotationView {
 	}
 
 	private int getStrokeThickness(boolean selected) {
-		return (selected ? 4 : 2);
+		return (selected ? 3 : 2);
 	}
 
 	private Color getSelectedFillColor(Color color) {
@@ -255,10 +262,6 @@ public class AnnotationView {
 
 	private void drawLineString(LineString geometry, Color color, boolean selected) {
 		int maxY = imageInformation.getSizeY().get();
-		Graphics2D g2 = currentView.createGraphics();
-		g2.setColor(color);
-		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
-
 		CoordinateSequence coordinates = geometry.getCoordinateSequence();
 		int size = coordinates.size();
 		int[] xPoints = new int[size];
@@ -270,17 +273,20 @@ public class AnnotationView {
 			yPoints[i] = (int) MagnitudeResolutionConverter
 					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
 		});
-
+		Graphics2D g2 = currentView.createGraphics();
+		if (selected) {
+			g2.setColor(Color.BLACK);
+			g2.setStroke(new BasicStroke(getStrokeThickness(selected) + 2));
+			g2.drawPolyline(xPoints, yPoints, size);
+		}
+		g2.setColor(color);
+		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
 		g2.drawPolyline(xPoints, yPoints, size);
 		g2.dispose();
 	}
 
 	private void drawPolygon(Polygon geometry, Color color, boolean selected) {
 		int maxY = imageInformation.getSizeY().get();
-		Graphics2D g2 = currentView.createGraphics();
-		g2.setColor(color);
-		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
-
 		Coordinate[] coordinates = geometry.getCoordinates();
 		int size = coordinates.length;
 		int[] xPoints = new int[size];
@@ -293,6 +299,15 @@ public class AnnotationView {
 					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
 		});
 
+		Graphics2D g2 = currentView.createGraphics();
+		if (selected) {
+			g2.setColor(Color.BLACK);
+			g2.setStroke(new BasicStroke(getStrokeThickness(selected) + 2));
+			g2.drawPolygon(xPoints, yPoints, size);
+		}
+
+		g2.setColor(color);
+		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
 		g2.drawPolygon(xPoints, yPoints, size);
 
 		if (selected) {

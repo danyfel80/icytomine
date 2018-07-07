@@ -16,7 +16,6 @@ import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.geom.WKTUtils;
 
-import be.cytomine.client.CytomineException;
 import icy.common.listener.ProgressListener;
 import icy.painter.Anchor2D;
 import icy.roi.ROI2D;
@@ -72,7 +71,7 @@ public class RoiAnnotationSender {
 		this.progressListeners.remove(listener);
 	}
 
-	public List<Annotation> send() throws InterruptedException, CytomineException {
+	public List<Annotation> send() throws InterruptedException, CytomineClientException {
 		List<? extends ROI2D> rois = getROIs();
 		int numRois = rois.size();
 		int processedRois = 0;
@@ -129,7 +128,7 @@ public class RoiAnnotationSender {
 			throw new InterruptedException();
 	}
 
-	private Annotation sendROI(ROI2D roi) throws CytomineException, UnsupportedOperationException {
+	private Annotation sendROI(ROI2D roi) throws CytomineClientException, UnsupportedOperationException {
 		String description = getRoiWTKDesciption(roi);
 		Set<Term> terms = getRoiTermsBasedOnName(roi);
 
@@ -139,7 +138,7 @@ public class RoiAnnotationSender {
 	}
 
 	private Annotation createAnnotation(String description, Set<Term> terms) throws CytomineClientException {
-		Annotation annotation = imageInformation.getClient().addAnnotationWithTerms(description, imageInformation.getId(),
+		Annotation annotation = imageInformation.getClient().addAnnotationWithTerms(imageInformation.getId(), description,
 				terms.stream().map(term -> term.getId()).collect(Collectors.toList()));
 		return annotation;
 	}

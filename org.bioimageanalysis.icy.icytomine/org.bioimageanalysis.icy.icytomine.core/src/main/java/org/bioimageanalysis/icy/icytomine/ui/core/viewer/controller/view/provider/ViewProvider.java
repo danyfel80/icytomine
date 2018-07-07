@@ -5,6 +5,7 @@ import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.ViewListener;
@@ -75,5 +76,5 @@ public abstract class ViewProvider {
 
 	public abstract Set<Annotation> getSelectedAnnotations();
 
-	public abstract void updateAnnotations() throws Exception;
+	public abstract void updateAnnotations() throws CytomineClientException;
 }

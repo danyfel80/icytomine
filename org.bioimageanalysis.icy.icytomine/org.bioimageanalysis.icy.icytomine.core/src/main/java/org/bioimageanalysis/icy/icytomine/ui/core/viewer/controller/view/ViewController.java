@@ -3,6 +3,7 @@ package org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view;
 import java.awt.geom.Rectangle2D;
 import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.CachedViewController.PositionListener;
@@ -44,6 +45,8 @@ public interface ViewController {
 	ViewProvider getViewProvider();
 
 	void focusOnAnnotation(Annotation a);
+
+	void updateAnnotations() throws CytomineClientException;
 
 
 }

@@ -11,6 +11,7 @@ import javax.swing.JPanel;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanel;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanelController.AnnotationTermCommitListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.cytomine2Icy.CytomineToIcyPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.file.IcyFileToCytominePanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.folder.IcyFolderToCytominePanel;
@@ -77,7 +78,8 @@ public class ViewerPanelController {
 		});
 		viewerContainer
 				.addZoomLevelSelectedListener(zoomLevel -> viewController.setResolution(getResolutionLevel(zoomLevel)));
-		viewerContainer.addAnnotationMenuListener(getAnnotationMenuHandler());
+		viewerContainer.addAnnotationFilterMenuListener(getAnnotationMenuHandler());
+		viewerContainer.addAnnotationRefreshMenuListener(getAnnotationRefreshMenuHandler());
 		viewerContainer.addCytomineToIcyMenuListener(getCytomineToIcyMenuHandler());
 		viewerContainer.addIcySequenceToCytomineMenuListener(getIcySequenceToCytomineMenuHandler());
 		viewerContainer.addIcyFileToCytomineMenuListener(getIcyFileToCytomineMenuHandler());
@@ -97,9 +99,25 @@ public class ViewerPanelController {
 			annotationsPanel.addAnnotationSelectionListener(
 					(Set<Annotation> selectedAnnotations) -> viewController.setSelectedAnnotations(selectedAnnotations));
 			annotationsPanel.addAnnotationDoubleClickListener((Annotation a) -> viewController.focusOnAnnotation(a));
+			annotationsPanel.addAnnotationTermSelectionCommitListener(getAnnotationTermCommitHandler(annotationsPanel));
 			annotationsFrame = createIcyDialog("Annotations - Icytomine", annotationsPanel, true);
 			annotationsFrame.setSize(new Dimension(400, 400));
 			annotationsFrame.setVisible(true);
+		};
+	}
+
+	private AnnotationTermCommitListener getAnnotationTermCommitHandler(AnnotationManagerPanel annotationsPanel) {
+		return (Set<Annotation> annotations) -> {
+			viewController.updateAnnotations();
+			annotationsPanel.updateAnnotations();
+			viewController.refreshView();
+		};
+	}
+
+	private ActionListener getAnnotationRefreshMenuHandler() {
+		return event -> {
+			viewController.updateAnnotations();
+			viewController.refreshView();
 		};
 	}
 

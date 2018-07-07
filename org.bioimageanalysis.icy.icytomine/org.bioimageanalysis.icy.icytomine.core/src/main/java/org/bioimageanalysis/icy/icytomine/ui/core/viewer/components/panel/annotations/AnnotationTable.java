@@ -55,6 +55,7 @@ public class AnnotationTable extends JScrollPane {
 			removeAnnotationVisibilityListenersFromTableModel();
 			annotationTable.setModel(newTableModel);
 			annotationTableModel = newTableModel;
+			newTableModel.fireTableDataChanged();
 			addAnnotationVisibilityListenersToTableModel();
 		}
 	}

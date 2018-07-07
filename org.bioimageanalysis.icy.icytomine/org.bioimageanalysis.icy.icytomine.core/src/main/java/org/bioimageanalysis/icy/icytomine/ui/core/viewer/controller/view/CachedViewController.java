@@ -15,6 +15,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
@@ -325,5 +326,10 @@ public class CachedViewController implements ViewController {
 				/ Math.log(2d);
 		return Math.min(Math.max(widthAdjustedResolution, heightAdjustedResolution),
 				imageInformation.getDepth().get());
+	}
+
+	@Override
+	public void updateAnnotations() throws CytomineClientException {
+		getViewProvider().updateAnnotations();
 	}
 }

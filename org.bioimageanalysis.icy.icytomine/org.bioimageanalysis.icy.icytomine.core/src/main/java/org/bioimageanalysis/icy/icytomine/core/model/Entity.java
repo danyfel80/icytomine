@@ -25,6 +25,10 @@ public abstract class Entity {
 		return model;
 	}
 
+	protected void setModel(Model model) {
+		this.model = model;
+	}
+
 	public Long getId() {
 		return model.getId();
 	}
@@ -89,7 +93,7 @@ public abstract class Entity {
 			return false;
 		}
 		Entity other = (Entity) obj;
-		return hashCode() != other.hashCode();
+		return hashCode() == other.hashCode();
 	}
 
 }

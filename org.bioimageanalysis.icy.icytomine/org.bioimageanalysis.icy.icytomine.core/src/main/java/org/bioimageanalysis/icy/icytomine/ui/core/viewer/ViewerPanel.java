@@ -54,7 +54,8 @@ public class ViewerPanel extends JPanel {
 	private JMenuItem icySequenceToCytomineMenuItem;
 	private JMenuItem icyFileToCytomineMenuItem;
 	private JMenuItem icyFolderToCytomineMenuItem;
-	private JMenuItem menuAnnotationsItem;
+	private JMenuItem menuFilterAnnotationsItem;
+	private JMenuItem menuRefreshAnnotationsItem;
 
 	private JLayeredPane layeredViewPane;
 
@@ -123,8 +124,10 @@ public class ViewerPanel extends JPanel {
 
 	private JMenu createAnnotationsMenu() {
 		JMenu menu = new JMenu("Annotations");
-		menuAnnotationsItem = new JMenuItem("Filter...");
-		menu.add(menuAnnotationsItem);
+		menuFilterAnnotationsItem = new JMenuItem("Filter...");
+		menuRefreshAnnotationsItem = new JMenuItem("Refresh");
+		menu.add(menuFilterAnnotationsItem);
+		menu.add(menuRefreshAnnotationsItem);
 		return menu;
 	}
 
@@ -247,8 +250,8 @@ public class ViewerPanel extends JPanel {
 
 		statusIcon = new JLabel("");
 		statusIcon.setBorder(null);
-		statusIcon.setIcon(new ImageIcon(ViewerPanel.class
-				.getResource("/org/apache/log4j/lf5/viewer/images/channelexplorer_satellite.gif")));
+		statusIcon.setIcon(new ImageIcon(
+				ViewerPanel.class.getResource("/org/apache/log4j/lf5/viewer/images/channelexplorer_satellite.gif")));
 
 		GridBagConstraints statusIconConstraints = new GridBagConstraints();
 		statusIconConstraints.anchor = GridBagConstraints.WEST;
@@ -320,7 +323,7 @@ public class ViewerPanel extends JPanel {
 		else
 			zoomLevelButton.setForeground(Color.RED);
 	}
-	
+
 	public void setZoomLimit(double limit) {
 		this.zoomLimit = limit;
 	}
@@ -341,7 +344,11 @@ public class ViewerPanel extends JPanel {
 		icyFolderToCytomineMenuItem.addActionListener(actionListener);
 	}
 
-	public void addAnnotationMenuListener(ActionListener listener) {
-		menuAnnotationsItem.addActionListener(listener);
+	public void addAnnotationFilterMenuListener(ActionListener listener) {
+		menuFilterAnnotationsItem.addActionListener(listener);
+	}
+
+	public void addAnnotationRefreshMenuListener(ActionListener listener) {
+		menuRefreshAnnotationsItem.addActionListener(listener);
 	}
 }

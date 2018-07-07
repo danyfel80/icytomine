@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
+import org.bioimageanalysis.icy.icytomine.core.model.Entity;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanel.AnnotationsVisibilityListener;
@@ -23,7 +24,7 @@ import icy.gui.dialog.MessageDialog;
 public class AnnotationManagerPanelController {
 
 	public interface AnnotationTermCommitListener {
-		void annotationTermCommited(Set<Annotation> annotations, Map<Term, Boolean> terms);
+		void annotationTermCommited(Set<Annotation> annotations);
 	}
 
 	private AnnotationManagerPanel panel;
@@ -47,13 +48,13 @@ public class AnnotationManagerPanelController {
 		annotationTermSelectionCommitListeners = new HashSet<>();
 
 		panel.getAnnotationTable().addAnnotationVisibilityListener(
-				(Annotation annotation, boolean visible) -> annotationVisibilityChanged(annotation, visible));
+				(Entity annotation, boolean visible) -> annotationVisibilityChanged(annotation, visible));
 
 		panel.getFilteringPanel()
 				.addAnnotationFilterUpdateListener(activeAnnotations -> activeAnnotationsUpdated(activeAnnotations));
 	}
 
-	private void annotationVisibilityChanged(Annotation annotation, boolean visible) {
+	private void annotationVisibilityChanged(Entity annotation, boolean visible) {
 		notifyAnnotationsVisibilityListeners(panel.getAnnotationTable().getTableModel().getVisibleAnnotations());
 	}
 
@@ -124,17 +125,39 @@ public class AnnotationManagerPanelController {
 				return;
 			}
 
-			Map<Term, Boolean> termSelection = getAvailableTerms().stream()
-					.collect(Collectors.toMap(term -> term, term -> selectedTerms.contains(term)));
+			try {
+				for (Annotation selectedAnnotation : selectedAnnotations) {
+					Map<Term, Boolean> termSelection = getTermSelection(selectedAnnotation, selectedTerms);
+					selectedAnnotation.associateTerms(termSelection);
+				}
 
-			notifyAnnotationTermSelectionCommitted(selectedAnnotations, termSelection);
+				notifyAnnotationTermSelectionCommitted(selectedAnnotations);
+
+			} catch (CytomineClientException e) {
+				e.printStackTrace();
+				throw e;
+			}
 		};
 	}
 
-	private void notifyAnnotationTermSelectionCommitted(Set<Annotation> selectedAnnotations,
-			Map<Term, Boolean> termSelection) {
-		annotationTermSelectionCommitListeners
-				.forEach(listener -> listener.annotationTermCommited(selectedAnnotations, termSelection));
+	private Map<Term, Boolean> getTermSelection(Annotation selectedAnnotation, Set<Term> selectedTerms) {
+		Map<Term, Boolean> termSelection = new HashMap<Term, Boolean>(1);
+
+		Set<Term> associatedTerms = selectedAnnotation.getAssociatedTermsByCurrentUser();
+
+		HashSet<Term> termsToAdd = new HashSet<>(selectedTerms);
+		termsToAdd.removeAll(associatedTerms);
+		termsToAdd.forEach(t -> termSelection.put(t, true));
+
+		HashSet<Term> termsToRemove = new HashSet<>(associatedTerms);
+		termsToRemove.removeAll(selectedTerms);
+		termsToRemove.forEach(t -> termSelection.put(t, false));
+
+		return termSelection;
+	}
+
+	private void notifyAnnotationTermSelectionCommitted(Set<Annotation> selectedAnnotations) {
+		annotationTermSelectionCommitListeners.forEach(listener -> listener.annotationTermCommited(selectedAnnotations));
 	}
 
 	private Set<Annotation> getSelectedAnnotations() {
@@ -166,5 +189,17 @@ public class AnnotationManagerPanelController {
 
 	public void removeAnnotationTermSelectionCommitListener(AnnotationTermCommitListener listener) {
 		this.annotationTermSelectionCommitListeners.remove(listener);
+	}
+
+	public void updateAnnotations() {
+		updateAnnotationTable();
+	}
+
+	private void updateAnnotationTable() {
+		AnnotationTable annotationTable = panel.getAnnotationTable();
+		panel.getFilteringPanel().setImageInformation(imageInformation);
+		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(
+				panel.getFilteringPanel().getActiveAnnotations(), new HashMap<>(0));
+		annotationTable.setTableModel(annotationVisibility);
 	}
 }

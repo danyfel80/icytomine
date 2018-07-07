@@ -26,12 +26,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.AnnotationTerm;
 import org.bioimageanalysis.icy.icytomine.core.model.Description;
+import org.bioimageanalysis.icy.icytomine.core.model.Entity;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Ontology;
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
@@ -645,7 +647,7 @@ public class CytomineClient implements AutoCloseable {
 		}
 	}
 
-	public Annotation addAnnotationWithTerms(String geometry, Long imageInstanceId, List<Long> termIds)
+	public Annotation addAnnotationWithTerms(long imageInstanceId, String geometry, List<Long> termIds)
 			throws CytomineClientException {
 		be.cytomine.client.models.Annotation internalAnnotation;
 		try {
@@ -656,6 +658,22 @@ public class CytomineClient implements AutoCloseable {
 		Annotation annotation = new Annotation(this, internalAnnotation);
 		getAnnotationCache().store(annotation.getId(), annotation);
 		return annotation;
+	}
+
+	public void associateTerms(Entity annotation, Map<Term, Boolean> termSelection) throws CytomineClientException {
+		try {
+			for (Entry<Term, Boolean> entry : termSelection.entrySet()) {
+				if (entry.getValue()) {
+					getInternalClient().addAnnotationTerm(annotation.getId(), entry.getKey().getId());
+				} else {
+					getInternalClient().deleteAnnotationTerm(annotation.getId(), entry.getKey().getId());
+				}
+			}
+		} catch (CytomineException e) {
+			throw new CytomineClientException(
+					String.format("Could not associate terms to annotation %d", annotation.getId().longValue()), e);
+		}
+
 	}
 
 	@Override

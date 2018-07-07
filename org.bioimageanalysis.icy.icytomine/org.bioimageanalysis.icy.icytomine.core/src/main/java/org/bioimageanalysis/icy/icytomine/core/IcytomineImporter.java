@@ -33,6 +33,7 @@ import java.util.stream.IntStream;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
+import org.bioimageanalysis.icy.icytomine.core.image.importer.TiledImageImporter;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 
 import icy.common.exception.UnsupportedFormatException;
@@ -44,6 +45,8 @@ import loci.formats.ome.OMEXMLMetadataImpl;
 import ome.xml.meta.OMEXMLMetadata;
 
 /**
+ * @deprecated Use {@link TiledImageImporter} instead. No retro-compatibility for
+ *             this class.
  * @author Daniel Felipe Gonzalez Obando
  */
 public class IcytomineImporter implements SequenceIdImporter {
