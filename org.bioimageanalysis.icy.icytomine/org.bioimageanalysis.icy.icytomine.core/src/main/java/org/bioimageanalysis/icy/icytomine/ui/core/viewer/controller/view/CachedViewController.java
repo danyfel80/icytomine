@@ -13,14 +13,20 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTable.AnnotationSelectionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.view.ViewCanvasPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
+
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class CachedViewController implements ViewController {
 
@@ -56,11 +62,13 @@ public class CachedViewController implements ViewController {
 
 	private Collection<ResolutionListener> resolutionListeners;
 	private Collection<PositionListener> cursorPositionListeners;
+	private Collection<AnnotationSelectionListener> annotationSelectionListener;
 
 	public CachedViewController(Image imageInformation, ViewCanvasPanel viewCanvasPanel) {
 		this.imageInformation = imageInformation;
 		this.resolutionListeners = new HashSet<>();
 		this.cursorPositionListeners = new HashSet<>();
+		this.annotationSelectionListener = new HashSet<>();
 		this.viewCanvasPanel = viewCanvasPanel;
 		this.viewPositionAt0Resolution = new Point2D.Double();
 		this.resolutionLevel = 0;
@@ -79,6 +87,14 @@ public class CachedViewController implements ViewController {
 			@Override
 			public void mousePressed(MouseEvent e) {
 				startMouseDragAt(e.getPoint());
+			}
+		});
+
+		viewCanvasPanel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				// TODO notify annotation table
+				//selectAnnotationAt(e.getPoint());
 			}
 		});
 
@@ -190,6 +206,32 @@ public class CachedViewController implements ViewController {
 				cursorPositionAtZeroResolution.getY() - positionInViewAtZeroResolution.getY());
 	}
 
+	private void selectAnnotationAt(Point displayPoint) {
+		Point2D imagePosition = getCursorPositionOnImageAtZeroResolution(displayPoint);
+		GeometryFactory facto = new GeometryFactory();
+		com.vividsolutions.jts.geom.Point imagePositionGeometry = facto
+				.createPoint(new Coordinate(imagePosition.getX(), imageInformation.getSizeY().get() - imagePosition.getY()));
+		Set<Annotation> activeAnnotations = getActiveAnnotations();
+		Optional<Annotation> annotation = activeAnnotations.stream()
+				/* .filter(a -> a.getApproximativeBounds().contains(imagePosition)) */.filter(a -> {
+					Geometry bigGeometry = a.getGeometryAtZeroResolution(false);
+					boolean contains = bigGeometry.covers(imagePositionGeometry);
+					return contains;
+				}).findFirst();
+
+		if (annotation.isPresent()) {
+			Set<Annotation> selectedAnnotationSet = new HashSet<>();
+			selectedAnnotationSet.add(annotation.get());
+			setSelectedAnnotations(selectedAnnotationSet);
+			// TODO here the annotation panel should change its selection to the selected annotation
+			notifyAnnotationSelection(selectedAnnotationSet);
+		}
+	}
+
+	private void notifyAnnotationSelection(Set<Annotation> selectedAnnotationSet) {
+		annotationSelectionListener.forEach(listener -> listener.selectionChanged(selectedAnnotationSet));
+	}
+
 	@Override
 	public Image getImageInformation() {
 		return imageInformation;
@@ -203,6 +245,11 @@ public class CachedViewController implements ViewController {
 	@Override
 	public void addCursorPositionListener(PositionListener listener) {
 		cursorPositionListeners.add(listener);
+	}
+
+	@Override
+	public void addAnnotationSelectionListener(AnnotationSelectionListener listener) {
+		annotationSelectionListener.add(listener);
 	}
 
 	@Override
@@ -309,11 +356,13 @@ public class CachedViewController implements ViewController {
 	public void focusOnAnnotation(Annotation a) {
 		Rectangle2D annotationLocation = a.getYAdjustedApproximativeBounds();
 		int margin = 2;
-		
-		viewPositionAt0Resolution = new Point2D.Double(annotationLocation.getX()-margin, annotationLocation.getY()-margin);
-		Dimension2D dimensionAt0Resolution = new icy.type.dimension.Dimension2D.Double(annotationLocation.getWidth()+2*margin, annotationLocation.getHeight()+2*margin);
+
+		viewPositionAt0Resolution = new Point2D.Double(annotationLocation.getX() - margin,
+				annotationLocation.getY() - margin);
+		Dimension2D dimensionAt0Resolution = new icy.type.dimension.Dimension2D.Double(
+				annotationLocation.getWidth() + 2 * margin, annotationLocation.getHeight() + 2 * margin);
 		resolutionLevel = getResolutionLevelToFitDimension(dimensionAt0Resolution);
-		
+
 		refreshView();
 	}
 
@@ -324,8 +373,7 @@ public class CachedViewController implements ViewController {
 				/ Math.log(2d);
 		double heightAdjustedResolution = Math.log(dimensionAtZeroResolutionToFit.getHeight() / viewDimension.getHeight())
 				/ Math.log(2d);
-		return Math.min(Math.max(widthAdjustedResolution, heightAdjustedResolution),
-				imageInformation.getDepth().get());
+		return Math.min(Math.max(widthAdjustedResolution, heightAdjustedResolution), imageInformation.getDepth().get());
 	}
 
 	@Override
