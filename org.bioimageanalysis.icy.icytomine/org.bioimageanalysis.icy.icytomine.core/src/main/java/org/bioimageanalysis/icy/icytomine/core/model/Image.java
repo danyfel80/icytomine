@@ -294,6 +294,16 @@ public class Image extends Entity {
 		return annotations.stream().map(a -> a.getUser()).collect(Collectors.toSet());
 	}
 
+	public void removeAnnotations(Set<Annotation> selectedAnnotations) throws CytomineClientException {
+		for (Annotation annotation : selectedAnnotations) {
+			getClient().removeAnnotation(annotation.getId());
+		}
+		Set<Long> selectedAnnotationIds = selectedAnnotations.stream().map(a -> a.getId()).collect(Collectors.toSet());
+		if (annotations != null) {
+			annotations.removeIf(annotation -> selectedAnnotationIds.contains(annotation.getId()));
+		}
+	}
+
 	@Override
 	public String toString() {
 		return String.format("Image instance: id=%s, name=%s", String.valueOf(getId()), getName().orElse("Not specified"));

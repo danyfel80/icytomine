@@ -154,4 +154,8 @@ public class AnnotationTermSelectionPanel extends JPanel {
 	public void addTermSelectionCommitListener(AnnotationTermSelectionCommitListener listener) {
 		panelController.addTermSelectionCommitListener(listener);
 	}
+
+	public void removeTermSelectionCommitListener(AnnotationTermSelectionCommitListener listener) {
+		panelController.removeTermSelectionCommitListener(listener);
+	}
 }

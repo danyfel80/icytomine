@@ -676,6 +676,15 @@ public class CytomineClient implements AutoCloseable {
 
 	}
 
+	public void removeAnnotation(long annotationId) throws CytomineClientException {
+		try {
+			getInternalClient().deleteAnnotation(annotationId);
+			getAnnotationCache().remove(annotationId);
+		} catch (CytomineException e) {
+			throw new CytomineClientException(String.format("Could not remove annotation %d", annotationId), e);
+		}
+	}
+
 	@Override
 	public String toString() {
 		return String.format("Cytomine client: host=%s, public key=%s", String.valueOf(getHost()),

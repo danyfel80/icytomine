@@ -11,6 +11,7 @@ import javax.swing.JPanel;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanel;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanelController.AnnotationDeletionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanelController.AnnotationTermCommitListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.cytomine2Icy.CytomineToIcyPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.file.IcyFileToCytominePanel;
@@ -100,6 +101,7 @@ public class ViewerPanelController {
 					(Set<Annotation> selectedAnnotations) -> viewController.setSelectedAnnotations(selectedAnnotations));
 			annotationsPanel.addAnnotationDoubleClickListener((Annotation a) -> viewController.focusOnAnnotation(a));
 			annotationsPanel.addAnnotationTermSelectionCommitListener(getAnnotationTermCommitHandler(annotationsPanel));
+			annotationsPanel.addAnnonationDeletionListener(getAnnotationDeletionHandler(annotationsPanel));
 			annotationsFrame = createIcyDialog("Annotations - Icytomine", annotationsPanel, true);
 			annotationsFrame.setSize(new Dimension(400, 400));
 			annotationsFrame.setVisible(true);
@@ -108,6 +110,14 @@ public class ViewerPanelController {
 
 	private AnnotationTermCommitListener getAnnotationTermCommitHandler(AnnotationManagerPanel annotationsPanel) {
 		return (Set<Annotation> annotations) -> {
+			viewController.updateAnnotations();
+			annotationsPanel.updateAnnotations();
+			viewController.refreshView();
+		};
+	}
+
+	private AnnotationDeletionListener getAnnotationDeletionHandler(AnnotationManagerPanel annotationsPanel) {
+		return annotations -> {
 			viewController.updateAnnotations();
 			annotationsPanel.updateAnnotations();
 			viewController.refreshView();

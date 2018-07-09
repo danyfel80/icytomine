@@ -1,6 +1,7 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.actions;
 
 import java.awt.GridLayout;
+import java.awt.event.ActionListener;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -15,7 +16,7 @@ import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annota
 public class AnnotationActionPanel extends JPanel {
 
 	private AnnotationTermSelectionPanel termSelectionPanel;
-
+	private AnnotationDeletionPanel annotationDeletionPanel;
 	private AnnotationActionPanelController panelController;
 
 	public AnnotationActionPanel() {
@@ -25,14 +26,20 @@ public class AnnotationActionPanel extends JPanel {
 
 	private void setView() {
 		setBorder(new TitledBorder(null, "Actions", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		setLayout(new GridLayout(1, 0, 0, 0));
+		setLayout(new GridLayout(2, 0, 0, 0));
 
 		addTermSelectionPanel();
+		addAnnotationDeletionPanel();
 	}
 
 	private void addTermSelectionPanel() {
 		termSelectionPanel = new AnnotationTermSelectionPanel();
 		add(termSelectionPanel);
+	}
+
+	private void addAnnotationDeletionPanel() {
+		annotationDeletionPanel = new AnnotationDeletionPanel();
+		add(annotationDeletionPanel);
 	}
 
 	private void setController() {
@@ -54,6 +61,20 @@ public class AnnotationActionPanel extends JPanel {
 	public void addTermSelectionCommitListener(AnnotationTermSelectionCommitListener listener) {
 		panelController.addTermSelectionCommitListener(listener);
 	}
-	
-	
+
+	public void removeTermSelectionCommitListener(AnnotationTermSelectionCommitListener listener) {
+		panelController.removeTermSelectionCommitListener(listener);
+	}
+
+	public void addAnnotationDeletionListener(ActionListener listener) {
+		panelController.addAnnotationDeletionListener(listener);
+	}
+
+	public AnnotationDeletionPanel getAnnotationDeletionPanel() {
+		return annotationDeletionPanel;
+	}
+
+	public void removeAnnotationDeletionListener(ActionListener listener) {
+		panelController.removeAnnotationDeletionListener(listener);
+	}
 }

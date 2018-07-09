@@ -48,6 +48,14 @@ public abstract class EntityCache<K, V extends Entity> {
 		}
 		return cache;
 	}
+	
+	public boolean remove(K entityId) {
+		if (cache != null) {
+			cache.remove(entityId);
+			return true;
+		}
+		return false;
+	}
 
 	private Cache<K, V> retrieveOrCreateCache() {
 			Cache<K,V> cache = cacheManager.getCache(getCacheAlias(), getKeyClass(), getValueClass());

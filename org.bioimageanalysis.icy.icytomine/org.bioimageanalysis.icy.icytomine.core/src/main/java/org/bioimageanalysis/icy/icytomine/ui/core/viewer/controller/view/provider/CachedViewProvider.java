@@ -8,19 +8,19 @@ import java.util.Set;
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.view.AnnotationView;
-import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
+import org.bioimageanalysis.icy.icytomine.core.view.CachedAnnotationView;
+import org.bioimageanalysis.icy.icytomine.core.view.CachedImageView;
 import org.bioimageanalysis.icy.icytomine.core.view.ViewListener;
 
 public class CachedViewProvider extends ViewProvider {
-	private CachedView cachedView;
-	private AnnotationView annotationView;
+	private CachedImageView cachedView;
+	private CachedAnnotationView annotationView;
 	private Set<ViewListener> viewListeners;
 
 	private BufferedImage currentImageView;
 	private BufferedImage currentAnnotationView;
 
-	public CachedViewProvider(CachedView cachedView, AnnotationView annotationView) {
+	public CachedViewProvider(CachedImageView cachedView, CachedAnnotationView annotationView) {
 		super();
 		this.cachedView = cachedView;
 		this.annotationView = annotationView;

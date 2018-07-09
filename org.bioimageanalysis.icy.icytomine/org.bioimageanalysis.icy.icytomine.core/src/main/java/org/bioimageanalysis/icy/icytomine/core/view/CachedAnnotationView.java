@@ -41,7 +41,7 @@ import com.vividsolutions.jts.geom.Polygon;
 import be.cytomine.client.CytomineException;
 import icy.plugin.PluginLoader;
 
-public class AnnotationView {
+public class CachedAnnotationView {
 	private static CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
 			.withClassLoader(PluginLoader.getLoader()).build(true);
 
@@ -79,7 +79,7 @@ public class AnnotationView {
 
 	private Point2D positionAtZeroResolution;
 
-	public AnnotationView(Image imageInformation) throws CytomineException {
+	public CachedAnnotationView(Image imageInformation) throws CytomineException {
 		this.imageInformation = imageInformation;
 		this.visibleAnnotations = new HashSet<>();
 		this.activeAnnotations = new HashSet<>();
@@ -230,7 +230,7 @@ public class AnnotationView {
 
 	private void drawPoint(Point point, Color color, boolean selected) {
 		int maxY = imageInformation.getSizeY().get();
-		
+
 		int x = (int) MagnitudeResolutionConverter.convertMagnitude(point.getX() - viewBoundsAtZeroResolution.getMinX(), 0d,
 				targetResolution);
 		int y = (int) MagnitudeResolutionConverter
@@ -273,6 +273,14 @@ public class AnnotationView {
 			yPoints[i] = (int) MagnitudeResolutionConverter
 					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
 		});
+
+		// In the case of all coordinates are the same, move a point to make the
+		// polygon visible
+		if (xPoints[0] == xPoints[1] && yPoints[0] == yPoints[1]) {
+			xPoints[1]++;
+			yPoints[1]++;
+		}
+
 		Graphics2D g2 = currentView.createGraphics();
 		if (selected) {
 			g2.setColor(Color.BLACK);
@@ -298,6 +306,13 @@ public class AnnotationView {
 			yPoints[i] = (int) MagnitudeResolutionConverter
 					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, targetResolution);
 		});
+
+		// In the case of all coordinates are the same, move a point to make the
+		// polygon visible
+		if (xPoints[0] == xPoints[1] && yPoints[0] == yPoints[1]) {
+			xPoints[1]++;
+			yPoints[1]++;
+		}
 
 		Graphics2D g2 = currentView.createGraphics();
 		if (selected) {

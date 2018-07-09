@@ -7,6 +7,7 @@ import javax.swing.JPanel;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanelController.AnnotationDeletionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanelController.AnnotationTermCommitListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTable.AnnotationDoubleClickListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTable.AnnotationSelectionListener;
@@ -99,6 +100,10 @@ public class AnnotationManagerPanel extends JPanel {
 
 	public void addAnnotationTermSelectionCommitListener(AnnotationTermCommitListener listener) {
 		panelController.addAnnotationTermSelectionCommitListener(listener);
+	}
+
+	public void addAnnonationDeletionListener(AnnotationDeletionListener listener) {
+		panelController.addAnnotationDeletionListener(listener);
 	}
 
 	public void updateAnnotations() {

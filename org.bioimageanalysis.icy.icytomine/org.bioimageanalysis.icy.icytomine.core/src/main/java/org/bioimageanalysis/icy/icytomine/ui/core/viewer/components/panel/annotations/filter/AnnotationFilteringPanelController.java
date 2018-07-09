@@ -44,6 +44,7 @@ public class AnnotationFilteringPanelController {
 			annotations = new HashSet<>();
 		}
 		filterInput.setActiveAnnotations(annotations);
+		filterInput.computeActiveAnnotations(ComputationMode.USE_LAST_RESULT);
 	}
 
 	private synchronized void addFilterPanel(String filterName) {

@@ -6,8 +6,8 @@ import javax.swing.JFrame;
 import javax.swing.UIManager;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
-import org.bioimageanalysis.icy.icytomine.core.view.AnnotationView;
-import org.bioimageanalysis.icy.icytomine.core.view.CachedView;
+import org.bioimageanalysis.icy.icytomine.core.view.CachedAnnotationView;
+import org.bioimageanalysis.icy.icytomine.core.view.CachedImageView;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.CachedViewProvider;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider;
 import org.pushingpixels.substance.api.skin.SubstanceOfficeBlack2007LookAndFeel;
@@ -51,7 +51,7 @@ public class ViewerFrame extends IcyFrame {
 	public void setImageInstance(Image imageInstance) {
 		ViewProvider viewProvider;
 		try {
-			viewProvider = new CachedViewProvider(new CachedView(imageInstance), new AnnotationView(imageInstance));
+			viewProvider = new CachedViewProvider(new CachedImageView(imageInstance), new CachedAnnotationView(imageInstance));
 		} catch (CytomineException e) {
 			MessageDialog.showDialog("Error loading image - Icytomine", e.getMessage(), MessageDialog.ERROR_MESSAGE);
 			e.printStackTrace();

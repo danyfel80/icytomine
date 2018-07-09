@@ -1,5 +1,6 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations;
 
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annota
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.actions.AnnotationActionPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.actions.AnnotationTermSelectionPanelController.AnnotationTermSelectionCommitListener;
 
+import icy.gui.dialog.ConfirmDialog;
 import icy.gui.dialog.MessageDialog;
 
 public class AnnotationManagerPanelController {
@@ -27,11 +29,16 @@ public class AnnotationManagerPanelController {
 		void annotationTermCommited(Set<Annotation> annotations);
 	}
 
+	public interface AnnotationDeletionListener {
+		void annotationsDeleted(Set<Annotation> selectedAnnotations);
+	}
+
 	private AnnotationManagerPanel panel;
 	private Image imageInformation;
 
 	private Set<AnnotationsVisibilityListener> annotationsVisibilitylisteners;
 	private Set<AnnotationTermCommitListener> annotationTermSelectionCommitListeners;
+	private Set<AnnotationDeletionListener> annotationDeletionListeners;
 
 	public AnnotationManagerPanelController(AnnotationManagerPanel panel, Image imageInformation) {
 		this.panel = panel;
@@ -46,6 +53,7 @@ public class AnnotationManagerPanelController {
 	private void setupListeners() {
 		annotationsVisibilitylisteners = new HashSet<>();
 		annotationTermSelectionCommitListeners = new HashSet<>();
+		annotationDeletionListeners = new HashSet<>();
 
 		panel.getAnnotationTable().addAnnotationVisibilityListener(
 				(Entity annotation, boolean visible) -> annotationVisibilityChanged(annotation, visible));
@@ -114,6 +122,18 @@ public class AnnotationManagerPanelController {
 		AnnotationActionPanel actionPanel = panel.getActionPanel();
 		actionPanel.setAvailableTerms(getAvailableTerms());
 		actionPanel.addTermSelectionCommitListener(getAnnotationTermSelectionCommitHandler());
+		actionPanel.addAnnotationDeletionListener(getAnnotationDeletionHandler());
+	}
+
+	private Collection<Term> getAvailableTerms() {
+		Collection<Term> terms;
+		try {
+			terms = imageInformation.getProject().getOntology().getTerms(false);
+		} catch (CytomineClientException e) {
+			e.printStackTrace();
+			terms = new ArrayList<Term>(0);
+		}
+		return terms;
 	}
 
 	private AnnotationTermSelectionCommitListener getAnnotationTermSelectionCommitHandler() {
@@ -140,6 +160,10 @@ public class AnnotationManagerPanelController {
 		};
 	}
 
+	private Set<Annotation> getSelectedAnnotations() {
+		return panel.getAnnotationTable().getSelectedAnnotations();
+	}
+
 	private Map<Term, Boolean> getTermSelection(Annotation selectedAnnotation, Set<Term> selectedTerms) {
 		Map<Term, Boolean> termSelection = new HashMap<Term, Boolean>(1);
 
@@ -160,19 +184,49 @@ public class AnnotationManagerPanelController {
 		annotationTermSelectionCommitListeners.forEach(listener -> listener.annotationTermCommited(selectedAnnotations));
 	}
 
-	private Set<Annotation> getSelectedAnnotations() {
-		return panel.getAnnotationTable().getSelectedAnnotations();
+	private ActionListener getAnnotationDeletionHandler() {
+		return event -> {
+			Set<Annotation> selectedAnnotations = getSelectedAnnotations();
+
+			if (selectedAnnotations.isEmpty()) {
+				MessageDialog.showDialog("Deleting annotations - Icytomine", "No annotations selected",
+						MessageDialog.WARNING_MESSAGE);
+				return;
+			}
+
+			boolean confirmation = ConfirmDialog.confirm("Deleting annotations - Icytomine",
+					"Are you sure to delete the annotations?", ConfirmDialog.YES_NO_OPTION);
+			if (confirmation) {
+				Annotation anAnnotation = selectedAnnotations.iterator().next();
+				Image image = anAnnotation.getImage();
+				try {
+					image.removeAnnotations(selectedAnnotations);
+				} catch (CytomineClientException e) {
+					e.printStackTrace();
+					MessageDialog.showDialog("Deleting annotations - Icytomine", "Could not remove annotations.",
+							MessageDialog.ERROR_MESSAGE);
+					return;
+				} finally {
+					notifyAnnotationDeletion(selectedAnnotations);
+				}
+			}
+		};
 	}
 
-	private Collection<Term> getAvailableTerms() {
-		Collection<Term> terms;
-		try {
-			terms = imageInformation.getProject().getOntology().getTerms(false);
-		} catch (CytomineClientException e) {
-			e.printStackTrace();
-			terms = new ArrayList<Term>(0);
-		}
-		return terms;
+	private void notifyAnnotationDeletion(Set<Annotation> selectedAnnotations) {
+		annotationDeletionListeners.forEach(listener -> listener.annotationsDeleted(selectedAnnotations));
+	}
+
+	public void updateAnnotations() {
+		updateAnnotationTable();
+	}
+
+	private void updateAnnotationTable() {
+		AnnotationTable annotationTable = panel.getAnnotationTable();
+		panel.getFilteringPanel().setImageInformation(imageInformation);
+		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(
+				panel.getFilteringPanel().getActiveAnnotations(), new HashMap<>(0));
+		annotationTable.setTableModel(annotationVisibility);
 	}
 
 	public void addAnnotationsVisibilityListener(AnnotationsVisibilityListener listener) {
@@ -191,15 +245,12 @@ public class AnnotationManagerPanelController {
 		this.annotationTermSelectionCommitListeners.remove(listener);
 	}
 
-	public void updateAnnotations() {
-		updateAnnotationTable();
+	public void addAnnotationDeletionListener(AnnotationDeletionListener listener) {
+		this.annotationDeletionListeners.add(listener);
 	}
 
-	private void updateAnnotationTable() {
-		AnnotationTable annotationTable = panel.getAnnotationTable();
-		panel.getFilteringPanel().setImageInformation(imageInformation);
-		Map<Annotation, Boolean> annotationVisibility = createAnnotationVisibility(
-				panel.getFilteringPanel().getActiveAnnotations(), new HashMap<>(0));
-		annotationTable.setTableModel(annotationVisibility);
+	public void removeAnnotationDeletionListener(AnnotationDeletionListener listener) {
+		this.annotationDeletionListeners.remove(listener);
 	}
+
 }

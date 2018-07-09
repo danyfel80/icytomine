@@ -18,7 +18,7 @@ import org.bioimageanalysis.icy.icytomine.core.view.ViewTileCache.ViewTileLoadLi
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provider.ViewProvider.ViewProcessListener;
 
-public class CachedView implements ViewTileLoadListener {
+public class CachedImageView implements ViewTileLoadListener {
 
 	private Image imageInformation;
 	private BufferedImage currentView;
@@ -48,7 +48,7 @@ public class CachedView implements ViewTileLoadListener {
 	private double previousResolution;
 	private Rectangle2D previousViewBoundsAtTargetResolution;
 
-	public CachedView(Image imageInformation) {
+	public CachedImageView(Image imageInformation) {
 		this.imageInformation = imageInformation;
 		this.targetResolution = 0;
 		this.viewBoundsAtZeroResolution = new Rectangle2D.Double(0, 0, 10, 10);
