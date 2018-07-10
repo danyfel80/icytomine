@@ -46,11 +46,12 @@ public class PreferencesSpec {
 
 		HashMap<String, UserCredential> users = new HashMap<>();
 		users.put("User1", user1);
-		users.put("User2", user2);
+		//users.put("User2", user2);
 
 		Preferences.clear();
 		preferences = Preferences.getInstance();
 		preferences.getAvailableCytomineCredentials().put("http://cytomine-core/", users);
+		preferences.getAvailableCytomineCredentials().put("http://second-cytomine/", users);
 	}
 
 	@Test

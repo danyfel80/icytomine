@@ -51,6 +51,6 @@ public class CytomineClientSpec {
 	@Test
 	public void givenCorrectHostAndKeysWhenConstructionThenCytomineClient() {
 		client = CytomineClient.create(host, publicKey, privateKey);
-		assertThat(client.getCurrentUser().getName(), is(username));
+		assertThat(client.getCurrentUser().getName().get(), is(username));
 	}
 }

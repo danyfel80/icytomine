@@ -5,17 +5,24 @@ import java.awt.EventQueue;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
 import java.awt.geom.Dimension2D;
 import java.util.Arrays;
+import java.util.Optional;
 
 import javax.swing.ComboBoxModel;
 import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import javax.swing.JTextField;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.ViewController;
 
@@ -25,10 +32,13 @@ public class CytomineToIcyPanel extends JPanel {
 	CytomineToIcyPanelController panelController;
 
 	private JComboBox<Double> magnificationComboBox;
+	private JTextField magnificationTextField;
 	private JLabel outputSizeValueLabel;
 	private JProgressBar progressBar;
 	private JButton startButton;
 	private JButton cancelButton;
+
+	private JCheckBox magnificationSourceCheckBox;
 
 	public CytomineToIcyPanel(ViewController viewController) {
 		setupView();
@@ -55,7 +65,7 @@ public class CytomineToIcyPanel extends JPanel {
 		GridBagConstraints buttonsPanelConstraints = createConstraints(0, 2, GridBagConstraints.BOTH, 5, 5, 5, 5);
 		add(buttonsPanel, buttonsPanelConstraints);
 
-		setPreferredSize(new Dimension(250, 180));
+		setPreferredSize(new Dimension(300, 180));
 	}
 
 	private GridBagLayout createPanelLayout() {
@@ -71,9 +81,9 @@ public class CytomineToIcyPanel extends JPanel {
 		JPanel panel = new JPanel();
 
 		GridBagLayout panelLayout = new GridBagLayout();
-		panelLayout.columnWidths = new int[] { 0, 0 };
+		panelLayout.columnWidths = new int[] { 0, 0, 0 };
 		panelLayout.rowHeights = new int[] { 0, 0 };
-		panelLayout.columnWeights = new double[] { 0.0, 1.0 };
+		panelLayout.columnWeights = new double[] { 0.0, 1.0, 0.0 };
 		panelLayout.rowWeights = new double[] { 0.0, 0.0 };
 		panel.setLayout(panelLayout);
 
@@ -82,8 +92,30 @@ public class CytomineToIcyPanel extends JPanel {
 		panel.add(magnificationLabel, magnificationLabelConstraints);
 
 		magnificationComboBox = new JComboBox<>();
+		magnificationTextField = new JTextField(String.valueOf(1d));
 		GridBagConstraints magnificationComboBoxConstraints = createConstraints(1, 0, GridBagConstraints.BOTH, 5, 5, 5, 5);
 		panel.add(magnificationComboBox, magnificationComboBoxConstraints);
+
+		magnificationSourceCheckBox = new JCheckBox("Manual");
+		magnificationSourceCheckBox.setSelected(false);
+		magnificationSourceCheckBox.addItemListener((ItemEvent event) -> {
+			if (event.getStateChange() == ItemEvent.SELECTED) {
+				magnificationTextField.setText(magnificationComboBox.getSelectedItem().toString());
+				panel.remove(magnificationComboBox);
+				panel.add(magnificationTextField, magnificationComboBoxConstraints);
+			} else {
+				Object currentItem = magnificationComboBox.getSelectedItem();
+				magnificationComboBox.setSelectedItem(null);
+				magnificationComboBox.setSelectedItem(currentItem);
+				panel.remove(magnificationTextField);
+				panel.add(magnificationComboBox, magnificationComboBoxConstraints);
+			}
+			panel.updateUI();
+		});
+
+		GridBagConstraints magnificationSourceCheckBoxConstraints = createConstraints(2, 0, GridBagConstraints.BOTH, 5, 5,
+				5, 5);
+		panel.add(magnificationSourceCheckBox, magnificationSourceCheckBoxConstraints);
 
 		JLabel outputSizeTitleLabel = new JLabel("Output size:");
 		GridBagConstraints outputSizeTitleLabelConstraints = createConstraints(0, 1, GridBagConstraints.BOTH, 5, 5, 5, 5);
@@ -95,7 +127,7 @@ public class CytomineToIcyPanel extends JPanel {
 		return panel;
 	}
 
-	private GridBagConstraints createConstraints(int gridX, int gridY, int fill, int topInset, int leftInset,
+	private static GridBagConstraints createConstraints(int gridX, int gridY, int fill, int topInset, int leftInset,
 			int bottomInset, int rightInset) {
 		GridBagConstraints constraints = new GridBagConstraints();
 		constraints.insets = new Insets(topInset, leftInset, bottomInset, rightInset);
@@ -140,6 +172,26 @@ public class CytomineToIcyPanel extends JPanel {
 
 	public void addMagnificationListener(ActionListener listener) {
 		magnificationComboBox.addActionListener(listener);
+		magnificationTextField.getDocument().addDocumentListener(new DocumentListener() {
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				warn();
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				warn();
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				warn();
+			}
+
+			private void warn() {
+				listener.actionPerformed(new ActionEvent(magnificationTextField, ActionEvent.ACTION_PERFORMED, "textChanged"));
+			}
+		});
 	}
 
 	public void removeMagnificationListener(ActionListener listener) {
@@ -208,5 +260,25 @@ public class CytomineToIcyPanel extends JPanel {
 
 	public CytomineToIcyPanelController getController() {
 		return panelController;
+	}
+
+	public Optional<Double> getSelectedMagnification() {
+		if (magnificationSourceCheckBox.isSelected()) {
+			try {
+				return Optional.of(Math.abs(Double.parseDouble(magnificationTextField.getText())));
+			} catch (Exception e) {
+				return Optional.ofNullable(null);
+			}
+		} else {
+			return Optional.ofNullable((Double) magnificationComboBox.getSelectedItem());
+		}
+	}
+
+	public void setMagnificationEnabled(boolean enabled) {
+		EventQueue.invokeLater(() -> {
+			magnificationSourceCheckBox.setEnabled(enabled);
+			magnificationComboBox.setEnabled(enabled);
+			magnificationTextField.setEnabled(enabled);
+		});
 	}
 }

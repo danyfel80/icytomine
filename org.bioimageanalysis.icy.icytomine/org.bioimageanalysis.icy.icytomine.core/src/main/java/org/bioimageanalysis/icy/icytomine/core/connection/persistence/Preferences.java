@@ -144,11 +144,16 @@ public class Preferences {
 	 *           make part of the available users for the default host.
 	 */
 	public void setDefaultUser(String defaultUser) throws IllegalArgumentException {
-		HashMap<String, UserCredential> users = getAvailableCytomineCredentials().get(getDefaultHostURL().get());
-		if (defaultUser != null && users == null)
-			throw new IllegalArgumentException("default host " + getDefaultHostURL().orElse(null) + " does not exist in the hosts");
-		if (defaultUser != null && !users.containsKey(defaultUser))
-			throw new IllegalArgumentException("Invalid user " + defaultUser);
+		Optional<String> defaultHostURL = getDefaultHostURL();
+		if (defaultHostURL.isPresent()) {
+			HashMap<String, UserCredential> users = getAvailableCytomineCredentials().get(defaultHostURL.get());
+			if (defaultUser != null && users == null)
+				throw new IllegalArgumentException("default host " + defaultHostURL.get() + " does not exist in the hosts");
+			if (defaultUser != null && !users.containsKey(defaultUser))
+				throw new IllegalArgumentException("Invalid user " + defaultUser);
+		} else {
+			this.defaultUser = null;
+		}
 		this.defaultUser = defaultUser;
 	}
 

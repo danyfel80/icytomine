@@ -98,6 +98,6 @@ public class CytomineConnectorSpec {
 		Future<CytomineClient> connectionFuture = CytomineConnector.login(url, userName);
 		CytomineClient connection = connectionFuture.get();
 		assertThat(connection, is(notNullValue()));
-		assertThat(connection.getCurrentUser().getName(), is(equalTo(userName)));
+		assertThat(connection.getCurrentUser().getName().get(), is(equalTo(userName)));
 	}
 }

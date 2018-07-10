@@ -6,13 +6,12 @@ import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.DoubleStream;
-
-import javax.swing.JComboBox;
 
 import org.bioimageanalysis.icy.icytomine.core.image.annotation.AnnotationInserter;
 import org.bioimageanalysis.icy.icytomine.core.image.importer.TiledImageImporter;
@@ -42,10 +41,6 @@ public class CytomineToIcyPanelController {
 	private ActionListener startListener;
 	private ActionListener endListener;
 
-	private double outputMagnification;
-	private double outputResolution;
-	private Dimension2D outputDimension;
-
 	private TiledImageImporter importer;
 
 	private Set<ActionListener> closeListeners;
@@ -53,6 +48,9 @@ public class CytomineToIcyPanelController {
 	private ProgressListener progressHandler;
 
 	private TiledImageImportationListener tiledImageImportationHandler;
+
+	private Double outputResolution;
+	private Dimension2D outputDimension;
 
 	public CytomineToIcyPanelController(CytomineToIcyPanel panel, ViewController viewController) {
 		this.panel = panel;
@@ -93,16 +91,21 @@ public class CytomineToIcyPanelController {
 
 	}
 
-	@SuppressWarnings("unchecked")
 	private ActionListener getMagnificationHandler() {
 		if (magnificationListener == null) {
 			magnificationListener = e -> {
-				outputMagnification = (Double) ((JComboBox<Double>) e.getSource()).getSelectedItem();
-				outputResolution = MagnificationConverter.convertToResolution(getBaseMagnification(), outputMagnification);
-				outputDimension = MagnitudeResolutionConverter.convertDimension2D(
-						new icy.type.dimension.Dimension2D.Double(viewBounds.getWidth(), viewBounds.getHeight()), 0,
-						outputResolution);
+				Optional<Double> outputMagnification = panel.getSelectedMagnification();
+				if (outputMagnification.isPresent()) {
+					outputResolution = MagnificationConverter.convertToResolution(getBaseMagnification(), outputMagnification.get());
+					outputDimension = MagnitudeResolutionConverter.convertDimension2D(
+							new icy.type.dimension.Dimension2D.Double(viewBounds.getWidth(), viewBounds.getHeight()), 0,
+							outputResolution);
+				} else {
+					outputResolution = null;
+					outputDimension = new icy.type.dimension.Dimension2D.Double();
+				}
 				panel.setOutputImageSize(outputDimension);
+
 			};
 		}
 		return magnificationListener;
@@ -111,13 +114,18 @@ public class CytomineToIcyPanelController {
 	private ActionListener getStartHandler() {
 		if (startListener == null) {
 			startListener = e -> {
-				panel.setStartButtonEnabled(false);
-				panel.setProgress(0d);
-
-				importer = new TiledImageImporter(imageInformation);
-				importer.addImportationProgressListener(getProgressHandler());
-				importer.addTiledImageImportationListener(getTiledImageImportationHandler());
-				importer.requestImage(outputResolution, viewBounds);
+				if (outputResolution != null && outputDimension.getWidth() > 0 && outputDimension.getHeight() > 0) {
+					panel.setStartButtonEnabled(false);
+					panel.setMagnificationEnabled(false);
+					panel.setProgress(0d);
+	
+					importer = new TiledImageImporter(imageInformation);
+					importer.addImportationProgressListener(getProgressHandler());
+					importer.addTiledImageImportationListener(getTiledImageImportationHandler());
+					importer.requestImage(outputResolution, viewBounds);
+				} else {
+					MessageDialog.showDialog("Invalid magnification", MessageDialog.ERROR_MESSAGE);
+				}
 			};
 		}
 		return startListener;
@@ -168,6 +176,7 @@ public class CytomineToIcyPanelController {
 		}
 		panel.setProgressIdle();
 		panel.setStartButtonEnabled(true);
+		panel.setMagnificationEnabled(true);
 	}
 
 	private Dimension2D getPixelSizeAtViewResolution() {
@@ -207,8 +216,10 @@ public class CytomineToIcyPanelController {
 			}
 		importer = null;
 		synchronized (panel) {
-			if (panel != null)
+			if (panel != null) {
 				panel.setStartButtonEnabled(true);
+				panel.setMagnificationEnabled(true);
+			}
 		}
 
 	}
