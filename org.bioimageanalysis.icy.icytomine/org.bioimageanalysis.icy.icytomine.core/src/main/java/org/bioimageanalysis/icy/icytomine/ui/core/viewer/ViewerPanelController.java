@@ -13,6 +13,7 @@ import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanelController.AnnotationDeletionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationManagerPanelController.AnnotationTermCommitListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.annotations.AnnotationTable.AnnotationSelectionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.cytomine2Icy.CytomineToIcyPanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.file.IcyFileToCytominePanel;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.components.panel.icy2Cytomine.folder.IcyFolderToCytominePanel;
@@ -50,6 +51,7 @@ public class ViewerPanelController {
 				(Point2D newPosition) -> viewerContainer.setCursorPosition(newPosition, getPositionInMicrons(newPosition)));
 		viewController
 				.addResolutionListener((double newResolution) -> viewerContainer.setZoomLevel(getZoomLevel(newResolution)));
+		viewController.addAnnotationSelectionListener(getAnnotationSelectionHandler());
 	}
 
 	private Point2D getPositionInMicrons(Point2D position) {
@@ -64,10 +66,12 @@ public class ViewerPanelController {
 		return magnification;
 	}
 
-	private double getResolutionLevel(double zoomLevel) {
-		int intMagnification = viewController.getImageInformation().getMagnification().orElse(1);
-		double magnification = intMagnification;
-		return Math.log(magnification / zoomLevel) / Math.log(2);
+	private AnnotationSelectionListener getAnnotationSelectionHandler() {
+		return (Set<Annotation> selectedAnnotations) -> {
+			if (annotationsFrame != null) {
+				((AnnotationManagerPanel) annotationsFrame.getContentPane()).selectAnnotations(selectedAnnotations);
+			}
+		};
 	}
 
 	private void setViewerContainerListeners() {
@@ -85,6 +89,12 @@ public class ViewerPanelController {
 		viewerContainer.addIcySequenceToCytomineMenuListener(getIcySequenceToCytomineMenuHandler());
 		viewerContainer.addIcyFileToCytomineMenuListener(getIcyFileToCytomineMenuHandler());
 		viewerContainer.addIcyFolderToCytomineMenuListener(getIcyFolderToCytomineMenuHandler());
+	}
+
+	private double getResolutionLevel(double zoomLevel) {
+		int intMagnification = viewController.getImageInformation().getMagnification().orElse(1);
+		double magnification = intMagnification;
+		return Math.log(magnification / zoomLevel) / Math.log(2);
 	}
 
 	private ActionListener getAnnotationMenuHandler() {

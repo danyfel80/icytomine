@@ -110,4 +110,8 @@ public class AnnotationManagerPanel extends JPanel {
 		panelController.updateAnnotations();
 	}
 
+	public void selectAnnotations(Set<Annotation> selectedAnnotations) {
+		annotationTable.setSelectedAnnotations(selectedAnnotations);
+	}
+
 }

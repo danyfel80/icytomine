@@ -93,8 +93,7 @@ public class CachedViewController implements ViewController {
 		viewCanvasPanel.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				// TODO notify annotation table
-				//selectAnnotationAt(e.getPoint());
+				selectAnnotationAt(e.getPoint());
 			}
 		});
 
@@ -223,7 +222,6 @@ public class CachedViewController implements ViewController {
 			Set<Annotation> selectedAnnotationSet = new HashSet<>();
 			selectedAnnotationSet.add(annotation.get());
 			setSelectedAnnotations(selectedAnnotationSet);
-			// TODO here the annotation panel should change its selection to the selected annotation
 			notifyAnnotationSelection(selectedAnnotationSet);
 		}
 	}
