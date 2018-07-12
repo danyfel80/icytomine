@@ -14,6 +14,7 @@ import java.util.concurrent.Future;
 import java.util.stream.DoubleStream;
 
 import org.bioimageanalysis.icy.icytomine.core.image.annotation.AnnotationInserter;
+import org.bioimageanalysis.icy.icytomine.core.image.annotation.AnnotationInserterException;
 import org.bioimageanalysis.icy.icytomine.core.image.importer.TiledImageImporter;
 import org.bioimageanalysis.icy.icytomine.core.image.importer.TiledImageImporter.TiledImageImportationListener;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
@@ -164,7 +165,7 @@ public class CytomineToIcyPanelController {
 			annotationsInserter.insertAnnotations(viewBounds, outputResolution, activeAnnotations);
 			Icy.getMainInterface().addSequence(image);
 		} catch (CancellationException e) {
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (AnnotationInserterException | InterruptedException | ExecutionException e) {
 			MessageDialog.showDialog("Transfer error", e.getMessage(), MessageDialog.ERROR_MESSAGE);
 			e.printStackTrace();
 		} finally {

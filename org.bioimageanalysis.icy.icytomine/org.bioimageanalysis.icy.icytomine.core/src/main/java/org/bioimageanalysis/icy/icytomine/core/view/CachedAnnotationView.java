@@ -35,6 +35,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
@@ -200,7 +201,13 @@ public class CachedAnnotationView {
 	}
 
 	private void drawAnnotation(Annotation a, boolean selected) throws CytomineClientException, AnnotationViewException {
-		Geometry geometry = a.getSimplifiedGeometryForResolution((int) targetResolution);
+		Geometry geometry;
+		if (targetResolution > 0) {
+			geometry = a.getSimplifiedGeometryForResolution((int) targetResolution);
+		} else {
+			geometry = a.getGeometryAtZeroResolution(false);
+		}
+		
 		Color color = a.getColor();
 		try {
 			drawGeometry(geometry, color, selected);
@@ -216,10 +223,12 @@ public class CachedAnnotationView {
 			drawLineString((LineString) geometry, color, selected);
 		} else if (geometry instanceof Polygon) {
 			drawPolygon((Polygon) geometry, color, selected);
-		}
+		} 
 		// TODO implement multi point
 		// TODO implement multi line string
-		// TODO implement multi polygon
+		else if (geometry instanceof MultiPolygon) {
+			drawMultiPolygon((MultiPolygon) geometry, color, selected);
+		}
 		else if (geometry != null) {
 			throw new AnnotationViewException(
 					String.format("Unsupported annotation geometry (%s)", geometry.getGeometryType()));
@@ -331,6 +340,14 @@ public class CachedAnnotationView {
 		}
 
 		g2.dispose();
+	}
+
+	private void drawMultiPolygon(MultiPolygon geometry, Color color, boolean selected) {
+		int numGeometries = geometry.getNumGeometries();
+		for (int i = 0; i < numGeometries; i++) {
+			Geometry subGeometry = geometry.getGeometryN(i);
+			drawGeometry(subGeometry, color, selected);
+		}
 	}
 
 	private void notifyViewReady() {

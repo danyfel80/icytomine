@@ -1,5 +1,6 @@
 package org.bioimageanalysis.icy.icytomine.core.image.annotation;
 
+import java.awt.geom.Path2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.List;
@@ -16,10 +17,12 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
 import icy.sequence.Sequence;
+import plugins.kernel.roi.roi2d.ROI2DPath;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
@@ -37,7 +40,7 @@ public class AnnotationInserter {
 	}
 
 	public void insertAnnotations(Rectangle2D viewBoundsAtZeroResolution, double sequenceResolution,
-			Set<Annotation> activeAnnotations) {
+			Set<Annotation> activeAnnotations) throws AnnotationInserterException {
 
 		this.viewBoundsAtZeroResolution = viewBoundsAtZeroResolution;
 		this.sequenceResolution = sequenceResolution;
@@ -46,7 +49,7 @@ public class AnnotationInserter {
 		addAnnotationsToSequence();
 	}
 
-	private void addAnnotationsToSequence() {
+	private void addAnnotationsToSequence() throws AnnotationInserterException {
 		activeAnnotations.forEach(a -> addAnnotationToSequence(a, sequence));
 	}
 
@@ -66,6 +69,8 @@ public class AnnotationInserter {
 			return createLineString((LineString) geometry, annotation);
 		} else if (geometry instanceof Polygon) {
 			return createPolygon((Polygon) geometry, annotation);
+		} else if (geometry instanceof MultiPolygon) {
+			return createMultiPolygon((MultiPolygon) geometry, annotation);
 		} else {
 			throw new AnnotationInserterException(
 					String.format("Unsupported annotation geometry (%s)", geometry.getGeometryType()));
@@ -115,5 +120,29 @@ public class AnnotationInserter {
 		}).collect(Collectors.toList());
 
 		return new ROI2DPolygon(points);
+	}
+
+	private ROI2DPath createMultiPolygon(MultiPolygon geometry, Annotation annotation) {
+		int numPolygons = geometry.getNumGeometries();
+		Path2D.Double path = new Path2D.Double();
+		for (int i = 0; i < numPolygons; i++) {
+			Geometry subGeometry = geometry.getGeometryN(i);
+			ROI2DShape internalROI;
+			if (subGeometry instanceof Point) {
+				internalROI = createPoint((Point) subGeometry, annotation);
+			} else if (subGeometry instanceof LineString) {
+				internalROI = createLineString((LineString) subGeometry, annotation);
+			} else if (subGeometry instanceof Polygon) {
+				internalROI = createPolygon((Polygon) subGeometry, annotation);
+			} else if (subGeometry instanceof Polygon) {
+				internalROI = createMultiPolygon((MultiPolygon) subGeometry, annotation);
+			} else {
+				throw new AnnotationInserterException(
+						String.format("Unsupported annotation geometry (%s)", subGeometry.getGeometryType()));
+			}
+			path.append(internalROI.getShape(), false);
+		}
+		
+		return new ROI2DPath(path);
 	}
 }
