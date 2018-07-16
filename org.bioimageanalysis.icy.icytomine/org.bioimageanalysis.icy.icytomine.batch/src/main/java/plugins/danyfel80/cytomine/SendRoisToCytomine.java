@@ -12,12 +12,12 @@ import plugins.adufour.blocks.lang.Block;
 import plugins.adufour.blocks.util.VarList;
 import plugins.adufour.vars.lang.VarArray;
 import plugins.adufour.vars.lang.VarSequence;
-import vars.cytomine.VarImage;
+import vars.cytomine.VarCytomineImage;
 
-public class SendROIs extends Plugin implements Block {
+public class SendRoisToCytomine extends Plugin implements Block {
 
 	private VarSequence sequenceVar;
-	private VarImage imageVar;
+	private VarCytomineImage imageVar;
 
 	private Sequence sequence;
 	private Image image;
@@ -29,12 +29,15 @@ public class SendROIs extends Plugin implements Block {
 	@Override
 	public void declareInput(VarList inputMap) {
 		sequenceVar = new VarSequence("Sequence", null);
-		imageVar = VarImage.ofNullable(null);
+		imageVar = VarCytomineImage.ofNullable(null);
+		inputMap.add(sequenceVar.getName(), sequenceVar);
+		inputMap.add(imageVar.getName(), imageVar);
 	}
 
 	@Override
 	public void declareOutput(VarList outputMap) {
 		addedAnnotationsVar = new VarArray<>("Added annotations", Annotation[].class, new Annotation[0]);
+		outputMap.add(addedAnnotationsVar.getName(), addedAnnotationsVar);
 	}
 
 	@Override

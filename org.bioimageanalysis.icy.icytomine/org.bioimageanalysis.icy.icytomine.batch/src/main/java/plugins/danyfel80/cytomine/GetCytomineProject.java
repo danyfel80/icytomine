@@ -8,14 +8,14 @@ import plugins.adufour.blocks.lang.Block;
 import plugins.adufour.blocks.util.VarList;
 import plugins.adufour.vars.lang.VarLong;
 import vars.cytomine.VarCytomineClient;
-import vars.cytomine.VarProject;
+import vars.cytomine.VarCytomineProject;
 
-public class GetProject extends Plugin implements Block {
+public class GetCytomineProject extends Plugin implements Block {
 
 	VarCytomineClient clientVar;
 	VarLong projectIdVar;
 
-	VarProject projectVar;
+	VarCytomineProject projectVar;
 	
 	@Override
 	public void declareInput(VarList inputMap) {
@@ -27,7 +27,7 @@ public class GetProject extends Plugin implements Block {
 
 	@Override
 	public void declareOutput(VarList outputMap) {
-		projectVar = VarProject.ofNullable(null);
+		projectVar = VarCytomineProject.ofNullable(null);
 		outputMap.add(projectVar.getName(), projectVar);
 	}
 

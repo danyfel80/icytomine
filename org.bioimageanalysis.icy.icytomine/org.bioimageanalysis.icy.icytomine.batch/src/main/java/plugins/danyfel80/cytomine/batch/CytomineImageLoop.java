@@ -26,15 +26,15 @@ import plugins.adufour.vars.lang.Var;
 import plugins.adufour.vars.lang.VarBoolean;
 import plugins.adufour.vars.lang.VarInteger;
 import plugins.adufour.vars.lang.VarSequence;
-import vars.cytomine.VarImage;
+import vars.cytomine.VarCytomineImage;
 import vars.geom.VarDimension;
 import vars.geom.VarRectangle;
 
-public class ImageLoop extends Loop {
+public class CytomineImageLoop extends Loop {
 
 	// input variables
 	private VarList inputMap;
-	private VarImage imageVar;
+	private VarCytomineImage imageVar;
 	private VarInteger resolutionLevelVar;
 	private VarRectangle loadedAreaVar;
 	private VarDimension tileSizeVar;
@@ -71,7 +71,7 @@ public class ImageLoop extends Loop {
 	}
 
 	private void initializeInputVariables() {
-		imageVar = VarImage.ofNullable(null);
+		imageVar = VarCytomineImage.ofNullable(null);
 		resolutionLevelVar = new VarInteger("resolutionLevel", 0);
 		loadedAreaVar = new VarRectangle("Loaded area");
 		tileSizeVar = new VarDimension("Tile size");

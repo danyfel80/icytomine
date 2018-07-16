@@ -183,7 +183,7 @@ public class CytomineToIcyPanelController {
 	private Dimension2D getPixelSizeAtViewResolution() {
 		double pixelLength = imageInformation.getResolution().orElse(1d);
 		Dimension2D pixelSize = new icy.type.dimension.Dimension2D.Double(pixelLength, pixelLength);
-		return MagnitudeResolutionConverter.convertDimension2D(pixelSize, 0d, outputResolution);
+		return MagnitudeResolutionConverter.convertDimension2D(pixelSize, outputResolution, 0d);
 	}
 
 	private ActionListener getCancelHandler() {

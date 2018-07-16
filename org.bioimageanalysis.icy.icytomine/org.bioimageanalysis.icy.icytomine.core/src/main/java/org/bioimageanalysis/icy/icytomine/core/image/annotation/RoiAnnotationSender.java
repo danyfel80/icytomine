@@ -189,7 +189,7 @@ public class RoiAnnotationSender {
 	private double getSequenceScaleFactor() {
 		if (Double.isNaN(sequenceScaleFactor)) {
 			Optional<Double> res = imageInformation.getResolution();
-			sequenceScaleFactor = res.orElse(1d) / sequence.getPixelSizeX();
+			sequenceScaleFactor = sequence.getPixelSizeX() / res.orElse(1d);
 		}
 		return sequenceScaleFactor;
 

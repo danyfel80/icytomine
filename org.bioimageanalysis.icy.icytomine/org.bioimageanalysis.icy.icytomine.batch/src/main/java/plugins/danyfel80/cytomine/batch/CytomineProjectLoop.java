@@ -9,20 +9,20 @@ import org.bioimageanalysis.icy.icytomine.core.model.Project;
 import plugins.adufour.blocks.lang.Loop;
 import plugins.adufour.blocks.util.VarList;
 import plugins.adufour.vars.lang.Var;
-import vars.cytomine.VarImage;
-import vars.cytomine.VarProject;
+import vars.cytomine.VarCytomineImage;
+import vars.cytomine.VarCytomineProject;
 
-public class ProjectLoop extends Loop {
+public class CytomineProjectLoop extends Loop {
 	// input variables
 	private VarList inputMap;
-	private VarProject projectVar;
+	private VarCytomineProject projectVar;
 
 	Project project;
 	List<Image> images;
 	Iterator<Image> imageIterator;
 
 	// iteration output variables
-	private VarImage currentImageVar;
+	private VarCytomineImage currentImageVar;
 
 	private Image currentImage;
 
@@ -39,7 +39,7 @@ public class ProjectLoop extends Loop {
 	}
 
 	private void initializeInputVariables() {
-		projectVar = VarProject.ofNullable(null);
+		projectVar = VarCytomineProject.ofNullable(null);
 	}
 
 	private void addInputVariables() {
@@ -52,7 +52,7 @@ public class ProjectLoop extends Loop {
 		for (Var<?> var : inputMap) {
 			outputMap.add(var.getName(), var);
 		}
-		currentImageVar = VarImage.ofNullable(null);
+		currentImageVar = VarCytomineImage.ofNullable(null);
 		currentImageVar.setEnabled(false);
 		outputMap.add(currentImageVar.getName(), currentImageVar);
 	}

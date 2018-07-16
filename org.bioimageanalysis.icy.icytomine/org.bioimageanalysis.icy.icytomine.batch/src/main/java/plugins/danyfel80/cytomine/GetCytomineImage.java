@@ -8,14 +8,14 @@ import plugins.adufour.blocks.lang.Block;
 import plugins.adufour.blocks.util.VarList;
 import plugins.adufour.vars.lang.VarLong;
 import vars.cytomine.VarCytomineClient;
-import vars.cytomine.VarImage;
+import vars.cytomine.VarCytomineImage;
 
-public class GetImage extends Plugin implements Block {
+public class GetCytomineImage extends Plugin implements Block {
 
 	VarCytomineClient clientVar;
 	VarLong imageIdVar;
 	
-	VarImage imageVar;
+	VarCytomineImage imageVar;
 	
 	@Override
 	public void declareInput(VarList inputMap) {
@@ -28,7 +28,7 @@ public class GetImage extends Plugin implements Block {
 
 	@Override
 	public void declareOutput(VarList outputMap) {
-		imageVar = VarImage.ofNullable(null);
+		imageVar = VarCytomineImage.ofNullable(null);
 		
 		outputMap.add(imageVar.getName(), imageVar);
 	}
