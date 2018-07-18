@@ -3,6 +3,7 @@ package org.bioimageanalysis.icy.icytomine.geom;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import icy.painter.Anchor2D;
@@ -27,26 +28,26 @@ public abstract class WKTUtils {
 		StringBuffer buffer = new StringBuffer();
 		if (shape instanceof ROI2DPoint) {
 			buffer.append("POINT(");
-			buffer.append(String.format("%f %f", points.get(0).getPositionX(), points.get(0).getPositionY()));
+			buffer.append(String.format(Locale.US, "%f %f", points.get(0).getPositionX(), points.get(0).getPositionY()));
 			buffer.append(")");
 		} else if (shape instanceof ROI2DLine || shape instanceof ROI2DPolyLine) {
 			buffer.append("LINESTRING (");
-			buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
+			buffer.append(points.stream().map(p -> String.format(Locale.US, "%f %f", p.getPositionX(), p.getPositionY()))
 					.collect(Collectors.joining(",")));
 			buffer.append(")");
 		} else {
 			buffer.append("POLYGON((");
 			if (shape instanceof ROI2DRectShape) {
 				Rectangle2D rect = ((ROI2DRectShape) shape).getBounds2D();
-				buffer.append(String.format("%f %f, ", rect.getMinX(), rect.getMinY()));
-				buffer.append(String.format("%f %f, ", rect.getMinX(), rect.getMaxY()));
-				buffer.append(String.format("%f %f, ", rect.getMaxX(), rect.getMaxY()));
-				buffer.append(String.format("%f %f, ", rect.getMaxX(), rect.getMinY()));
-				buffer.append(String.format("%f %f", rect.getMinX(), rect.getMinY()));
+				buffer.append(String.format(Locale.US, "%f %f, ", rect.getMinX(), rect.getMinY()));
+				buffer.append(String.format(Locale.US, "%f %f, ", rect.getMinX(), rect.getMaxY()));
+				buffer.append(String.format(Locale.US, "%f %f, ", rect.getMaxX(), rect.getMaxY()));
+				buffer.append(String.format(Locale.US, "%f %f, ", rect.getMaxX(), rect.getMinY()));
+				buffer.append(String.format(Locale.US, "%f %f", rect.getMinX(), rect.getMinY()));
 			} else {
-				buffer.append(points.stream().map(p -> String.format("%f %f", p.getPositionX(), p.getPositionY()))
+				buffer.append(points.stream().map(p -> String.format(Locale.US, "%f %f", p.getPositionX(), p.getPositionY()))
 						.collect(Collectors.joining(",")));
-				buffer.append(String.format(",%f %f", points.get(0).getPositionX(), points.get(0).getPositionY()));
+				buffer.append(String.format(Locale.US, ",%f %f", points.get(0).getPositionX(), points.get(0).getPositionY()));
 			}
 			buffer.append("))");
 		}
@@ -56,11 +57,11 @@ public abstract class WKTUtils {
 	public static String createFromRectangle2D(Rectangle2D rect) {
 		StringBuffer buffer = new StringBuffer();
 		buffer.append("POLYGON((");
-		buffer.append(String.format("%f %f, ", rect.getMinX(), rect.getMinY()));
-		buffer.append(String.format("%f %f, ", rect.getMinX(), rect.getMaxY()));
-		buffer.append(String.format("%f %f, ", rect.getMaxX(), rect.getMaxY()));
-		buffer.append(String.format("%f %f, ", rect.getMaxX(), rect.getMinY()));
-		buffer.append(String.format("%f %f", rect.getMinX(), rect.getMinY()));
+		buffer.append(String.format(Locale.US, "%f %f, ", rect.getMinX(), rect.getMinY()));
+		buffer.append(String.format(Locale.US, "%f %f, ", rect.getMinX(), rect.getMaxY()));
+		buffer.append(String.format(Locale.US, "%f %f, ", rect.getMaxX(), rect.getMaxY()));
+		buffer.append(String.format(Locale.US, "%f %f, ", rect.getMaxX(), rect.getMinY()));
+		buffer.append(String.format(Locale.US, "%f %f", rect.getMinX(), rect.getMinY()));
 		buffer.append("))");
 		return buffer.toString();
 	}
