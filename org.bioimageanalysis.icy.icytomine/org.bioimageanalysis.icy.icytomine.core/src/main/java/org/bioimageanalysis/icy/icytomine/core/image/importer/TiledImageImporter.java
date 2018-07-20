@@ -1,6 +1,7 @@
 package org.bioimageanalysis.icy.icytomine.core.image.importer;
 
 import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
@@ -11,7 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
-import org.bioimageanalysis.icy.icytomine.core.image.tile.TileCalculator;
+import org.bioimageanalysis.icy.icytomine.core.image.tile.FixedTileCalculator;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 
@@ -87,7 +88,7 @@ public class TiledImageImporter {
 	private void computeTileGridToRequest() {
 		Dimension tileDim = new Dimension((int) tileDimensionAtRequestResolution.getWidth(),
 				(int) tileDimensionAtRequestResolution.getHeight());
-		TileCalculator calculator = new TileCalculator(boundsAtRequestResolution, tileDim);
+		FixedTileCalculator calculator = new FixedTileCalculator(boundsAtRequestResolution, new Point(), tileDim);
 		Dimension2D imageDim = getImageSizeAtRequestResolution();
 		tileGrigToRequest = calculator.getLimitedTileGridBounds(imageDim);
 	}

@@ -1,6 +1,7 @@
 package plugins.danyfel80.cytomine.batch;
 
 import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
@@ -14,7 +15,7 @@ import java.util.concurrent.Future;
 
 import org.bioimageanalysis.icy.icytomine.core.image.annotation.AnnotationInserter;
 import org.bioimageanalysis.icy.icytomine.core.image.importer.TiledImageImporter;
-import org.bioimageanalysis.icy.icytomine.core.image.tile.TileCalculator;
+import org.bioimageanalysis.icy.icytomine.core.image.tile.FixedTileCalculator;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
@@ -128,7 +129,8 @@ public class CytomineImageLoop extends Loop {
 					targetImageInstance.getSizeY().get());
 		}
 
-		TileCalculator calculator = new TileCalculator(targetArea, tileDimensionAtZeroResolution);
+		FixedTileCalculator calculator = new FixedTileCalculator(targetArea, new Point(targetArea.x, targetArea.y),
+				tileDimensionAtZeroResolution);
 		tileGridBounds = calculator.getTileGridBounds();
 		numberOfTiles = tileGridBounds.width * tileGridBounds.height;
 		loadAnnotations = loadAnnotationsVar.getValue(true);
