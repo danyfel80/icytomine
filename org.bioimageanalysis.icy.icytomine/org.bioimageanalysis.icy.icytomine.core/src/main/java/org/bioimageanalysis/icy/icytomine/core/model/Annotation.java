@@ -57,6 +57,7 @@ public class Annotation extends Entity {
 	int latestSimplifiedGeometryResolution;
 	private List<AnnotationTerm> annotationTerms;
 	private Map<Long, Set<Long>> termUsers;
+	private Rectangle2D adjustedBounds;
 	private Rectangle2D approximativeBounds;
 	private Rectangle2D adjustedApproximativeBounds;
 
@@ -86,6 +87,19 @@ public class Annotation extends Entity {
 	public User getUser() throws CytomineClientException, NoSuchElementException {
 		long userId = getUserId().get();
 		return User.retrieve(getClient(), userId);
+	}
+
+	public Rectangle2D getYAdjustedBounds() {
+		if (adjustedBounds == null) {
+			Envelope envelope = getGeometryAtZeroResolution(false).getEnvelopeInternal();
+			adjustedBounds = new Rectangle2D.Double(envelope.getMinX(),
+					getImage().getSizeY().get() - envelope.getMaxY(), envelope.getWidth(), envelope.getHeight());
+			if (adjustedBounds.isEmpty()) {
+				adjustedBounds = new Rectangle2D.Double(adjustedBounds.getX() - Double.MIN_VALUE,
+						adjustedBounds.getY() - Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
+			}
+		}
+		return adjustedBounds;
 	}
 
 	public Geometry getSimplifiedGeometryForResolution(int resolution) throws CytomineClientException {
