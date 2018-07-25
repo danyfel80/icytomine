@@ -119,7 +119,7 @@ public class CytomineAnnotationLoop extends Loop {
 
 	private void computeAnnotationsToLoad() {
 		targetImageAnnotations = new ArrayList<>(targetImageInstance.getAnnotationsWithGeometry(false));
-		
+
 		Set<Term> availableTerms = targetImageInstance.getProject().getOntology().getTerms(false);
 		Optional<Term> searchedTerm = availableTerms.stream()
 				.filter(t -> Objects.equals(t.getName().orElse("Not available").toLowerCase(), targetTermName.toLowerCase()))
@@ -179,8 +179,7 @@ public class CytomineAnnotationLoop extends Loop {
 	private void setCurrentAnnotationSequence(BufferedImage tileImage) {
 		currentAnnotationSequence = new Sequence(tileImage);
 		addCurrentAnnotationROIToSequence();
-		currentAnnotationSequence
-				.setName(targetImageInstance.getName().orElse("Imported image") + " Annotation " + currentAnnotation.getId());
+		addCurrentSequenceMetadata();
 	}
 
 	private void addCurrentAnnotationROIToSequence() {
@@ -188,6 +187,23 @@ public class CytomineAnnotationLoop extends Loop {
 		Set<Annotation> annotationSet = new HashSet<>();
 		annotationSet.add(currentAnnotation);
 		inserter.insertAnnotations(currentAnnotationPaddedBounds, targetResolution, annotationSet);
+	}
+
+	private void addCurrentSequenceMetadata() {
+		double pixelSize = targetImageInstance.getResolution().orElse(1d);
+		double pixelSizeAtTargetResolution = getPixelSizeAtTargetResolution();
+		currentAnnotationSequence.setPositionX(currentAnnotationPaddedBounds.getX() * pixelSize);
+		currentAnnotationSequence.setPositionY(currentAnnotationPaddedBounds.getY() * pixelSize);
+		currentAnnotationSequence.setPixelSizeX(pixelSizeAtTargetResolution);
+		currentAnnotationSequence.setPixelSizeY(pixelSizeAtTargetResolution);
+		currentAnnotationSequence
+		.setName(targetImageInstance.getName().orElse("Imported image") + " Annotation " + currentAnnotation.getId());
+	}
+
+	private double getPixelSizeAtTargetResolution() {
+		double pixelSize = targetImageInstance.getResolution().orElse(1d);
+		double scaleFactor = Math.pow(2, targetResolution);
+		return pixelSize * scaleFactor;
 	}
 
 	@Override
