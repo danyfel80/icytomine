@@ -36,21 +36,22 @@ public class RoiAnnotationSender {
 
 	private Set<ProgressListener> progressListeners;
 
-	private Point2D sequenceLocation;
-	private double sequenceScaleFactor;
 	private Map<String, Term> availableTerms;
+
+	private Point2D sequenceLocationAtZeroResolution;
+	private double sequencePixelScaleFactor;
 
 	public RoiAnnotationSender(Image imageInformation, Sequence sequence, boolean selectedRois) {
 		this.imageInformation = imageInformation;
 		this.sequence = sequence;
 		this.selectedRois = selectedRois;
 
+		sequenceLocationAtZeroResolution = null;
+		sequencePixelScaleFactor = Double.NaN;
+
 		computeAvailableTerms();
 
 		progressListeners = new HashSet<>();
-
-		sequenceLocation = null;
-		sequenceScaleFactor = Double.NaN;
 	}
 
 	private void computeAvailableTerms() {
@@ -76,7 +77,7 @@ public class RoiAnnotationSender {
 		int numRois = rois.size();
 		int processedRois = 0;
 		List<Annotation> createdAnnotations = new ArrayList<>(rois.size());
-		for (ROI2D roi : rois) {
+		for (ROI2D roi: rois) {
 			checkThreadInterruption();
 			Annotation createdAnnotation;
 			try {
@@ -173,41 +174,41 @@ public class RoiAnnotationSender {
 	}
 
 	private List<Point2D> getAdjustedPoints(ROI2DShape roi) {
-		Point2D sequenceLocation = getSequenceLocation();
-		double scaleFactor = getSequenceScaleFactor();
+		computeSequenceLocationAtZeroResolution();
+		computeSequencePixelScaleFactor();
 		List<Anchor2D> controlPoints = roi.getControlPoints();
 
 		List<Point2D> adjustedPoints = new ArrayList<>(controlPoints.size());
-		for (Anchor2D anchor : controlPoints) {
-			Point2D adjustedPoint = new Point2D.Double((sequenceLocation.getX() + anchor.getX() * scaleFactor),
-					imageInformation.getSizeY().orElse(1) - (sequenceLocation.getY() + anchor.getY() * scaleFactor));
+		for (Anchor2D anchor: controlPoints) {
+			Point2D adjustedPoint = new Point2D.Double(
+					(sequenceLocationAtZeroResolution.getX() + anchor.getX() * sequencePixelScaleFactor),
+					imageInformation.getSizeY().orElse(1)
+							- (sequenceLocationAtZeroResolution.getY() + anchor.getY() * sequencePixelScaleFactor));
 			adjustedPoints.add(adjustedPoint);
 		}
 		return adjustedPoints;
 	}
 
-	private double getSequenceScaleFactor() {
-		if (Double.isNaN(sequenceScaleFactor)) {
-			Optional<Double> res = imageInformation.getResolution();
-			sequenceScaleFactor = sequence.getPixelSizeX() / res.orElse(1d);
+	private void computeSequenceLocationAtZeroResolution() {
+		if (sequenceLocationAtZeroResolution == null) {
+			sequenceLocationAtZeroResolution = new Point2D.Double(
+					sequence.getPositionX() / imageInformation.getResolution().orElse(1d),
+					sequence.getPositionY() / imageInformation.getResolution().orElse(1d));
 		}
-		return sequenceScaleFactor;
-
 	}
 
-	private Point2D getSequenceLocation() {
-		if (sequenceLocation == null) {
-			sequenceLocation = new Point2D.Double(sequence.getPositionX() / sequence.getPixelSizeX(),
-					sequence.getPositionY() / sequence.getPixelSizeY());
+	private void computeSequencePixelScaleFactor() {
+		if (Double.isNaN(sequencePixelScaleFactor)) {
+			Optional<Double> res = imageInformation.getResolution();
+			sequencePixelScaleFactor = sequence.getPixelSizeX() / res.orElse(1d);
 		}
-		return sequenceLocation;
 	}
 
 	private Set<Term> getRoiTermsBasedOnName(ROI2D roi) {
 		Set<Term> terms = new HashSet<>();
 		String termString = roi.getName();
 		String[] termStrings = termString.split(",");
-		for (String termName : termStrings) {
+		for (String termName: termStrings) {
 			termName = termName.trim().toLowerCase();
 			if (isValidTerm(termName)) {
 				terms.add(availableTerms.get(termName));

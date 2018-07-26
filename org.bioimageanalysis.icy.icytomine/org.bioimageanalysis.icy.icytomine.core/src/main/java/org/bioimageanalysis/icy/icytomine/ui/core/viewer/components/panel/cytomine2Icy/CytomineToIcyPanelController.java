@@ -33,7 +33,7 @@ public class CytomineToIcyPanelController {
 
 	private CytomineToIcyPanel panel;
 	private Image imageInformation;
-	private Rectangle2D viewBounds;
+	private Rectangle2D viewBoundsAtZeroResolution;
 	private double viewResolution;
 	private Set<Annotation> activeAnnotations;
 	private double viewMagnification;
@@ -56,8 +56,8 @@ public class CytomineToIcyPanelController {
 	public CytomineToIcyPanelController(CytomineToIcyPanel panel, ViewController viewController) {
 		this.panel = panel;
 		imageInformation = viewController.getImageInformation();
-		viewBounds = viewController.getCurrentViewBoundsAtZeroResolution();
-		viewBounds = viewBounds.createIntersection(new Rectangle(imageInformation.getSize().get()));
+		viewBoundsAtZeroResolution = viewController.getCurrentViewBoundsAtZeroResolution();
+		viewBoundsAtZeroResolution = viewBoundsAtZeroResolution.createIntersection(new Rectangle(imageInformation.getSize().get()));
 		viewResolution = viewController.getCurrentResolution();
 		activeAnnotations = viewController.getActiveAnnotations();
 		viewMagnification = getMagnificationOf(viewResolution);
@@ -99,7 +99,7 @@ public class CytomineToIcyPanelController {
 				if (outputMagnification.isPresent()) {
 					outputResolution = MagnificationConverter.convertToResolution(getBaseMagnification(), outputMagnification.get());
 					outputDimension = MagnitudeResolutionConverter.convertDimension2D(
-							new icy.type.dimension.Dimension2D.Double(viewBounds.getWidth(), viewBounds.getHeight()), 0,
+							new icy.type.dimension.Dimension2D.Double(viewBoundsAtZeroResolution.getWidth(), viewBoundsAtZeroResolution.getHeight()), 0,
 							outputResolution);
 				} else {
 					outputResolution = null;
@@ -123,7 +123,7 @@ public class CytomineToIcyPanelController {
 					importer = new TiledImageImporter(imageInformation);
 					importer.addImportationProgressListener(getProgressHandler());
 					importer.addTiledImageImportationListener(getTiledImageImportationHandler());
-					importer.requestImage(outputResolution, viewBounds);
+					importer.requestImage(outputResolution, viewBoundsAtZeroResolution);
 				} else {
 					MessageDialog.showDialog("Invalid magnification", MessageDialog.ERROR_MESSAGE);
 				}
@@ -152,17 +152,18 @@ public class CytomineToIcyPanelController {
 	private void imageImported(Future<BufferedImage> result) {
 		try {
 			Sequence image = new Sequence(result.get());
-			Dimension2D pixelSize = getPixelSizeAtViewResolution();
+			Dimension2D pixelSizeAtZeroResolution = getPixelSizeAtZeroResolution();
+			Dimension2D pixelSizeAtTargetResolution = getPixelSizeAtViewResolution();
 			image.setName(imageInformation.getName().orElse("CytomineImage"));
-			image.setPixelSizeX(pixelSize.getWidth());
-			image.setPixelSizeY(pixelSize.getHeight());
-			image.setPositionX(viewBounds.getX() * pixelSize.getWidth());
-			image.setPositionY(viewBounds.getY() * pixelSize.getHeight());
+			image.setPixelSizeX(pixelSizeAtTargetResolution.getWidth());
+			image.setPixelSizeY(pixelSizeAtTargetResolution.getHeight());
+			image.setPositionX(viewBoundsAtZeroResolution.getX() * pixelSizeAtZeroResolution.getWidth());
+			image.setPositionY(viewBoundsAtZeroResolution.getY() * pixelSizeAtZeroResolution.getHeight());
 
 			panel.setProgress(.99);
 
 			AnnotationInserter annotationsInserter = new AnnotationInserter(image);
-			annotationsInserter.insertAnnotations(viewBounds, outputResolution, activeAnnotations);
+			annotationsInserter.insertAnnotations(viewBoundsAtZeroResolution, outputResolution, activeAnnotations);
 			Icy.getMainInterface().addSequence(image);
 		} catch (CancellationException e) {
 		} catch (AnnotationInserterException | InterruptedException | ExecutionException e) {
@@ -180,9 +181,13 @@ public class CytomineToIcyPanelController {
 		panel.setMagnificationEnabled(true);
 	}
 
-	private Dimension2D getPixelSizeAtViewResolution() {
+	private Dimension2D getPixelSizeAtZeroResolution() {
 		double pixelLength = imageInformation.getResolution().orElse(1d);
-		Dimension2D pixelSize = new icy.type.dimension.Dimension2D.Double(pixelLength, pixelLength);
+		return new icy.type.dimension.Dimension2D.Double(pixelLength, pixelLength);
+	}
+
+	private Dimension2D getPixelSizeAtViewResolution() {
+		Dimension2D pixelSize = getPixelSizeAtZeroResolution();
 		return MagnitudeResolutionConverter.convertDimension2D(pixelSize, outputResolution, 0d);
 	}
 
