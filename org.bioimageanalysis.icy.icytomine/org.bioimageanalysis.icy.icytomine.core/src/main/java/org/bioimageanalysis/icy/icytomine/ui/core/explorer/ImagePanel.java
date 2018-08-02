@@ -3,30 +3,27 @@ package org.bioimageanalysis.icy.icytomine.ui.core.explorer;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.SystemColor;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
-import javax.swing.BoxLayout;
 import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.ListSelectionModel;
 import javax.swing.SwingConstants;
-import javax.swing.event.ListSelectionListener;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
-import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
 
 public class ImagePanel extends JPanel {
+	private static final long serialVersionUID = 5990256964181871478L;
+
 	public static class ImageItem {
 		private Image image;
 
@@ -39,9 +36,30 @@ public class ImagePanel extends JPanel {
 		}
 
 		@Override
+		public boolean equals(Object obj) {
+			if (obj == null)
+				return false;
+			if (!(obj instanceof ImageItem))
+				return false;
+			ImageItem other = (ImageItem) obj;
+			return getImage().equals(other.getImage());
+		}
+
+		@Override
 		public String toString() {
 			return image.getName().orElse(String.format("Not specified (id=%d)", image.getId().longValue()));
 		}
+	}
+
+	private static GridBagConstraints getConstraints(int x, int y, int width, int height, Insets insets, int fill) {
+		GridBagConstraints constraints = new GridBagConstraints();
+		constraints.fill = fill;
+		constraints.gridx = x;
+		constraints.gridy = y;
+		constraints.gridwidth = width;
+		constraints.gridheight = height;
+		constraints.insets = insets;
+		return constraints;
 	}
 
 	@FunctionalInterface
@@ -49,116 +67,119 @@ public class ImagePanel extends JPanel {
 		public void imageSelected(Image image);
 	}
 
-	private static final long serialVersionUID = 5990256964181871478L;
+	private JLabel titleLabel;
+	private JTextField searchBar;
+	private JList<ImageItem> imageList;
 
-	private CytomineClient client;
-	private Project currentProject;
-
-	private JList<ImageItem> listImages;
-
-	private Map<ImageSelectionListener, ListSelectionListener> listSelectionListeners;
+	private ImagePanelController controller;
 
 	/**
 	 * Creates an empty image panel. To fill with cytomine data use
 	 * {@link #setClient(CytomineClient)}.
 	 */
 	public ImagePanel() {
+		setView();
+		setController();
+	}
+
+	private void setView() {
 		setMinimumSize(new Dimension(50, 50));
 		setPreferredSize(new Dimension(240, 400));
-		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-		JLabel lblImages = new JLabel("Images");
-		lblImages.setFont(new Font("Tahoma", Font.BOLD, 11));
-		lblImages.setAlignmentX(Component.CENTER_ALIGNMENT);
-		add(lblImages);
-		lblImages.setToolTipText("Images available for the selected project");
-		lblImages.setBackground(SystemColor.control);
-		lblImages.setHorizontalAlignment(SwingConstants.CENTER);
+		setGridBagLayout();
 
+		addTitleLabel();
+		addSearchBar();
+		addImageList();
+	}
+
+	private void setGridBagLayout() {
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWidths = new int[] {0, 0};
+		gridBagLayout.rowHeights = new int[] {0, 0, 0};
+		gridBagLayout.columnWeights = new double[] {0.0, 1.0};
+		gridBagLayout.rowWeights = new double[] {0.0, 0.0, 1.0};
+		setLayout(gridBagLayout);
+	}
+
+	private void addTitleLabel() {
+		buildPanelTitle();
+		add(titleLabel, getConstraints(0, 0, 2, 1, new Insets(0, 3, 3, 3), GridBagConstraints.BOTH));
+	}
+
+	private void buildPanelTitle() {
+		titleLabel = new JLabel("Images");
+		titleLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
+		titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+		titleLabel.setToolTipText("Images available for the selected project");
+		titleLabel.setBackground(SystemColor.control);
+		titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+	}
+
+	private void addSearchBar() {
+		JLabel searchBarTitle = new JLabel("Search:");
+		add(searchBarTitle, getConstraints(0, 1, 1, 1, new Insets(0, 3, 3, 0), GridBagConstraints.BOTH));
+		buildSearchBar();
+		add(searchBar, getConstraints(1, 1, 1, 1, new Insets(0, 3, 3, 3), GridBagConstraints.BOTH));
+	}
+
+	private void buildSearchBar() {
+		searchBar = new JTextField();
+		searchBar.setToolTipText("Search projects by their name");
+	}
+
+	private void addImageList() {
+		JScrollPane scrollPane = createImageList();
+		add(scrollPane, getConstraints(0, 2, 2, 1, new Insets(0, 3, 3, 3), GridBagConstraints.BOTH));
+	}
+
+	private JScrollPane createImageList() {
 		JScrollPane scrollPane = new JScrollPane();
-		add(scrollPane);
-		listImages = new JList<>();
-		listImages.setBackground(SystemColor.window);
-		listImages.setModel(new DefaultListModel<>());
-		listImages.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		lblImages.setLabelFor(listImages);
-		scrollPane.setViewportView(listImages);
-
-		listSelectionListeners = new HashMap<>();
+		imageList = new JList<>();
+		imageList.setBackground(SystemColor.window);
+		imageList.setModel(new DefaultListModel<>());
+		imageList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+		titleLabel.setLabelFor(imageList);
+		scrollPane.setViewportView(imageList);
+		return scrollPane;
 	}
 
-	public void setClient(CytomineClient client) {
-		this.client = client;
+	private void setController() {
+		this.controller = new ImagePanelController(this);
 	}
 
-	public CytomineClient getClient() {
-		return client;
+	public void setProject(Project project) {
+		this.controller.setProject(project);
 	}
 
-	public Project getCurrentProject() {
-		return currentProject;
-	}
-
-	public void setCurrentProject(Project project) {
-		this.currentProject = project;
-		if (getClient() != null) {
-			try {
-				updateImageList();
-			} catch (CytomineClientException e) {
-				e.printStackTrace();
-				currentProject = null;
-			}
-		} else {
-			System.err.println("No cytomine instance at image panel yet.");
-		}
-	}
-
-	@SuppressWarnings("unchecked")
 	public void addImageSelectionListener(ImageSelectionListener listener) {
-		ListSelectionListener listSelectionListener = event -> {
-			if (!event.getValueIsAdjusting()) {
-				Optional<ImageItem> imageItem = Optional.ofNullable(((JList<ImageItem>) event.getSource()).getSelectedValue());
-				if (imageItem.isPresent()) {
-					listener.imageSelected(imageItem.get().getImage());
-				} else {
-					listener.imageSelected(null);
-				}
-			}
-		};
-		listSelectionListeners.put(listener, listSelectionListener);
-		listImages.addListSelectionListener(listSelectionListener);
+		this.controller.addImageSelectionListener(listener);
 	}
 
 	public void removeImageSelectionListener(ImageSelectionListener listener) {
-		ListSelectionListener listSelectionListener = listSelectionListeners.get(listener);
-		if (listSelectionListener != null) {
-			listImages.removeListSelectionListener(listSelectionListener);
-		}
+		this.controller.removeImageSelectionListener(listener);
 	}
 
 	public void addImageDoubleClickListener(ImageSelectionListener listener) {
-		listImages.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				if (e.getClickCount() == 2) {
-					int index = listImages.locationToIndex(e.getPoint());
-					if (index > -1) {
-						listener.imageSelected(listImages.getSelectedValue().getImage());
-					}
-				}
-			}
-		});
+		this.controller.addImageDoubleClickListener(listener);
 	}
 
-	public void updateImageList() throws CytomineClientException {
-		if (getCurrentProject() != null) {
-			List<Image> imageCollection = client.getProjectImages(getCurrentProject().getId());
-			ImageItem[] images = imageCollection.stream().map(i -> new ImageItem(i)).toArray(ImageItem[]::new);
-			listImages.setListData(images);
-			listImages.clearSelection();
-			listImages.setSelectedIndex(-1);
+	public void removeImageDoubleClickListener(ImageSelectionListener listener) {
+		this.controller.removeImageDoubleClickListener(listener);
+	}
+
+	public JList<ImageItem> getImageList() {
+		return imageList;
+	}
+
+	public JTextField getSearchBar() {
+		return searchBar;
+	}
+
+	public Image getSelectedImage() {
+		if (getImageList().isSelectionEmpty()) {
+			return null;
 		} else {
-			listImages.removeAll();
+			return getImageList().getSelectedValue().getImage();
 		}
 	}
-
 }

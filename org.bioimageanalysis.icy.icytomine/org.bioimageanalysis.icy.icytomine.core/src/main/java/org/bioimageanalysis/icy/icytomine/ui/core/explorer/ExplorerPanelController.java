@@ -10,6 +10,7 @@ import javax.swing.event.AncestorListener;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
+import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
 import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImagePanel.ImageSelectionListener;
 import org.ehcache.Cache;
@@ -43,30 +44,34 @@ public class ExplorerPanelController {
 	}
 
 	private void setProjectSelectionHandler() {
-		panel.getProjectPanel().addProjectSelectionListener(project -> {
-			onProjectSelected(project);
-		});
+		panel.getProjectPanel().addProjectSelectionListener(project -> onProjectSelected(project));
 	}
 
 	private void onProjectSelected(Project project) {
 		if (project == null) {
 			panel.showNoDetails();
 		} else {
-			panel.getImagePanel().setCurrentProject(project);
-
 			panel.getProjectDetailsPanel().setCurrentProject(project);
 			panel.showProjectDetails();
-
 		}
+		panel.getImagePanel().setProject(project);
 	}
 
 	private void setImageSelectionHandler() {
-		panel.getImagePanel().addImageSelectionListener(image -> {
-			if (image != null) {
-				panel.getImageDetailsPanel().setCurrentImage(image);
-				panel.showImageDetails();
+		panel.getImagePanel().addImageSelectionListener(image -> onImageSelected(image));
+	}
+
+	private void onImageSelected(Image image) {
+		if (image == null) {
+			if (panel.getProjectPanel().getSelectedProject() == null) {
+				panel.showNoDetails();
+			} else {
+				panel.showProjectDetails();
 			}
-		});
+		} else {
+			panel.getImageDetailsPanel().setCurrentImage(image);
+			panel.showImageDetails();
+		}
 	}
 
 	private void setImageViewerRequestHandler() {
@@ -88,8 +93,7 @@ public class ExplorerPanelController {
 			}
 
 			@Override
-			public void ancestorMoved(AncestorEvent event) {
-			}
+			public void ancestorMoved(AncestorEvent event) {}
 
 			@Override
 			public void ancestorAdded(AncestorEvent event) {
@@ -111,10 +115,8 @@ public class ExplorerPanelController {
 	public void setClient(CytomineClient client) {
 		panel.getHostAddressLabel().setText(client.getHost());
 		panel.getProjectPanel().setClient(client);
-		panel.getImagePanel().setClient(client);
 
 		updateProjects();
-		onProjectSelected(null);
 	}
 
 	private void updateProjects() {
