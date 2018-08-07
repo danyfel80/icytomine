@@ -41,7 +41,7 @@ public class ViewerFrame extends IcyFrame {
 	}
 
 	public ViewerFrame() {
-		super("Viewer - Icytomine", true, true, true, false);
+		super("Viewer - Icytomine", true, true, true, true);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		addToDesktopPane();
 		center();

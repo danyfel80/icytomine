@@ -166,8 +166,7 @@ public class CachedAnnotationView {
 				initializeCurrentView(canvasSize);
 				computeActiveAnnotations();
 				drawAnnotations();
-			} catch (InterruptedException e) {
-			} catch (Exception e) {
+			} catch (InterruptedException e) {} catch (Exception e) {
 				e.printStackTrace();
 				throw e;
 			}
@@ -192,7 +191,7 @@ public class CachedAnnotationView {
 
 	private void drawAnnotations() throws CytomineClientException, AnnotationViewException, InterruptedException {
 		annotations.parallelStream().forEach(a -> a.getSimplifiedGeometryForResolution((int) targetResolution));
-		for (Annotation a : activeAnnotations) {
+		for (Annotation a: activeAnnotations) {
 			if (Thread.interrupted())
 				throw new InterruptedException();
 			boolean selected = selectedAnnotations.contains(a);
@@ -207,7 +206,7 @@ public class CachedAnnotationView {
 		} else {
 			geometry = a.getGeometryAtZeroResolution(false);
 		}
-		
+
 		Color color = a.getColor();
 		try {
 			drawGeometry(geometry, color, selected);
@@ -223,13 +222,12 @@ public class CachedAnnotationView {
 			drawLineString((LineString) geometry, color, selected);
 		} else if (geometry instanceof Polygon) {
 			drawPolygon((Polygon) geometry, color, selected);
-		} 
+		}
 		// TODO implement multi point
 		// TODO implement multi line string
 		else if (geometry instanceof MultiPolygon) {
 			drawMultiPolygon((MultiPolygon) geometry, color, selected);
-		}
-		else if (geometry != null) {
+		} else if (geometry != null) {
 			throw new AnnotationViewException(
 					String.format("Unsupported annotation geometry (%s)", geometry.getGeometryType()));
 		} else {
@@ -244,25 +242,29 @@ public class CachedAnnotationView {
 				targetResolution);
 		int y = (int) MagnitudeResolutionConverter
 				.convertMagnitude((maxY - point.getY()) - viewBoundsAtZeroResolution.getMinY(), 0d, targetResolution);
+		int radius = 4;
+		int diameter = 2 * radius;
 
 		Graphics2D g2 = currentView.createGraphics();
 		if (selected) {
 			g2.setColor(Color.BLACK);
 			g2.setStroke(new BasicStroke(getStrokeThickness(selected) + 2));
-			g2.drawOval(x - 2, y - 2, 8, 8);
+			g2.drawLine(x - radius, y - radius, x + radius, y + radius);
+			g2.drawLine(x + radius, y - radius, x - radius, y + radius);
 		}
 		g2.setColor(color);
 		g2.setStroke(new BasicStroke(getStrokeThickness(selected)));
-		g2.drawOval(x - 2, y - 2, 8, 8);
+		g2.drawLine(x - radius, y - radius, x + radius, y + radius);
+		g2.drawLine(x + radius, y - radius, x - radius, y + radius);
 		if (selected) {
 			g2.setColor(getSelectedFillColor(color));
-			g2.fillOval(x - 2, y - 2, 8, 8);
+			g2.fillOval(x - radius, y - radius, diameter, diameter);
 		}
 		g2.dispose();
 	}
 
 	private int getStrokeThickness(boolean selected) {
-		return (selected ? 3 : 2);
+		return (selected? 3: 2);
 	}
 
 	private Color getSelectedFillColor(Color color) {

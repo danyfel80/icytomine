@@ -33,7 +33,7 @@ public class ExplorerFrame extends IcyFrame {
 	private ExplorerPanel explorerPanel;
 
 	public ExplorerFrame() {
-		super("Explorer - Icytomine", true, true, true, false);
+		super("Explorer - Icytomine", true, true, true, true);
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		createExplorerPanel();
 		addToDesktopPane();
