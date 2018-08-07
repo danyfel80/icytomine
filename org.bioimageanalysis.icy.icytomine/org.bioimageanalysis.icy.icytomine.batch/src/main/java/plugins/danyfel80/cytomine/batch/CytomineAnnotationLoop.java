@@ -1,6 +1,7 @@
 package plugins.danyfel80.cytomine.batch;
 
 import java.awt.Dimension;
+import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -19,6 +20,7 @@ import org.bioimageanalysis.icy.icytomine.core.image.importer.TiledImageImporter
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
+import org.bioimageanalysis.icy.icytomine.core.view.converters.MagnitudeResolutionConverter;
 
 import icy.sequence.Sequence;
 import plugins.adufour.blocks.lang.Loop;
@@ -149,10 +151,11 @@ public class CytomineAnnotationLoop extends Loop {
 
 	private Rectangle2D getCurrentAnnotationPaddedBounds() {
 		Rectangle2D annotationBounds = getCurrentAnnotationBounds();
-		Rectangle2D annotationPaddedBounds = new Rectangle2D.Double(annotationBounds.getX() - targetPaddingSize.getWidth(),
-				annotationBounds.getY() - targetPaddingSize.getHeight(),
-				annotationBounds.getWidth() + 2 * targetPaddingSize.getWidth(),
-				annotationBounds.getHeight() + 2 * targetPaddingSize.getHeight());
+		Dimension2D targetPaddinSizeAtResolutionZero = MagnitudeResolutionConverter.convertDimension2D(targetPaddingSize, targetResolution, 0);
+		Rectangle2D annotationPaddedBounds = new Rectangle2D.Double(annotationBounds.getX() - targetPaddinSizeAtResolutionZero.getWidth(),
+				annotationBounds.getY() - targetPaddinSizeAtResolutionZero.getHeight(),
+				annotationBounds.getWidth() + 2 * targetPaddinSizeAtResolutionZero.getWidth(),
+				annotationBounds.getHeight() + 2 * targetPaddinSizeAtResolutionZero.getHeight());
 
 		return annotationPaddedBounds;
 	}
