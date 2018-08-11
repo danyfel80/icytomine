@@ -13,8 +13,8 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
@@ -27,6 +27,7 @@ import org.bioimageanalysis.icy.icytomine.ui.core.viewer.controller.view.provide
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Polygon;
 
 public class CachedViewController implements ViewController {
 
@@ -93,14 +94,31 @@ public class CachedViewController implements ViewController {
 		viewCanvasPanel.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				selectAnnotationAt(e.getPoint());
+				if (!e.isControlDown()) {
+					selectAnnotationAt(e.getPoint());
+				} else {
+					toggleAnnotationAt(e.getPoint());
+				}
+			}
+		});
+		viewCanvasPanel.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				if (lastDragStartPositionInView != null && e.isShiftDown()) {
+					selectAnnotationsInArea(lastDragStartPositionInView, e.getPoint());
+				}
+				clearMouseDrag();
 			}
 		});
 
 		viewCanvasPanel.addMouseMotionListener(new MouseAdapter() {
 			@Override
 			public void mouseDragged(MouseEvent e) {
-				mouseDragTo(e.getPoint());
+				if ((e.getModifiersEx() & MouseEvent.SHIFT_DOWN_MASK) == MouseEvent.SHIFT_DOWN_MASK) {
+					mouseSelectTo(e.getPoint());
+				} else {
+					mouseDragTo(e.getPoint());
+				}
 			}
 
 			@Override
@@ -150,6 +168,11 @@ public class CachedViewController implements ViewController {
 		lastDragStartPositionInImage.setLocation(viewPositionAt0Resolution);
 	}
 
+	private void mouseSelectTo(Point position) {
+		viewCanvasPanel.setSelectionBox(lastDragStartPositionInView, position);
+		viewCanvasPanel.updateCanvas();
+	}
+
 	private void mouseDragTo(Point position) {
 		moveViewBy(lastDragStartPositionInView.getX() - position.getX(),
 				lastDragStartPositionInView.getY() - position.getY());
@@ -191,7 +214,7 @@ public class CachedViewController implements ViewController {
 		refreshView();
 	}
 
-	private Point2D getCursorPositionOnImageAtZeroResolution(Point position) {
+	private Point2D getCursorPositionOnImageAtZeroResolution(Point2D position) {
 		Point2D positionInViewAtZeroResolution = MagnitudeResolutionConverter.convertPoint2D(position, resolutionLevel, 0d);
 		return new Point2D.Double(viewPositionAt0Resolution.getX() + positionInViewAtZeroResolution.getX(),
 				viewPositionAt0Resolution.getY() + positionInViewAtZeroResolution.getY());
@@ -206,28 +229,96 @@ public class CachedViewController implements ViewController {
 	}
 
 	private void selectAnnotationAt(Point displayPoint) {
-		Point2D imagePosition = getCursorPositionOnImageAtZeroResolution(displayPoint);
-		GeometryFactory facto = new GeometryFactory();
-		com.vividsolutions.jts.geom.Point imagePositionGeometry = facto
-				.createPoint(new Coordinate(imagePosition.getX(), imageInformation.getSizeY().get() - imagePosition.getY()));
-		Set<Annotation> activeAnnotations = getActiveAnnotations();
-		Optional<Annotation> annotation = activeAnnotations.stream()
-				/* .filter(a -> a.getApproximativeBounds().contains(imagePosition)) */.filter(a -> {
-					Geometry bigGeometry = a.getGeometryAtZeroResolution(false);
-					boolean contains = bigGeometry.covers(imagePositionGeometry);
-					return contains;
-				}).findFirst();
-
-		if (annotation.isPresent()) {
-			Set<Annotation> selectedAnnotationSet = new HashSet<>();
-			selectedAnnotationSet.add(annotation.get());
-			setSelectedAnnotations(selectedAnnotationSet);
-			notifyAnnotationSelection(selectedAnnotationSet);
+		Polygon imageArea = createImagePolygonAroundDisplayPoint(displayPoint, 4);
+		Set<Annotation> annotationsIntersecting = getAnnotationsIntersectingPolygon(imageArea);
+		Set<Annotation> selectedAnnotationSet = new HashSet<>();
+		if (!annotationsIntersecting.isEmpty()) {
+			selectedAnnotationSet.add(annotationsIntersecting.iterator().next());
 		}
+		setSelectedAnnotations(selectedAnnotationSet);
+		notifyAnnotationSelection(selectedAnnotationSet);
+	}
+
+	private Polygon createImagePolygonAroundDisplayPoint(Point2D displayPoint, double epsilon) {
+		Point2D imagePoint = getCursorPositionOnImageAtZeroResolution(displayPoint);
+		double imageEpsilon = MagnitudeResolutionConverter.convertMagnitude(epsilon, resolutionLevel, 0d);
+		Coordinate[] imageAreaCoordinates = new Coordinate[] {
+				new Coordinate(imagePoint.getX() - imageEpsilon,
+						imageInformation.getSizeY().get() - imagePoint.getY() - imageEpsilon),
+				new Coordinate(imagePoint.getX() + imageEpsilon,
+						imageInformation.getSizeY().get() - imagePoint.getY() - imageEpsilon),
+				new Coordinate(imagePoint.getX() + imageEpsilon,
+						imageInformation.getSizeY().get() - imagePoint.getY() + imageEpsilon),
+				new Coordinate(imagePoint.getX() - imageEpsilon,
+						imageInformation.getSizeY().get() - imagePoint.getY() + imageEpsilon),
+				new Coordinate(imagePoint.getX() - imageEpsilon,
+						imageInformation.getSizeY().get() - imagePoint.getY() - imageEpsilon)};
+		GeometryFactory factory = new GeometryFactory();
+		Polygon imageArea = factory.createPolygon(imageAreaCoordinates);
+		return imageArea;
+	}
+
+	private Set<Annotation> getAnnotationsIntersectingPolygon(Polygon imageArea) {
+		Set<Annotation> activeAnnotations = getActiveAnnotations();
+		Set<Annotation> intersectingAnnotations = activeAnnotations.stream().filter(a -> {
+			Geometry bigGeometry = a.getGeometryAtZeroResolution(false);
+			boolean contains = bigGeometry.intersects(imageArea);
+			return contains;
+		}).collect(Collectors.toSet());
+		return intersectingAnnotations;
 	}
 
 	private void notifyAnnotationSelection(Set<Annotation> selectedAnnotationSet) {
 		annotationSelectionListener.forEach(listener -> listener.selectionChanged(selectedAnnotationSet));
+	}
+
+	private void toggleAnnotationAt(Point displayPoint) {
+		Polygon imageArea = createImagePolygonAroundDisplayPoint(displayPoint, 4);
+		Set<Annotation> annotationsIntersecting = getAnnotationsIntersectingPolygon(imageArea);
+		Set<Annotation> newAnnotationSelection = new HashSet<>(getSelectedAnnotations());
+		if (!annotationsIntersecting.isEmpty()) {
+			Annotation targetAnnotation = annotationsIntersecting.iterator().next();
+			if (newAnnotationSelection.contains(targetAnnotation)) {
+				newAnnotationSelection.remove(targetAnnotation);
+			} else {
+				newAnnotationSelection.add(targetAnnotation);
+			}
+		}
+
+		setSelectedAnnotations(newAnnotationSelection);
+		notifyAnnotationSelection(newAnnotationSelection);
+	}
+
+	private void selectAnnotationsInArea(Point2D point1, Point2D point2) {
+		System.out.format("Selection on box from %s to %s\n", point1, point2);
+		viewCanvasPanel.unsetSelectionBox();
+		Polygon imageArea = createImageRectangularPolygonFromTwoPoints(point1, point2);
+		Set<Annotation> annotationsIntersecting = getAnnotationsIntersectingPolygon(imageArea);
+		setSelectedAnnotations(annotationsIntersecting);
+		notifyAnnotationSelection(annotationsIntersecting);
+		refreshView();
+	}
+
+	private Polygon createImageRectangularPolygonFromTwoPoints(Point2D displayPoint1, Point2D displayPoint2) {
+		Point2D imagePoint1 = getCursorPositionOnImageAtZeroResolution(displayPoint1);
+		Point2D imagePoint2 = getCursorPositionOnImageAtZeroResolution(displayPoint2);
+		Point2D minPoint = new Point2D.Double(Math.min(imagePoint1.getX(), imagePoint2.getX()),
+				Math.min(imageInformation.getSizeY().get() - imagePoint1.getY(),
+						imageInformation.getSizeY().get() - imagePoint2.getY()));
+		Point2D maxPoint = new Point2D.Double(Math.max(imagePoint1.getX(), imagePoint2.getX()),
+				Math.max(imageInformation.getSizeY().get() - imagePoint1.getY(),
+						imageInformation.getSizeY().get() - imagePoint2.getY()));
+
+		Coordinate[] imageAreaCoordinates = new Coordinate[] {new Coordinate(minPoint.getX(), minPoint.getY()),
+				new Coordinate(maxPoint.getX(), minPoint.getY()), new Coordinate(maxPoint.getX(), maxPoint.getY()),
+				new Coordinate(minPoint.getX(), maxPoint.getY()), new Coordinate(minPoint.getX(), minPoint.getY())};
+		GeometryFactory factory = new GeometryFactory();
+		Polygon imageArea = factory.createPolygon(imageAreaCoordinates);
+		return imageArea;
+	}
+
+	private void clearMouseDrag() {
+		lastDragStartPositionInView = null;
 	}
 
 	@Override
@@ -342,6 +433,10 @@ public class CachedViewController implements ViewController {
 	@Override
 	public ViewProvider getViewProvider() {
 		return viewCanvasPanel.getViewProvider();
+	}
+
+	public Set<Annotation> getSelectedAnnotations() {
+		return viewCanvasPanel.getViewProvider().getSelectedAnnotations();
 	}
 
 	@Override
