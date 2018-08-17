@@ -19,18 +19,22 @@
 package plugins.danyfel80.icytomine;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import org.bioimageanalysis.icy.icytomine.command.CommandProcessor;
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.connection.persistence.Preferences;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ExplorerFrame;
+import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImagePanel.ImageSelectionListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.login.LoginFrame;
 import org.bioimageanalysis.icy.icytomine.ui.core.login.LoginPanelController.LoginListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.viewer.ViewerFrame;
 
-import be.cytomine.client.CytomineException;
 import icy.gui.dialog.MessageDialog;
+import icy.gui.frame.IcyFrameAdapter;
+import icy.gui.frame.IcyFrameEvent;
 import icy.main.Icy;
 import icy.plugin.abstract_.PluginActionable;
 
@@ -83,13 +87,7 @@ public class IcytomineExplorer extends PluginActionable {
 				System.out.println("Logged in as " + username);
 				ExplorerFrame explorerFrame = new ExplorerFrame();
 				explorerFrame.setClient(client);
-				explorerFrame.addOpenViewerListener(imageInformation -> {
-					try {
-						openViewer(imageInformation);
-					} catch (CytomineException e) {
-						throw new RuntimeException(e);
-					}
-				});
+				explorerFrame.addOpenViewerListener(getViewerOpenRequestHandler());
 				explorerFrame.setVisible(true);
 				loginFrame.setVisible(false);
 				loginFrame.dispose();
@@ -100,15 +98,34 @@ public class IcytomineExplorer extends PluginActionable {
 		};
 	}
 
-	private void openViewer(Image imageInformation) throws CytomineException {
-		ViewerFrame viewer = createViewerFrame(imageInformation);
-		viewer.setVisible(true);
+	private ImageSelectionListener getViewerOpenRequestHandler() {
+		return imageInformation -> {
+			ViewerFrame viewer = openViewer();
+			Future<Void> futureLoad = startLoadingImageOnViewer(viewer, imageInformation);
+			viewer.addFrameListener(new IcyFrameAdapter() {
+				@Override
+				public void icyFrameClosed(IcyFrameEvent e) {
+					futureLoad.cancel(true);
+				}
+			});
+		};
 	}
 
-	private ViewerFrame createViewerFrame(Image imageInstance) throws CytomineException {
+	private ViewerFrame openViewer() {
 		ViewerFrame viewer = new ViewerFrame();
-		viewer.setImageInstance(imageInstance);
+		viewer.setVisible(true);
 		return viewer;
+	}
+
+	private Future<Void> startLoadingImageOnViewer(ViewerFrame viewer, Image imageInformation) {
+		return CompletableFuture.runAsync(() -> {
+			try {
+				viewer.setImageInstance(imageInformation);
+			} catch (RuntimeException e) {
+				MessageDialog.showDialog("Icytomine - Error loading image", e.getMessage(), MessageDialog.ERROR_MESSAGE);
+				e.printStackTrace();
+			}
+		});
 	}
 
 }
