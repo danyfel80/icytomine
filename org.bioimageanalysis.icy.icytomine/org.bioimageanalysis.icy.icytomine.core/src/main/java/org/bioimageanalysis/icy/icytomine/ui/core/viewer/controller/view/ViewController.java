@@ -16,7 +16,7 @@ public interface ViewController {
 	void addResolutionListener(ResolutionListener listener);
 
 	void addCursorPositionListener(PositionListener listener);
-	
+
 	void addAnnotationSelectionListener(AnnotationSelectionListener listener);
 
 	void zoomIn();
@@ -40,7 +40,7 @@ public interface ViewController {
 	Set<Annotation> getActiveAnnotations();
 
 	void setSelectedAnnotations(Set<Annotation> selectedAnnotations);
-	
+
 	Rectangle2D getCurrentViewBoundsAtZeroResolution();
 
 	double getCurrentResolution();
@@ -49,6 +49,6 @@ public interface ViewController {
 
 	void focusOnAnnotation(Annotation a);
 
-	void updateAnnotations() throws CytomineClientException;
+	void updateAnnotations(boolean downloadAgain) throws CytomineClientException;
 
 }

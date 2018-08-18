@@ -85,6 +85,7 @@ public class IcyFolderToCytominePanelController {
 		if (sequences == null || sequences.isEmpty()) {
 			MessageDialog.showDialog("Send annotations to Cytomine", "No sequences selected", MessageDialog.ERROR_MESSAGE);
 		} else {
+			panel.getSendButton().setEnabled(false);
 			transferService = Executors.newSingleThreadExecutor();
 			transferService.submit(getTransferHandler(sequences));
 			transferService.shutdown();
@@ -95,7 +96,7 @@ public class IcyFolderToCytominePanelController {
 		return () -> {
 			try {
 				List<Annotation> createdAnnotations = new LinkedList<>();
-				for (Sequence sequence : sequences) {
+				for (Sequence sequence: sequences) {
 					RoiAnnotationSender sender = new RoiAnnotationSender(viewController.getImageInformation(), sequence, false);
 					sender.addProgressListener(getProgressUpdateHandler());
 					createdAnnotations.addAll(sender.send());
@@ -104,6 +105,8 @@ public class IcyFolderToCytominePanelController {
 				notifySuccess(createdAnnotations);
 			} catch (Exception e) {
 				notifyFailure(e);
+			} finally {
+				panel.getSendButton().setEnabled(true);
 			}
 		};
 	}
@@ -124,11 +127,10 @@ public class IcyFolderToCytominePanelController {
 	private void notifySuccess(List<Annotation> createdAnnotations) {
 		try {
 			Thread.sleep(100);
-		} catch (InterruptedException e) {
-		}
+		} catch (InterruptedException e) {}
 		setProgress(0);
 		try {
-			viewController.getViewProvider().updateAnnotations();
+			viewController.getViewProvider().updateAnnotations(false);
 			viewController.refreshView();
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -173,8 +175,7 @@ public class IcyFolderToCytominePanelController {
 		closeListeners.forEach(l -> l.actionPerformed(null));
 	}
 
-	private void setDisplayInformation() {
-	}
+	private void setDisplayInformation() {}
 
 	public void addCloseListener(ActionListener listener) {
 		closeListeners.add(listener);

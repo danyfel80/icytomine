@@ -21,6 +21,7 @@ package org.bioimageanalysis.icy.icytomine.geom;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -60,7 +61,8 @@ public class GeometricHash<T> {
 		this.rows = rows;
 
 		this.cells = new ArrayList<>((columns + 2) * (rows + 2));
-		IntStream.range(0, (columns + 2) * (rows + 2)).forEach(i -> this.cells.add(new HashSet<>()));
+		IntStream.range(0, (columns + 2) * (rows + 2))
+				.forEach(i -> this.cells.add(Collections.synchronizedSet(new HashSet<>())));
 	}
 
 	/**
@@ -312,7 +314,7 @@ public class GeometricHash<T> {
 	 * Remove all objects in all cells.
 	 */
 	public void clear() {
-		for (Set<T> cell : cells) {
+		for (Set<T> cell: cells) {
 			cell.clear();
 		}
 	}

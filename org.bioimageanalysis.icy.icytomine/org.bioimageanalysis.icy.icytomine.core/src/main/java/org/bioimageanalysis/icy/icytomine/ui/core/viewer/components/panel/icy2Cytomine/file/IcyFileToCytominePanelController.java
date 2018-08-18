@@ -75,6 +75,7 @@ public class IcyFileToCytominePanelController {
 		if (sequence == null) {
 			MessageDialog.showDialog("Send annotations to Cytomine", "No sequence selected", MessageDialog.ERROR_MESSAGE);
 		} else {
+			panel.getSendButton().setEnabled(false);
 			transferService = Executors.newSingleThreadExecutor();
 			transferService.submit(getTransferHandler(sequence));
 			transferService.shutdown();
@@ -91,6 +92,9 @@ public class IcyFileToCytominePanelController {
 				notifySuccess(createdAnnotations);
 			} catch (Exception e) {
 				notifyFailure(e);
+			}
+			finally {
+				panel.getSendButton().setEnabled(true);
 			}
 		};
 	}
@@ -115,7 +119,7 @@ public class IcyFileToCytominePanelController {
 		}
 		setProgress(0);
 		try {
-			viewController.getViewProvider().updateAnnotations();
+			viewController.getViewProvider().updateAnnotations(false);
 			viewController.refreshView();
 		} catch (Exception e) {
 			e.printStackTrace();

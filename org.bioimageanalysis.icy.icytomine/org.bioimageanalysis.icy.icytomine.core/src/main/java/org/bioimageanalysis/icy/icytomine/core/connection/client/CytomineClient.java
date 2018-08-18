@@ -29,11 +29,12 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bioimageanalysis.icy.icytomine.core.model.Annotation;
 import org.bioimageanalysis.icy.icytomine.core.model.AnnotationTerm;
 import org.bioimageanalysis.icy.icytomine.core.model.Description;
-import org.bioimageanalysis.icy.icytomine.core.model.Entity;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Ontology;
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
@@ -49,6 +50,7 @@ import org.bioimageanalysis.icy.icytomine.core.model.cache.TermCache;
 import org.bioimageanalysis.icy.icytomine.core.model.cache.UserCache;
 import org.bioimageanalysis.icy.icytomine.core.model.key.DescriptionId;
 import org.bioimageanalysis.icy.icytomine.geom.WKTUtils;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import be.cytomine.client.Cytomine;
@@ -535,12 +537,19 @@ public class CytomineClient implements AutoCloseable {
 					String.format("Could not download full image annotations (image instance id=%d)", imageInstanceId), e);
 		}
 
-		List<Annotation> annotations = new ArrayList<>(annotationCollection.size());
-		for (int i = 0; i < annotationCollection.size(); i++) {
-			Annotation annotation = new Annotation(this, annotationCollection.get(i));
-			getAnnotationCache().store(annotation.getId(), annotation);
-			annotations.add(annotation);
-		}
+		return convertAnnotationCollectionToAnnotationList(annotationCollection);
+	}
+
+	private List<Annotation> convertAnnotationCollectionToAnnotationList(AnnotationCollection annotationCollection) {
+		@SuppressWarnings("unchecked")
+		List<Annotation> annotations = ((Stream<Object>) annotationCollection.getList().parallelStream()).map(element -> {
+			be.cytomine.client.models.Annotation nativeAnnotation = new be.cytomine.client.models.Annotation();
+			nativeAnnotation.setAttr((JSONObject) element);
+			Annotation annotation = new Annotation(this, nativeAnnotation);
+			return annotation;
+		}).collect(Collectors.toList());
+
+		annotations.stream().forEach(a -> getAnnotationCache().store(a.getId(), a));
 
 		return annotations;
 	}
@@ -550,7 +559,7 @@ public class CytomineClient implements AutoCloseable {
 		filters.put("image", String.valueOf(imageInstanceId));
 		filters.put("showMeta", "true");
 		filters.put("showWKT", "true");
-		filters.put("showGIS", "true");
+		//filters.put("showGIS", "true");
 		filters.put("showTerm", "true");
 		return filters;
 	}
@@ -594,7 +603,7 @@ public class CytomineClient implements AutoCloseable {
 		return annotation;
 	}
 
-	private Annotation downloadAnnotation(long annotationId) throws CytomineClientException {
+	public Annotation downloadAnnotation(long annotationId) throws CytomineClientException {
 		be.cytomine.client.models.Annotation annotation;
 		try {
 			annotation = getInternalClient().getAnnotation(annotationId);
@@ -660,9 +669,9 @@ public class CytomineClient implements AutoCloseable {
 		return annotation;
 	}
 
-	public void associateTerms(Entity annotation, Map<Term, Boolean> termSelection) throws CytomineClientException {
+	public void associateTerms(Annotation annotation, Map<Term, Boolean> termSelection) throws CytomineClientException {
 		try {
-			for (Entry<Term, Boolean> entry : termSelection.entrySet()) {
+			for (Entry<Term, Boolean> entry: termSelection.entrySet()) {
 				if (entry.getValue()) {
 					getInternalClient().addAnnotationTerm(annotation.getId(), entry.getKey().getId());
 				} else {
@@ -732,6 +741,15 @@ public class CytomineClient implements AutoCloseable {
 		TermCache.getCacheManager().removeCache(termCache.getCacheAlias());
 		ImageInstanceCache.getCacheManager().removeCache(imageInstanceCache.getCacheAlias());
 		AnnotationCache.getCacheManager().removeCache(annotationCache.getCacheAlias());
+	}
+
+	public JSONArray getAnnotationUsersByTerm(Annotation annotation) throws CytomineException {
+		try {
+			return getInternalClient().getTermsByAnnotation(annotation.getId()).getList();
+		} catch (CytomineException e) {
+			throw new CytomineClientException(
+					String.format("Could not retrieve annotation %d termUsers", annotation.getId()), e);
+		}
 	}
 
 }

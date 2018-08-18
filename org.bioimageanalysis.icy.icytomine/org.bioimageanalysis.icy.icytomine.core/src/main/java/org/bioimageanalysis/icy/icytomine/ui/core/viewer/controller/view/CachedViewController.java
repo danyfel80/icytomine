@@ -470,7 +470,7 @@ public class CachedViewController implements ViewController {
 	}
 
 	@Override
-	public void updateAnnotations() throws CytomineClientException {
-		getViewProvider().updateAnnotations();
+	public void updateAnnotations(boolean downloadAgain) throws CytomineClientException {
+		getViewProvider().updateAnnotations(downloadAgain);
 	}
 }

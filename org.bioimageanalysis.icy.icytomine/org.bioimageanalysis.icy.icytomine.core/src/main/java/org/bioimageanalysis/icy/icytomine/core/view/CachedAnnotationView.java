@@ -102,16 +102,23 @@ public class CachedAnnotationView {
 		}
 	}
 
-	private void retrieveAnnotations(boolean recompute) throws CytomineClientException {
-		annotations = null;
-		annotations = imageInformation.getAnnotationsWithGeometry(recompute);
+	private void retrieveAnnotations(boolean downloadAgain) throws CytomineClientException {
+		if (downloadAgain) {
+			System.out.print("Downloading annotations...");
+		} else {
+			System.out.print("Refreshing annotations...");
+		}
+		long start = System.currentTimeMillis();
+		annotations = imageInformation.getAnnotationsWithGeometry(downloadAgain);
 		buildGeometricHash();
+		long annotationsTime = System.currentTimeMillis() - start;
+		System.out.format("%d milliseconds\n", annotationsTime);
 	}
 
 	private void buildGeometricHash() {
 		Rectangle imageBounds = new Rectangle(imageInformation.getSize().get());
 		annotationHash = new GeometricHash<>(imageBounds, Math.max(1, annotations.size()));
-		annotations.forEach(a -> {
+		annotations.parallelStream().forEach(a -> {
 			try {
 				Rectangle2D bounds = a.getYAdjustedApproximativeBounds();
 				annotationHash.addObjectAt(a, bounds);
@@ -397,8 +404,8 @@ public class CachedAnnotationView {
 		requestCurrentView(canvasSize);
 	}
 
-	public void updateModel() throws CytomineClientException {
-		retrieveAnnotations(true);
+	public void updateModel(boolean downloadAgain) throws CytomineClientException {
+		retrieveAnnotations(downloadAgain);
 		fillVisibleAnnotations();
 	}
 

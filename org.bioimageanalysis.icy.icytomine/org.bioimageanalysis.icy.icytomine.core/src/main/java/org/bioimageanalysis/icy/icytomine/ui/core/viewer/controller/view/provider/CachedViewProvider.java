@@ -79,8 +79,8 @@ public class CachedViewProvider extends ViewProvider {
 	}
 	
 	@Override
-	public void updateAnnotations() throws CytomineClientException {
-		annotationView.updateModel();
+	public void updateAnnotations(boolean downloadAgain) throws CytomineClientException {
+		annotationView.updateModel(downloadAgain);
 	}
 
 	@Override

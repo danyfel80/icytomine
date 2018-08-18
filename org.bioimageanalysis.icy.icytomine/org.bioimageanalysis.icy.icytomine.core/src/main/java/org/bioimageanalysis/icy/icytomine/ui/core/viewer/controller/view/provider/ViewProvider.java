@@ -76,5 +76,5 @@ public abstract class ViewProvider {
 
 	public abstract Set<Annotation> getSelectedAnnotations();
 
-	public abstract void updateAnnotations() throws CytomineClientException;
+	public abstract void updateAnnotations(boolean downloadAgain) throws CytomineClientException;
 }

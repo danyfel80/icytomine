@@ -92,8 +92,8 @@ public class Annotation extends Entity {
 	public Rectangle2D getYAdjustedBounds() {
 		if (adjustedBounds == null) {
 			Envelope envelope = getGeometryAtZeroResolution(false).getEnvelopeInternal();
-			adjustedBounds = new Rectangle2D.Double(envelope.getMinX(),
-					getImage().getSizeY().get() - envelope.getMaxY(), envelope.getWidth(), envelope.getHeight());
+			adjustedBounds = new Rectangle2D.Double(envelope.getMinX(), getImage().getSizeY().get() - envelope.getMaxY(),
+					envelope.getWidth(), envelope.getHeight());
 			if (adjustedBounds.isEmpty()) {
 				adjustedBounds = new Rectangle2D.Double(adjustedBounds.getX() - Double.MIN_VALUE,
 						adjustedBounds.getY() - Double.MIN_VALUE, Double.MIN_VALUE, Double.MIN_VALUE);
@@ -143,7 +143,7 @@ public class Annotation extends Entity {
 	}
 
 	private Geometry getSimplifiedGeometry(double pixelTolerance) throws CytomineClientException {
-		pixelTolerance = pixelTolerance > 0 ? pixelTolerance : 0;
+		pixelTolerance = pixelTolerance > 0? pixelTolerance: 0;
 		Geometry baseGeometry = getGeometryAtZeroResolution(false);
 		if (baseGeometry == null)
 			throw new CytomineClientException(String.format("Null base geometry (annotation id=%d)", getId()));
@@ -231,21 +231,32 @@ public class Annotation extends Entity {
 		return getTermUsers().keySet().stream().map(id -> getClient().getTerm(id)).collect(Collectors.toSet());
 	}
 
+	@SuppressWarnings("unchecked")
 	private Map<Long, Set<Long>> getTermUsers() throws CytomineClientException {
 		if (termUsers == null) {
 			try {
 				termUsers = new HashMap<>();
 				JSONArray termUsersArray = (JSONArray) getInternalAnnotation().get("userByTerm");
-				for (Object tObject : termUsersArray) {
+				if (termUsersArray == null) {
+					termUsersArray = getClient().getAnnotationUsersByTerm(this);
+				}
+				for (Object tObject: termUsersArray) {
 					JSONObject termUser = (JSONObject) tObject;
 					long termId = (Long) termUser.get("term");
 					termUsers.putIfAbsent(termId, new HashSet<>());
-					JSONArray userIds = (JSONArray) termUser.get("user");
-					for (Object uObject : userIds) {
+					JSONArray userIds;
+					try {
+						userIds = (JSONArray) termUser.get("user");
+					} catch (ClassCastException e) {
+						userIds = new JSONArray();
+						userIds.add(termUser.get("user"));
+					}
+					for (Object uObject: userIds) {
 						long userId = (Long) uObject;
 						termUsers.get(termId).add(userId);
 					}
 				}
+
 			} catch (Exception e) {
 				throw new CytomineClientException(String.format("Could not create term users map for annotation %d", getId()),
 						e);
@@ -277,8 +288,8 @@ public class Annotation extends Entity {
 	}
 
 	private void updateModel() {
-		Annotation updatedAnnotation = getClient().getAnnotation(this.getId());
-		setModel(updatedAnnotation.getInternalAnnotation());
+		Annotation newModel = getClient().downloadAnnotation(getId());
+		getInternalAnnotation().setAttr(newModel.getInternalAnnotation().getAttr());
 		this.termUsers = null;
 		this.annotationTerms = null;
 	}

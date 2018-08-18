@@ -107,20 +107,23 @@ public class ViewerPanelController {
 			AnnotationManagerPanel annotationsPanel = new AnnotationManagerPanel(viewController.getImageInformation());
 			annotationsPanel.addAnnotationsVisibilityListener(
 					(Set<Annotation> newVisibleAnnotations) -> viewController.setVisibileAnnotations(newVisibleAnnotations));
-			annotationsPanel.addAnnotationSelectionListener(
-					(Set<Annotation> selectedAnnotations) -> viewController.setSelectedAnnotations(selectedAnnotations));
+			AnnotationSelectionListener selectionListener = (Set<Annotation> selectedAnnotations) -> viewController
+					.setSelectedAnnotations(selectedAnnotations);
+			annotationsPanel.addAnnotationSelectionListener(selectionListener);
 			annotationsPanel.addAnnotationDoubleClickListener((Annotation a) -> viewController.focusOnAnnotation(a));
 			annotationsPanel.addAnnotationTermSelectionCommitListener(getAnnotationTermCommitHandler(annotationsPanel));
 			annotationsPanel.addAnnonationDeletionListener(getAnnotationDeletionHandler(annotationsPanel));
 			annotationsFrame = createIcyDialog("Annotations - Icytomine", annotationsPanel, true);
 			annotationsFrame.setSize(new Dimension(400, 400));
+			// set elements already selected
+			selectionListener.selectionChanged(viewController.getViewProvider().getSelectedAnnotations());
 			annotationsFrame.setVisible(true);
 		};
 	}
 
 	private AnnotationTermCommitListener getAnnotationTermCommitHandler(AnnotationManagerPanel annotationsPanel) {
 		return (Set<Annotation> annotations) -> {
-			viewController.updateAnnotations();
+			viewController.updateAnnotations(false);
 			annotationsPanel.updateAnnotations();
 			viewController.refreshView();
 		};
@@ -128,7 +131,7 @@ public class ViewerPanelController {
 
 	private AnnotationDeletionListener getAnnotationDeletionHandler(AnnotationManagerPanel annotationsPanel) {
 		return annotations -> {
-			viewController.updateAnnotations();
+			viewController.updateAnnotations(false);
 			annotationsPanel.updateAnnotations();
 			viewController.refreshView();
 		};
@@ -136,7 +139,7 @@ public class ViewerPanelController {
 
 	private ActionListener getAnnotationRefreshMenuHandler() {
 		return event -> {
-			viewController.updateAnnotations();
+			viewController.updateAnnotations(true);
 			viewController.refreshView();
 		};
 	}
@@ -149,6 +152,7 @@ public class ViewerPanelController {
 		frame.setSize(contentPane.getPreferredSize());
 		frame.addToDesktopPane();
 		frame.center();
+		frame.setAlwaysOnTop(true);
 		return frame;
 	}
 
