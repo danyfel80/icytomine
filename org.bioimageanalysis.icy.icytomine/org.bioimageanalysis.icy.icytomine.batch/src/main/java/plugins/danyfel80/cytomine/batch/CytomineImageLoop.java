@@ -39,12 +39,14 @@ public class CytomineImageLoop extends Loop {
 	private VarInteger resolutionLevelVar;
 	private VarRectangle loadedAreaVar;
 	private VarDimension tileSizeVar;
+	private VarDimension tileMarginVar;
 	private VarBoolean loadAnnotationsVar;
 
 	private Image targetImageInstance;
 	private Rectangle targetArea;
 	private int targetResolution;
 	private Dimension tileDimensionAtZeroResolution;
+	private Dimension tileMarginAtZeroResolution;
 	private Rectangle tileGridBounds;
 	private int numberOfTiles;
 	private boolean loadAnnotations;
@@ -76,6 +78,7 @@ public class CytomineImageLoop extends Loop {
 		resolutionLevelVar = new VarInteger("resolutionLevel", 0);
 		loadedAreaVar = new VarRectangle("Loaded area");
 		tileSizeVar = new VarDimension("Tile size");
+		tileMarginVar = new VarDimension("Tile margin");
 		loadAnnotationsVar = new VarBoolean("Load annotations", false);
 	}
 
@@ -84,13 +87,14 @@ public class CytomineImageLoop extends Loop {
 		inputMap.add(resolutionLevelVar.getName(), resolutionLevelVar);
 		inputMap.add(loadedAreaVar.getName(), loadedAreaVar);
 		inputMap.add(tileSizeVar.getName(), tileSizeVar);
+		inputMap.add(tileMarginVar.getName(), tileMarginVar);
 		inputMap.add(loadAnnotationsVar.getName(), loadAnnotationsVar);
 	}
 
 	@Override
 	public void declareOutput(VarList outputMap) {
 		super.declareOutput(outputMap);
-		for (Var<?> var : inputMap) {
+		for (Var<?> var: inputMap) {
 			outputMap.add(var.getName(), var);
 		}
 		currentTileSequenceVar = new VarSequence("Current sequence", null);
@@ -100,7 +104,7 @@ public class CytomineImageLoop extends Loop {
 
 	@Override
 	public void declareLoopVariables(List<Var<?>> loopVariables) {
-		for (Var<?> var : inputMap) {
+		for (Var<?> var: inputMap) {
 			loopVariables.add(var);
 		}
 		loopVariables.add(currentTileSequenceVar);
@@ -127,6 +131,16 @@ public class CytomineImageLoop extends Loop {
 		} else {
 			tileDimensionAtZeroResolution = new Dimension(targetImageInstance.getSizeX().get(),
 					targetImageInstance.getSizeY().get());
+		}
+
+		Dimension tileMargin = tileMarginVar.getValue();
+		if (tileMargin != null) {
+			Dimension2D tileMargin2DAtZeroResolution = MagnitudeResolutionConverter.convertDimension2D(tileMargin,
+					targetResolution, 0d);
+			tileMarginAtZeroResolution = new Dimension((int) Math.ceil(tileMargin2DAtZeroResolution.getWidth()),
+					(int) Math.ceil(tileMargin2DAtZeroResolution.getHeight()));
+		} else {
+			tileMarginAtZeroResolution = new Dimension(0, 0);
 		}
 
 		FixedTileCalculator calculator = new FixedTileCalculator(targetArea, new Point(targetArea.x, targetArea.y),
@@ -158,12 +172,15 @@ public class CytomineImageLoop extends Loop {
 
 	private void computeCurrentTileArea() {
 		double xPosition = targetArea.getMinX()
-				+ (currentTileIndex % tileGridBounds.width) * tileDimensionAtZeroResolution.getWidth();
+				+ (currentTileIndex % tileGridBounds.width) * tileDimensionAtZeroResolution.getWidth()
+				- tileMarginAtZeroResolution.getWidth();
 		double yPosition = targetArea.getMinY()
-				+ (currentTileIndex / tileGridBounds.width) * tileDimensionAtZeroResolution.getHeight();
-		currentTileArea = new Rectangle2D.Double(xPosition, yPosition, tileDimensionAtZeroResolution.getWidth(),
-				tileDimensionAtZeroResolution.getHeight()).createIntersection(targetArea)
-						.createIntersection(new Rectangle(targetImageInstance.getSize().get()));
+				+ (currentTileIndex / tileGridBounds.width) * tileDimensionAtZeroResolution.getHeight()
+				- tileMarginAtZeroResolution.getHeight();
+		currentTileArea = new Rectangle2D.Double(xPosition, yPosition,
+				tileDimensionAtZeroResolution.getWidth() + 2d * tileMarginAtZeroResolution.getWidth(),
+				tileDimensionAtZeroResolution.getHeight() + 2d * tileMarginAtZeroResolution.getHeight())
+						.createIntersection(targetArea).createIntersection(new Rectangle(targetImageInstance.getSize().get()));
 	}
 
 	private BufferedImage importTileArea(Rectangle2D tileArea) {
