@@ -53,6 +53,8 @@ import org.bioimageanalysis.icy.icytomine.geom.WKTUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.google.common.base.Objects;
+
 import be.cytomine.client.Cytomine;
 import be.cytomine.client.CytomineException;
 import be.cytomine.client.collections.AnnotationCollection;
@@ -60,6 +62,7 @@ import be.cytomine.client.collections.ImageInstanceCollection;
 import be.cytomine.client.collections.ProjectCollection;
 import be.cytomine.client.collections.TermCollection;
 import be.cytomine.client.collections.UserCollection;
+import be.cytomine.client.models.AbstractImage;
 import be.cytomine.client.models.ImageServers;
 
 /**
@@ -694,6 +697,49 @@ public class CytomineClient implements AutoCloseable {
 		}
 	}
 
+	public JSONArray getAnnotationUsersByTerm(Annotation annotation) throws CytomineException {
+		try {
+			return getInternalClient().getTermsByAnnotation(annotation.getId()).getList();
+		} catch (CytomineException e) {
+			throw new CytomineClientException(String.format("Could not retrieve annotation %d termUsers", annotation.getId()),
+					e);
+		}
+	}
+
+	public void updateImageMagnfication(Image image, Integer newMagnification) {
+		try {
+			AbstractImage abstractImage = getInternalClient().getAbstractImage(image.getAbstractImageId().get());
+			abstractImage.set("magnification", newMagnification);
+			AbstractImage newAbstractImage = getInternalClient().updateModel(abstractImage);
+			if (Objects.equal(newAbstractImage.getInt("magnification"), newMagnification)) {
+				image.getInternalImage().set("magnification", newAbstractImage.get("magnification"));
+			} else {
+				throw new CytomineClientException(String.format("You must be the original uploader of the image"));
+			}
+		} catch (Exception e) {
+			throw new CytomineClientException(
+					String.format("Could not set the magnification of the image %s to %sX. " + e.getMessage(), image.getId(),
+							newMagnification),
+					e);
+		}
+	}
+
+	public void updateImageResolution(Image image, Double newResolution) {
+		try {
+			AbstractImage abstractImage = getInternalClient().getAbstractImage(image.getAbstractImageId().get());
+			abstractImage.set("resolution", newResolution);
+			AbstractImage newAbstractImage = getInternalClient().updateModel(abstractImage);
+			if (Objects.equal(newAbstractImage.getDbl("resolution"), newResolution)) {
+				image.getInternalImage().set("resolution", newAbstractImage.get("resolution"));
+			} else {
+				throw new CytomineClientException(String.format("You must be the original uploader of the image"));
+			}
+		} catch (Exception e) {
+			throw new CytomineClientException(
+					String.format("Could not set the resolution of the image %s to %s mics/px", image.getId(), newResolution), e);
+		}
+	}
+
 	@Override
 	public String toString() {
 		return String.format("Cytomine client: host=%s, public key=%s", String.valueOf(getHost()),
@@ -741,15 +787,6 @@ public class CytomineClient implements AutoCloseable {
 		TermCache.getCacheManager().removeCache(termCache.getCacheAlias());
 		ImageInstanceCache.getCacheManager().removeCache(imageInstanceCache.getCacheAlias());
 		AnnotationCache.getCacheManager().removeCache(annotationCache.getCacheAlias());
-	}
-
-	public JSONArray getAnnotationUsersByTerm(Annotation annotation) throws CytomineException {
-		try {
-			return getInternalClient().getTermsByAnnotation(annotation.getId()).getList();
-		} catch (CytomineException e) {
-			throw new CytomineClientException(
-					String.format("Could not retrieve annotation %d termUsers", annotation.getId()), e);
-		}
 	}
 
 }

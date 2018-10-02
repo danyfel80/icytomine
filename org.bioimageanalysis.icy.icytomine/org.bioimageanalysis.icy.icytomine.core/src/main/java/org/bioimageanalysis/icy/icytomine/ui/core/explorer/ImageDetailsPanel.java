@@ -7,15 +7,10 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.image.BufferedImage;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -23,465 +18,425 @@ import javax.swing.JTextArea;
 import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 
-import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImageDetailsPanelController.ImageMagnificationChangeListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImageDetailsPanelController.ImageResolutionChangeListener;
 import org.ehcache.Cache;
 
 public class ImageDetailsPanel extends JPanel {
 	private static final long serialVersionUID = 6055883183949045447L;
-	private static final ImageIcon defaultIcon = new ImageIcon(
+	protected static final ImageIcon defaultIcon = new ImageIcon(
 			ImageDetailsPanel.class.getResource("/javax/swing/plaf/basic/icons/image-delayed.png"));
-	private Image currentImage;
 
 	private JScrollPane scrollPaneDetails;
-	private JPanel panelDetails;
-	private JTextArea lblImageFileName;
-	private JLabel lblPreview;
-	private JTextArea lblIdValue;
-	private JTextArea lblDimensionValue;
-	private JTextArea lblMagnificationValue;
-	private JTextArea lblAnnotationsAlgoValue;
-	private JTextArea lblAnnotationsUserValue;
-	private JTextArea lblSizeValue;
-	private JTextArea lblResolutionValue;
-	private JTextArea lblDepthValue;
-	private JTextArea lblDateCreationValue;
+	private JPanel imageDetailsPanel;
 
-	private ExecutorService previewExecutor;
-	private Cache<Long, BufferedImage> previewCache;
+	private JTextArea fileNameLabel;
+	private JLabel previewLabel;
+	private JTextArea imageIdTextArea;
+	private JTextArea imageDimensionTextArea;
+	private JTextArea imageMagnificationTextArea;
+	private JButton imageMagnificationEditButton;
+	private JTextArea numberOfAlgoAnnotationsTextArea;
+	private JTextArea numberOfUserAnnotationsTextArea;
+	private JTextArea imageSizeTextArea;
+	private JTextArea imageResolutionTextArea;
+	private JButton imageResolutionEditButton;
+	private JTextArea imageDepthTextArea;
+	private JTextArea imageCreationDateTextArea;
+
+	private ImageDetailsPanelController controller;
 
 	/**
 	 * Create the panel.
 	 */
 	public ImageDetailsPanel() {
+		setView();
+		setController();
+	}
+
+	private void setView() {
 		setMinimumSize(new Dimension(150, 300));
-		setPreferredSize(new Dimension(240, 400));
+		setPreferredSize(new Dimension(301, 400));
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 
+		addTitleLabel();
+		addImageDetailsPanel();
+	}
+
+	private void addTitleLabel() {
 		JLabel lblImageDetails = new JLabel("Image Details");
-		lblImageDetails.setAlignmentY(Component.TOP_ALIGNMENT);
-		lblImageDetails.setVerticalAlignment(SwingConstants.TOP);
 		lblImageDetails.setAlignmentX(Component.CENTER_ALIGNMENT);
-		lblImageDetails.setHorizontalAlignment(SwingConstants.CENTER);
 		lblImageDetails.setFont(new Font("Tahoma", Font.BOLD, 11));
 		add(lblImageDetails);
+	}
 
+	private void addImageDetailsPanel() {
 		scrollPaneDetails = new JScrollPane();
 		add(scrollPaneDetails);
 
-		panelDetails = new JPanel();
-		panelDetails.setBackground(UIManager.getColor("Panel.background"));
-		GridBagLayout gbl_panel = new GridBagLayout();
-		gbl_panel.columnWidths = new int[] { 40, 0 };
-		gbl_panel.rowHeights = new int[] { 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-		gbl_panel.columnWeights = new double[] { 0.0, 0.0 };
-		gbl_panel.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0 };
-		panelDetails.setLayout(gbl_panel);
-		scrollPaneDetails.setViewportView(panelDetails);
+		imageDetailsPanel = new JPanel();
+		imageDetailsPanel.setBackground(UIManager.getColor("Panel.background"));
+		GridBagLayout imageDetailsPanelLayout = new GridBagLayout();
+		imageDetailsPanelLayout.columnWidths = new int[] {40, 79, 45};
+		imageDetailsPanelLayout.rowHeights = new int[] {28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		imageDetailsPanelLayout.columnWeights = new double[] {0.0, 0.0, 0.0};
+		imageDetailsPanelLayout.rowWeights = new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+		imageDetailsPanel.setLayout(imageDetailsPanelLayout);
+		scrollPaneDetails.setViewportView(imageDetailsPanel);
 
-		lblImageFileName = new JTextArea("ImageFileName...longName");
-		lblImageFileName.setEditable(false);
-		lblImageFileName.setOpaque(false);
-		lblImageFileName.setLineWrap(true);
-		lblImageFileName.setFont(new Font("Tahoma", Font.BOLD, 15));
-		lblImageFileName.setBackground(UIManager.getColor("Panel.background"));
-		GridBagConstraints gbc_lblImageFileName = new GridBagConstraints();
-		gbc_lblImageFileName.fill = GridBagConstraints.BOTH;
-		gbc_lblImageFileName.gridwidth = 2;
-		gbc_lblImageFileName.insets = new Insets(10, 10, 10, 10);
-		gbc_lblImageFileName.gridx = 0;
-		gbc_lblImageFileName.gridy = 0;
-		panelDetails.add(lblImageFileName, gbc_lblImageFileName);
+		addImageTitle();
+		addImagePreview();
+		addImageID();
+		addImageDimension();
+		addImageMagnification();
+		addNumberOfAlgoAnnotations();
+		addNumberOfUserAnnotations();
+		addImageSize();
+		addImageResolution();
+		addImageDepth();
+		addImageCreationDate();
+	}
 
-		lblPreview = new JLabel("");
-		lblPreview.setDoubleBuffered(true);
-		lblPreview.setHorizontalTextPosition(SwingConstants.CENTER);
-		lblPreview.setMaximumSize(new Dimension(200, 200));
-		lblPreview.setVerticalTextPosition(SwingConstants.TOP);
-		lblPreview.setVerticalAlignment(SwingConstants.TOP);
-		lblPreview.setAlignmentX(Component.CENTER_ALIGNMENT);
-		lblPreview.setHorizontalAlignment(SwingConstants.CENTER);
-		lblPreview.setIcon(defaultIcon);
-		GridBagConstraints gbc_label = new GridBagConstraints();
-		gbc_label.fill = GridBagConstraints.BOTH;
-		gbc_label.gridwidth = 2;
-		gbc_label.insets = new Insets(0, 0, 5, 0);
-		gbc_label.gridx = 0;
-		gbc_label.gridy = 1;
-		panelDetails.add(lblPreview, gbc_label);
+	private void addImageTitle() {
+		fileNameLabel = new JTextArea("ImageFileName...longName");
+		fileNameLabel.setMinimumSize(new Dimension(80, 22));
+		fileNameLabel.setLineWrap(true);
+		fileNameLabel.setOpaque(false);
+		fileNameLabel.setFont(new Font("Tahoma", Font.BOLD, 15));
 
-		JLabel lblId = new JLabel("ID");
-		lblId.setFocusable(false);
-		lblId.setFont(new Font("Tahoma", Font.BOLD, 12));
-		lblId.setHorizontalAlignment(SwingConstants.RIGHT);
-		GridBagConstraints gbc_lblId = new GridBagConstraints();
-		gbc_lblId.fill = GridBagConstraints.BOTH;
-		gbc_lblId.insets = new Insets(0, 0, 5, 10);
-		gbc_lblId.gridx = 0;
-		gbc_lblId.gridy = 2;
-		panelDetails.add(lblId, gbc_lblId);
+		GridBagConstraints fileNameLabelConstraints = new GridBagConstraints(0, 0, 3, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(10, 10, 10, 10), 0, 0);
 
-		lblIdValue = new JTextArea("12345678");
-		lblIdValue.setEditable(false);
-		lblIdValue.setLineWrap(true);
-		lblIdValue.setWrapStyleWord(true);
-		lblIdValue.setOpaque(false);
-		lblIdValue.setBackground(UIManager.getColor("Panel.background"));
-		lblIdValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_lblIdValue = new GridBagConstraints();
-		gbc_lblIdValue.fill = GridBagConstraints.BOTH;
-		gbc_lblIdValue.insets = new Insets(0, 0, 5, 0);
-		gbc_lblIdValue.gridx = 1;
-		gbc_lblIdValue.gridy = 2;
-		panelDetails.add(lblIdValue, gbc_lblIdValue);
+		imageDetailsPanel.add(fileNameLabel, fileNameLabelConstraints);
 
-		JLabel lblDimension = new JLabel("Dimension");
-		lblDimension.setFocusable(false);
-		lblDimension.setHorizontalAlignment(SwingConstants.RIGHT);
-		lblDimension.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_lblDimension = new GridBagConstraints();
-		gbc_lblDimension.fill = GridBagConstraints.BOTH;
-		gbc_lblDimension.insets = new Insets(0, 0, 5, 10);
-		gbc_lblDimension.gridx = 0;
-		gbc_lblDimension.gridy = 3;
-		panelDetails.add(lblDimension, gbc_lblDimension);
+	}
 
-		lblDimensionValue = new JTextArea("12.35 x 12.35 \u00B5m");
-		lblDimensionValue.setEditable(false);
-		lblDimensionValue.setLineWrap(true);
-		lblDimensionValue.setWrapStyleWord(true);
-		lblDimensionValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		lblDimensionValue.setBackground(UIManager.getColor("Panel.background"));
-		lblDimensionValue.setOpaque(false);
-		GridBagConstraints gbc_lblDimensionValue = new GridBagConstraints();
-		gbc_lblDimensionValue.fill = GridBagConstraints.BOTH;
-		gbc_lblDimensionValue.insets = new Insets(0, 0, 5, 0);
-		gbc_lblDimensionValue.gridx = 1;
-		gbc_lblDimensionValue.gridy = 3;
-		panelDetails.add(lblDimensionValue, gbc_lblDimensionValue);
+	private void addImagePreview() {
+		previewLabel = new JLabel("");
+		previewLabel.setDoubleBuffered(true);
+		previewLabel.setMaximumSize(new Dimension(200, 200));
+		previewLabel.setVerticalAlignment(SwingConstants.TOP);
+		previewLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		previewLabel.setIcon(defaultIcon);
 
-		JLabel lblMagnifiation = new JLabel("Magnification");
-		lblMagnifiation.setFocusable(false);
-		lblMagnifiation.setHorizontalAlignment(SwingConstants.RIGHT);
-		lblMagnifiation.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_lblMagnification = new GridBagConstraints();
-		gbc_lblMagnification.fill = GridBagConstraints.BOTH;
-		gbc_lblMagnification.insets = new Insets(0, 0, 5, 10);
-		gbc_lblMagnification.gridx = 0;
-		gbc_lblMagnification.gridy = 4;
-		panelDetails.add(lblMagnifiation, gbc_lblMagnification);
+		GridBagConstraints previewLabelConstraints = new GridBagConstraints(0, 1, 3, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
 
-		lblMagnificationValue = new JTextArea("20X");
-		lblMagnificationValue.setEditable(false);
-		lblMagnificationValue.setLineWrap(true);
-		lblMagnificationValue.setWrapStyleWord(true);
-		lblMagnificationValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		lblMagnificationValue.setOpaque(false);
-		GridBagConstraints gbc_lblMagnificationValue = new GridBagConstraints();
-		gbc_lblMagnificationValue.fill = GridBagConstraints.BOTH;
-		gbc_lblMagnificationValue.insets = new Insets(0, 0, 5, 0);
-		gbc_lblMagnificationValue.gridx = 1;
-		gbc_lblMagnificationValue.gridy = 4;
-		panelDetails.add(lblMagnificationValue, gbc_lblMagnificationValue);
+		imageDetailsPanel.add(previewLabel, previewLabelConstraints);
+	}
 
-		JLabel lblAnnotationsAlgo = new JLabel("<html>Annotations<br>(Algorithms)");
-		lblAnnotationsAlgo.setFocusable(false);
-		lblAnnotationsAlgo.setHorizontalAlignment(SwingConstants.RIGHT);
-		lblAnnotationsAlgo.setMaximumSize(new Dimension(80, 22));
-		lblAnnotationsAlgo.setFont(new Font("Tahoma", Font.BOLD, 12));
-		GridBagConstraints gbc_lblUsers = new GridBagConstraints();
-		gbc_lblUsers.anchor = GridBagConstraints.EAST;
-		gbc_lblUsers.fill = GridBagConstraints.VERTICAL;
-		gbc_lblUsers.insets = new Insets(0, 0, 5, 5);
-		gbc_lblUsers.gridx = 0;
-		gbc_lblUsers.gridy = 5;
-		panelDetails.add(lblAnnotationsAlgo, gbc_lblUsers);
+	private void addImageID() {
+		JLabel imageIdLabel = new JLabel("ID");
+		imageIdLabel.setFocusable(false);
+		imageIdLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		imageIdLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		lblAnnotationsAlgoValue = new JTextArea("14");
-		lblAnnotationsAlgoValue.setEditable(false);
-		lblAnnotationsAlgoValue.setLineWrap(true);
-		lblAnnotationsAlgoValue.setWrapStyleWord(true);
-		lblAnnotationsAlgoValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		lblAnnotationsAlgoValue.setOpaque(false);
-		GridBagConstraints gbc_label_1 = new GridBagConstraints();
-		gbc_label_1.fill = GridBagConstraints.BOTH;
-		gbc_label_1.insets = new Insets(0, 0, 5, 0);
-		gbc_label_1.gridx = 1;
-		gbc_label_1.gridy = 5;
-		panelDetails.add(lblAnnotationsAlgoValue, gbc_label_1);
+		GridBagConstraints gbc_lblId = new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.EAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
 
-		JLabel txtrAnnotationsUser = new JLabel("<html>Annotations<br>(User)");
-		txtrAnnotationsUser.setFocusable(false);
-		txtrAnnotationsUser.setHorizontalAlignment(SwingConstants.RIGHT);
-		txtrAnnotationsUser.setMaximumSize(new Dimension(80, 22));
-		txtrAnnotationsUser.setFont(new Font("Tahoma", Font.BOLD, 12));
-		txtrAnnotationsUser.setBackground(UIManager.getColor("Panel.background"));
-		GridBagConstraints gbc_txtrAnnotationsUser = new GridBagConstraints();
-		gbc_txtrAnnotationsUser.insets = new Insets(0, 0, 5, 5);
-		gbc_txtrAnnotationsUser.anchor = GridBagConstraints.EAST;
-		gbc_txtrAnnotationsUser.fill = GridBagConstraints.VERTICAL;
-		gbc_txtrAnnotationsUser.gridx = 0;
-		gbc_txtrAnnotationsUser.gridy = 6;
-		panelDetails.add(txtrAnnotationsUser, gbc_txtrAnnotationsUser);
+		imageDetailsPanel.add(imageIdLabel, gbc_lblId);
 
-		lblAnnotationsUserValue = new JTextArea("14");
-		lblAnnotationsUserValue.setEditable(false);
-		lblAnnotationsUserValue.setLineWrap(true);
-		lblAnnotationsUserValue.setWrapStyleWord(true);
-		lblAnnotationsUserValue.setOpaque(false);
-		lblAnnotationsUserValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_lblAnnotationsUserValue = new GridBagConstraints();
-		gbc_lblAnnotationsUserValue.insets = new Insets(0, 0, 5, 0);
-		gbc_lblAnnotationsUserValue.fill = GridBagConstraints.BOTH;
-		gbc_lblAnnotationsUserValue.gridx = 1;
-		gbc_lblAnnotationsUserValue.gridy = 6;
-		panelDetails.add(lblAnnotationsUserValue, gbc_lblAnnotationsUserValue);
+		imageIdTextArea = new JTextArea("12345678");
+		imageIdTextArea.setEditable(false);
+		imageIdTextArea.setLineWrap(true);
+		imageIdTextArea.setWrapStyleWord(true);
+		imageIdTextArea.setOpaque(false);
+		imageIdTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 
-		JLabel lblSize = new JLabel("Size");
-		lblSize.setFocusable(false);
-		lblSize.setHorizontalAlignment(SwingConstants.RIGHT);
-		lblSize.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblSize = new GridBagConstraints();
-		gbc_lblSize.fill = GridBagConstraints.VERTICAL;
-		gbc_lblSize.anchor = GridBagConstraints.EAST;
-		gbc_lblSize.insets = new Insets(0, 0, 5, 10);
-		gbc_lblSize.gridx = 0;
-		gbc_lblSize.gridy = 7;
-		panelDetails.add(lblSize, gbc_lblSize);
+		GridBagConstraints gbc_lblIdValue = new GridBagConstraints(1, 2, 2, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
 
-		lblSizeValue = new JTextArea("20000 x 20000 px");
-		lblSizeValue.setEditable(false);
-		lblSizeValue.setLineWrap(true);
-		lblSizeValue.setWrapStyleWord(true);
-		lblSizeValue.setOpaque(false);
-		lblSizeValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_lblSizeValue = new GridBagConstraints();
-		gbc_lblSizeValue.fill = GridBagConstraints.VERTICAL;
-		gbc_lblSizeValue.anchor = GridBagConstraints.WEST;
-		gbc_lblSizeValue.insets = new Insets(0, 0, 5, 0);
-		gbc_lblSizeValue.gridx = 1;
-		gbc_lblSizeValue.gridy = 7;
-		panelDetails.add(lblSizeValue, gbc_lblSizeValue);
+		imageDetailsPanel.add(imageIdTextArea, gbc_lblIdValue);
+	}
 
-		JLabel lblPixelResotuion = new JLabel("Pixel Resolution");
-		lblPixelResotuion.setFocusable(false);
-		lblPixelResotuion.setHorizontalAlignment(SwingConstants.RIGHT);
-		lblPixelResotuion.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblPixelResotuion = new GridBagConstraints();
-		gbc_lblPixelResotuion.fill = GridBagConstraints.VERTICAL;
-		gbc_lblPixelResotuion.anchor = GridBagConstraints.EAST;
-		gbc_lblPixelResotuion.insets = new Insets(0, 0, 5, 10);
-		gbc_lblPixelResotuion.gridx = 0;
-		gbc_lblPixelResotuion.gridy = 8;
-		panelDetails.add(lblPixelResotuion, gbc_lblPixelResotuion);
+	private void addImageDimension() {
+		JLabel dimensionLabel = new JLabel("Dimension");
+		dimensionLabel.setFocusable(false);
+		dimensionLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		dimensionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		lblResolutionValue = new JTextArea("2.8 \u00B5m/px");
-		lblResolutionValue.setEditable(false);
-		lblResolutionValue.setLineWrap(true);
-		lblResolutionValue.setWrapStyleWord(true);
-		lblResolutionValue.setOpaque(false);
-		lblResolutionValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_lblResolutionValue = new GridBagConstraints();
-		gbc_lblResolutionValue.fill = GridBagConstraints.VERTICAL;
-		gbc_lblResolutionValue.insets = new Insets(0, 0, 5, 0);
-		gbc_lblResolutionValue.anchor = GridBagConstraints.WEST;
-		gbc_lblResolutionValue.gridx = 1;
-		gbc_lblResolutionValue.gridy = 8;
-		panelDetails.add(lblResolutionValue, gbc_lblResolutionValue);
+		GridBagConstraints dimensionLabelConstraints = new GridBagConstraints(0, 3, 1, 1, 0, 0, GridBagConstraints.EAST,
+				GridBagConstraints.EAST, new Insets(0, 0, 5, 10), 0, 0);
 
-		JLabel lblDepth = new JLabel("Depth");
-		lblDepth.setFocusable(false);
-		lblDepth.setHorizontalAlignment(SwingConstants.RIGHT);
-		lblDepth.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblDepth = new GridBagConstraints();
-		gbc_lblDepth.fill = GridBagConstraints.BOTH;
-		gbc_lblDepth.insets = new Insets(0, 0, 5, 10);
-		gbc_lblDepth.gridx = 0;
-		gbc_lblDepth.gridy = 9;
-		panelDetails.add(lblDepth, gbc_lblDepth);
+		imageDetailsPanel.add(dimensionLabel, dimensionLabelConstraints);
 
-		lblDepthValue = new JTextArea("8 levels");
-		lblDepthValue.setEditable(false);
-		lblDepthValue.setLineWrap(true);
-		lblDepthValue.setWrapStyleWord(true);
-		lblDepthValue.setOpaque(false);
-		lblDepthValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_lblDepthValue = new GridBagConstraints();
-		gbc_lblDepthValue.fill = GridBagConstraints.BOTH;
-		gbc_lblDepthValue.insets = new Insets(0, 0, 5, 0);
-		gbc_lblDepthValue.gridx = 1;
-		gbc_lblDepthValue.gridy = 9;
-		panelDetails.add(lblDepthValue, gbc_lblDepthValue);
+		imageDimensionTextArea = new JTextArea("12.35 x 12.35 \u00B5m");
+		imageDimensionTextArea.setEditable(false);
+		imageDimensionTextArea.setLineWrap(true);
+		imageDimensionTextArea.setWrapStyleWord(true);
+		imageDimensionTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		imageDimensionTextArea.setOpaque(false);
 
-		JLabel lblDateCreation = new JLabel("Created on");
-		lblDateCreation.setVerticalTextPosition(SwingConstants.TOP);
-		lblDateCreation.setVerticalAlignment(SwingConstants.TOP);
-		lblDateCreation.setFocusable(false);
-		lblDateCreation.setHorizontalAlignment(SwingConstants.RIGHT);
-		lblDateCreation.setFont(new Font("Tahoma", Font.BOLD, 11));
-		GridBagConstraints gbc_lblDateCreation = new GridBagConstraints();
-		gbc_lblDateCreation.weighty = 1.0;
-		gbc_lblDateCreation.fill = GridBagConstraints.VERTICAL;
-		gbc_lblDateCreation.anchor = GridBagConstraints.NORTHEAST;
-		gbc_lblDateCreation.insets = new Insets(0, 0, 0, 5);
-		gbc_lblDateCreation.gridx = 0;
-		gbc_lblDateCreation.gridy = 10;
-		panelDetails.add(lblDateCreation, gbc_lblDateCreation);
+		GridBagConstraints dimensionTextAreaConstraints = new GridBagConstraints(1, 3, 2, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
 
-		lblDateCreationValue = new JTextArea("June 8, 2017");
-		lblDateCreationValue.setEditable(false);
-		lblDateCreationValue.setLineWrap(true);
-		lblDateCreationValue.setWrapStyleWord(true);
-		lblDateCreationValue.setOpaque(false);
-		lblDateCreationValue.setFont(new Font("Tahoma", Font.PLAIN, 11));
-		GridBagConstraints gbc_lblDateCreationValue = new GridBagConstraints();
-		gbc_lblDateCreationValue.weighty = 1.0;
-		gbc_lblDateCreationValue.fill = GridBagConstraints.VERTICAL;
-		gbc_lblDateCreationValue.anchor = GridBagConstraints.NORTHWEST;
-		gbc_lblDateCreationValue.gridx = 1;
-		gbc_lblDateCreationValue.gridy = 10;
-		panelDetails.add(lblDateCreationValue, gbc_lblDateCreationValue);
+		imageDetailsPanel.add(imageDimensionTextArea, dimensionTextAreaConstraints);
+	}
+
+	private void addImageMagnification() {
+		JLabel magnificationLabel = new JLabel("Magnification");
+		magnificationLabel.setFocusable(false);
+		magnificationLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+		magnificationLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		GridBagConstraints magnificationLabelConstraints = new GridBagConstraints(0, 4, 1, 1, 0, 0, GridBagConstraints.EAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
+
+		imageDetailsPanel.add(magnificationLabel, magnificationLabelConstraints);
+
+		imageMagnificationTextArea = new JTextArea("20X");
+		imageMagnificationTextArea.setEditable(false);
+		imageMagnificationTextArea.setLineWrap(true);
+		imageMagnificationTextArea.setWrapStyleWord(true);
+		imageMagnificationTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		imageMagnificationTextArea.setOpaque(false);
+
+		GridBagConstraints magnificationTextAreaConstraints = new GridBagConstraints(1, 4, 1, 1, 0, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 5, 5), 0, 0);
+
+		imageDetailsPanel.add(imageMagnificationTextArea, magnificationTextAreaConstraints);
+
+		imageMagnificationEditButton = new JButton("Edit");
+
+		GridBagConstraints magnificationEditButtonConstraints = new GridBagConstraints(2, 4, 1, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+
+		imageDetailsPanel.add(imageMagnificationEditButton, magnificationEditButtonConstraints);
+	}
+
+	private void addNumberOfAlgoAnnotations() {
+		JLabel numberOfAlgoAnnotationsLabel = new JLabel("<html>Annotations<br>(Algorithms)");
+		numberOfAlgoAnnotationsLabel.setFocusable(false);
+		numberOfAlgoAnnotationsLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+		numberOfAlgoAnnotationsLabel.setMaximumSize(new Dimension(80, 22));
+		numberOfAlgoAnnotationsLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+
+		GridBagConstraints numberOfAlgoAnnotationLabelConstraints = new GridBagConstraints(0, 5, 1, 1, 0, 0,
+				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
+
+		imageDetailsPanel.add(numberOfAlgoAnnotationsLabel, numberOfAlgoAnnotationLabelConstraints);
+
+		numberOfAlgoAnnotationsTextArea = new JTextArea("14");
+		numberOfAlgoAnnotationsTextArea.setEditable(false);
+		numberOfAlgoAnnotationsTextArea.setLineWrap(true);
+		numberOfAlgoAnnotationsTextArea.setWrapStyleWord(true);
+		numberOfAlgoAnnotationsTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
+		numberOfAlgoAnnotationsTextArea.setOpaque(false);
+
+		GridBagConstraints numberOfAlgoAnnotationsTextAreaConstraints = new GridBagConstraints(1, 5, 2, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+
+		imageDetailsPanel.add(numberOfAlgoAnnotationsTextArea, numberOfAlgoAnnotationsTextAreaConstraints);
+	}
+
+	private void addNumberOfUserAnnotations() {
+		JLabel numberOfUserAnnotationsLabel = new JLabel("<html>Annotations<br>(User)");
+		numberOfUserAnnotationsLabel.setFocusable(false);
+		numberOfUserAnnotationsLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+		numberOfUserAnnotationsLabel.setMaximumSize(new Dimension(80, 22));
+		numberOfUserAnnotationsLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
+
+		GridBagConstraints numberOfUserAnnotationLabelConstraints = new GridBagConstraints(0, 6, 1, 1, 0, 0,
+				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
+
+		imageDetailsPanel.add(numberOfUserAnnotationsLabel, numberOfUserAnnotationLabelConstraints);
+
+		numberOfUserAnnotationsTextArea = new JTextArea("14");
+		numberOfUserAnnotationsTextArea.setEditable(false);
+		numberOfUserAnnotationsTextArea.setLineWrap(true);
+		numberOfUserAnnotationsTextArea.setWrapStyleWord(true);
+		numberOfUserAnnotationsTextArea.setOpaque(false);
+		numberOfUserAnnotationsTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
+
+		GridBagConstraints numberOfUserAnnotationsTextAreaConstraints = new GridBagConstraints(1, 6, 2, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+
+		imageDetailsPanel.add(numberOfUserAnnotationsTextArea, numberOfUserAnnotationsTextAreaConstraints);
+	}
+
+	private void addImageSize() {
+		JLabel imageSizeLabel = new JLabel("Size");
+		imageSizeLabel.setFocusable(false);
+		imageSizeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+		imageSizeLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
+
+		GridBagConstraints imageSizeLabelConstraints = new GridBagConstraints(0, 7, 1, 1, 0, 0, GridBagConstraints.EAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
+
+		imageDetailsPanel.add(imageSizeLabel, imageSizeLabelConstraints);
+
+		imageSizeTextArea = new JTextArea("20000 x 20000 px");
+		imageSizeTextArea.setEditable(false);
+		imageSizeTextArea.setLineWrap(true);
+		imageSizeTextArea.setWrapStyleWord(true);
+		imageSizeTextArea.setOpaque(false);
+		imageSizeTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
+
+		GridBagConstraints imageSizeTextAreaConstraints = new GridBagConstraints(1, 7, 2, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+
+		imageDetailsPanel.add(imageSizeTextArea, imageSizeTextAreaConstraints);
+	}
+
+	private void addImageResolution() {
+		JLabel imageResolutionLabel = new JLabel("Pixel Resolution");
+		imageResolutionLabel.setFocusable(false);
+		imageResolutionLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
+		imageResolutionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		GridBagConstraints imageResolutionLabelConstraints = new GridBagConstraints(0, 8, 1, 1, 0, 0,
+				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
+
+		imageDetailsPanel.add(imageResolutionLabel, imageResolutionLabelConstraints);
+
+		imageResolutionTextArea = new JTextArea("2.8 \u00B5m/px");
+		imageResolutionTextArea.setPreferredSize(new Dimension(60, 22));
+		imageResolutionTextArea.setMinimumSize(new Dimension(60, 22));
+		imageResolutionTextArea.setEditable(false);
+		imageResolutionTextArea.setLineWrap(true);
+		imageResolutionTextArea.setWrapStyleWord(true);
+		imageResolutionTextArea.setOpaque(false);
+		imageResolutionTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
+
+		GridBagConstraints imageResolutionTextAreaConstraints = new GridBagConstraints(1, 8, 1, 1, 0, 0,
+				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 5, 5), 0, 0);
+
+		imageDetailsPanel.add(imageResolutionTextArea, imageResolutionTextAreaConstraints);
+
+		imageResolutionEditButton = new JButton("Edit");
+		GridBagConstraints imageResolutionEditButtonConstraints = new GridBagConstraints(2, 8, 1, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+
+		imageDetailsPanel.add(imageResolutionEditButton, imageResolutionEditButtonConstraints);
+	}
+
+	private void addImageDepth() {
+		JLabel imageDepthLabel = new JLabel("Depth");
+		imageDepthLabel.setFocusable(false);
+		imageDepthLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
+		imageDepthLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		GridBagConstraints imageDepthLabelConstraints = new GridBagConstraints(0, 9, 1, 1, 0, 0, GridBagConstraints.EAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
+
+		imageDetailsPanel.add(imageDepthLabel, imageDepthLabelConstraints);
+
+		imageDepthTextArea = new JTextArea("8 levels");
+		imageDepthTextArea.setEditable(false);
+		imageDepthTextArea.setLineWrap(true);
+		imageDepthTextArea.setWrapStyleWord(true);
+		imageDepthTextArea.setOpaque(false);
+		imageDepthTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
+
+		GridBagConstraints imageDepthTextAreaConstraints = new GridBagConstraints(1, 9, 2, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+
+		imageDetailsPanel.add(imageDepthTextArea, imageDepthTextAreaConstraints);
+	}
+
+	private void addImageCreationDate() {
+		JLabel imageCreationDateLabel = new JLabel("Created on");
+		imageCreationDateLabel.setFocusable(false);
+		imageCreationDateLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
+		imageCreationDateLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+
+		GridBagConstraints gbc_lblDateCreation = new GridBagConstraints(0, 10, 1, 1, 0, 1.0, GridBagConstraints.NORTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
+
+		imageDetailsPanel.add(imageCreationDateLabel, gbc_lblDateCreation);
+
+		imageCreationDateTextArea = new JTextArea("June 8, 2017");
+		imageCreationDateTextArea.setEditable(false);
+		imageCreationDateTextArea.setLineWrap(true);
+		imageCreationDateTextArea.setWrapStyleWord(true);
+		imageCreationDateTextArea.setOpaque(false);
+		imageCreationDateTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
+
+		GridBagConstraints gbc_lblDateCreationValue = new GridBagConstraints(1, 10, 2, 1, 0, 1.0,
+				GridBagConstraints.NORTHWEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+
+		imageDetailsPanel.add(imageCreationDateTextArea, gbc_lblDateCreationValue);
+	}
+
+	private void setController() {
+		this.controller = new ImageDetailsPanelController(this);
 	}
 
 	public void setCurrentImage(Image image) {
-		this.currentImage = image;
-		updateImageDetails();
+		controller.setCurrentImage(image);
 	}
 
 	public Image getCurrentImage() {
-		return this.currentImage;
+		return controller.getCurrentImage();
 	}
 
 	public void setPreviewCache(Cache<Long, BufferedImage> cache) {
-		this.previewCache = cache;
+		controller.setPreviewCache(cache);
 	}
 
-	public void updateImageDetails() {
-		if (getCurrentImage() != null) {
-			String id = "" + getCurrentImage().getId();
-
-			String filename = getCurrentImage().getName().orElse("Not specified");
-
-			String dimension;
-			Optional<Double> dimensionX = getCurrentImage().getDimensionX(), dimensionY = getCurrentImage().getDimensionY();
-			if (dimensionX.isPresent() && dimensionY.isPresent()) {
-				dimension = String.format("%.2f x %.2f \u00B5m", dimensionX.get(), dimensionY.get());
-			} else {
-				dimension = "Not specified";
-			}
-
-			String magnification;
-			Optional<Integer> magnificationValue = getCurrentImage().getMagnification();
-			if (magnificationValue.isPresent()) {
-				magnification = String.format("%dX", magnificationValue.get());
-			} else {
-				magnification = "Not specified";
-			}
-
-			String annotationsAlgo;
-			Optional<Long> annotationsAlgoValue = getCurrentImage().getAnnotationsOfAlgorithmNumber();
-			if (annotationsAlgoValue.isPresent()) {
-				annotationsAlgo = annotationsAlgoValue.get().toString();
-			} else {
-				annotationsAlgo = "Not specified";
-			}
-
-			String annotationsUser;
-			Optional<Long> annotationsUserValue = getCurrentImage().getAnnotationsOfUsersNumber();
-			if (annotationsUserValue.isPresent()) {
-				annotationsUser = annotationsUserValue.get().toString();
-			} else {
-				annotationsUser = "Not specified";
-			}
-
-			Optional<Dimension> sizeValue = getCurrentImage().getSize();
-			String size;
-			if (sizeValue.isPresent()) {
-				size = String.format("%d x %d px", sizeValue.get().width, sizeValue.get().height);
-			} else {
-				size = "Not specified";
-			}
-
-			String resolution;
-			Optional<Double> resolutionValue = getCurrentImage().getResolution();
-			if (resolutionValue.isPresent()) {
-				resolution = String.format("%f \u00B5m/px", resolutionValue.get());
-			} else {
-				resolution = "Not specified";
-			}
-
-			String depth;
-			Optional<Long> depthValue = getCurrentImage().getDepth();
-			if (depthValue.isPresent()) {
-				depth = String.format("%d levels", depthValue.get());
-			} else {
-				depth = "Not specified";
-			}
-
-			String date;
-			Optional<Calendar> dateValue = getCurrentImage().getCreationDate();
-			if (dateValue.isPresent()) {
-				DateFormat formatter = new SimpleDateFormat("d MMM yyyy HH:mm");
-				date = formatter.format(dateValue.get().getTime());
-			} else {
-				date = "Not specified";
-			}
-
-			synchronized (this.lblPreview) {
-				this.lblPreview.setIcon(null);
-				if (previewExecutor != null && !previewExecutor.isTerminated())
-					previewExecutor.shutdownNow();
-				previewExecutor = Executors.newSingleThreadExecutor();
-				previewExecutor.submit(() -> {
-					final ExecutorService thisExecutor = previewExecutor;
-
-					BufferedImage preview = previewCache.get(getCurrentImage().getId());
-					if (preview == null) {
-						try {
-							preview = getCurrentImage().getThumbnail(256);
-						} catch (CytomineClientException e) {
-							e.printStackTrace();
-							preview = new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB);
-						}
-					}
-					ImageIcon icon;
-					if (preview == null)
-						icon = defaultIcon;
-					else
-						icon = new ImageIcon(preview);
-
-					if (previewExecutor == thisExecutor) {
-						this.lblPreview.setIcon(icon);
-						this.lblPreview.invalidate();
-					}
-
-				});
-				previewExecutor.shutdown();
-			}
-
-			this.lblImageFileName.setText(filename);
-			this.lblIdValue.setText(id);
-			this.lblDimensionValue.setText(dimension);
-			this.lblMagnificationValue.setText(magnification);
-			this.lblAnnotationsAlgoValue.setText(annotationsAlgo);
-			this.lblAnnotationsUserValue.setText(annotationsUser);
-			this.lblSizeValue.setText(size);
-			this.lblResolutionValue.setText(resolution);
-			this.lblDepthValue.setText(depth);
-			this.lblDateCreationValue.setText(date);
-
-		} else {
-			this.lblImageFileName.setText("Image file name");
-			this.lblIdValue.setText("0");
-			this.lblDimensionValue.setText("0 x 0 \u00B5m");
-			this.lblMagnificationValue.setText("0X");
-			this.lblAnnotationsAlgoValue.setText("0");
-			this.lblAnnotationsUserValue.setText("0");
-			this.lblSizeValue.setText("0 x 0 px");
-			this.lblResolutionValue.setText("0 \u00B5m/px");
-			this.lblDepthValue.setText("0 levels");
-			this.lblDateCreationValue.setText("Not available");
-			this.lblPreview.setIcon(defaultIcon);
-		}
+	public void addImageMagnificationChangeListener(ImageMagnificationChangeListener listener) {
+		controller.addImageMagnificationChangeListener(listener);
 	}
+
+	public void addImageResolutionChangeListener(ImageResolutionChangeListener listener) {
+		controller.addImageResolutionChangeListener(listener);
+	}
+
+	protected static ImageIcon getDefaulticon() {
+		return defaultIcon;
+	}
+
+	protected JTextArea getFileNameLabel() {
+		return fileNameLabel;
+	}
+
+	protected JLabel getPreviewLabel() {
+		return previewLabel;
+	}
+
+	protected JTextArea getImageIdTextArea() {
+		return imageIdTextArea;
+	}
+
+	protected JTextArea getImageDimensionTextArea() {
+		return imageDimensionTextArea;
+	}
+
+	protected JTextArea getImageMagnificationTextArea() {
+		return imageMagnificationTextArea;
+	}
+
+	protected JButton getImageMagnificationEditButton() {
+		return imageMagnificationEditButton;
+	}
+
+	protected JTextArea getNumberOfAlgoAnnotationsTextArea() {
+		return numberOfAlgoAnnotationsTextArea;
+	}
+
+	protected JTextArea getNumberOfUserAnnotationsTextArea() {
+		return numberOfUserAnnotationsTextArea;
+	}
+
+	protected JTextArea getImageSizeTextArea() {
+		return imageSizeTextArea;
+	}
+
+	protected JTextArea getImageResolutionTextArea() {
+		return imageResolutionTextArea;
+	}
+
+	protected JButton getImageResolutionEditButton() {
+		return imageResolutionEditButton;
+	}
+
+	protected JTextArea getImageDepthTextArea() {
+		return imageDepthTextArea;
+	}
+
+	protected JTextArea getImageCreationDateTextArea() {
+		return imageCreationDateTextArea;
+	}
+
 }

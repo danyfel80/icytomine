@@ -22,6 +22,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 
+import icy.gui.dialog.MessageDialog;
 import icy.plugin.PluginLoader;
 
 public class ExplorerPanelController {
@@ -40,7 +41,10 @@ public class ExplorerPanelController {
 	private void setEventHandlers() {
 		setProjectSelectionHandler();
 		setImageSelectionHandler();
+		setImageMagnificationChangeHandler();
+		setImageResolutionChangeHandler();
 		setImageViewerRequestHandler();
+
 	}
 
 	private void setProjectSelectionHandler() {
@@ -71,6 +75,35 @@ public class ExplorerPanelController {
 		} else {
 			panel.getImageDetailsPanel().setCurrentImage(image);
 			panel.showImageDetails();
+		}
+	}
+
+	private void setImageMagnificationChangeHandler() {
+		panel.getImageDetailsPanel().addImageMagnificationChangeListener(
+				(image, newMagnification) -> onImageMagnificationChanged(image, newMagnification));
+	}
+
+	private void onImageMagnificationChanged(Image image, Integer newMagnification) {
+		try {
+			image.setMagnification(newMagnification);
+		} catch (CytomineClientException e) {
+			e.printStackTrace();
+			MessageDialog.showDialog("Error updating magnification", e.getMessage(), MessageDialog.ERROR_MESSAGE);
+		}
+	}
+
+	private void setImageResolutionChangeHandler() {
+		panel.getImageDetailsPanel()
+				.addImageResolutionChangeListener((image, newResolution) -> onImageResolutionChanged(image, newResolution));
+	}
+
+	private void onImageResolutionChanged(Image image, Double newResolution) {
+		try {
+			image.setResolution(newResolution);
+
+		} catch (CytomineClientException e) {
+			e.printStackTrace();
+			MessageDialog.showDialog("Error updating resolution", e.getMessage(), MessageDialog.ERROR_MESSAGE);
 		}
 	}
 

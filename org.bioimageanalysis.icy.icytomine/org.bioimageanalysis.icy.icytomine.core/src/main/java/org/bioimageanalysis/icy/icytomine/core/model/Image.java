@@ -295,13 +295,21 @@ public class Image extends Entity {
 	}
 
 	public void removeAnnotations(Set<Annotation> selectedAnnotations) throws CytomineClientException {
-		for (Annotation annotation : selectedAnnotations) {
+		for (Annotation annotation: selectedAnnotations) {
 			getClient().removeAnnotation(annotation.getId());
 		}
 		Set<Long> selectedAnnotationIds = selectedAnnotations.stream().map(a -> a.getId()).collect(Collectors.toSet());
 		if (annotations != null) {
 			annotations.removeIf(annotation -> selectedAnnotationIds.contains(annotation.getId()));
 		}
+	}
+
+	public void setMagnification(Integer newMagnification) throws CytomineClientException {
+		getClient().updateImageMagnfication(this, newMagnification);
+	}
+
+	public void setResolution(Double newResolution) throws CytomineClientException {
+		getClient().updateImageResolution(this, newResolution);
 	}
 
 	@Override
