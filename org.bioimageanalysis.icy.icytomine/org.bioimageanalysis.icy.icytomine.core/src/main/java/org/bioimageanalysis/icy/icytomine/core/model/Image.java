@@ -182,6 +182,13 @@ public class Image extends Entity {
 	}
 
 	/**
+	 * @return Id of the user who uploaded the image.
+	 */
+	public Long getOriginalUserId() {
+		return getLong("user").get();
+	}
+
+	/**
 	 * @return Number of annotations users have associated to this image.
 	 */
 	public Optional<Long> getAnnotationsOfUsersNumber() {

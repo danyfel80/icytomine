@@ -19,6 +19,10 @@ import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientE
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.ehcache.Cache;
 
+import com.google.common.base.Objects;
+
+import icy.gui.dialog.MessageDialog;
+
 public class ImageDetailsPanelController {
 
 	public interface ImageMagnificationChangeListener {
@@ -229,12 +233,18 @@ public class ImageDetailsPanelController {
 						}
 						panel.getImageMagnificationTextArea().setText(magnification);
 					} else {
-						panel.getImageMagnificationTextArea().setText(currentImage.getMagnification().orElse(1).toString());
-						panel.getImageMagnificationEditButton().setText("Save");
-						panel.getImageMagnificationTextArea().setEditable(true);
+						Long originalUserId = currentImage.getOriginalUserId();
+						if (!Objects.equal(currentImage.getClient().getCurrentUser().getId(), originalUserId)) {
+							MessageDialog.showDialog("You must be the original uploader of the image to edit this field.",
+									MessageDialog.ERROR_MESSAGE);
+						} else {
+							panel.getImageMagnificationTextArea().setText(currentImage.getMagnification().orElse(1).toString());
+							panel.getImageMagnificationEditButton().setText("Save");
+							panel.getImageMagnificationTextArea().setEditable(true);
+						}
 					}
+					event.consume();
 				}
-				event.consume();
 			}
 		};
 		panel.getImageMagnificationEditButton().addMouseListener(magnificationEditListener);
@@ -255,30 +265,39 @@ public class ImageDetailsPanelController {
 		MouseAdapter resolutionEditListener = new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent event) {
-				if (panel.getImageResolutionTextArea().isEditable()) {
-					panel.getImageResolutionTextArea().setEditable(false);
-					panel.getImageResolutionEditButton().setText("Edit");
-					Double newResolution = null;
-					try {
-						newResolution = Double.parseDouble(panel.getImageResolutionTextArea().getText());
-					} catch (NumberFormatException e) {
-						// Nothing to change
-					}
-					final Double finalResolution = newResolution;
-					resolutionChangeListeners.forEach(l -> l.resolutionChanged(currentImage, finalResolution));
+				if (!event.isConsumed()) {
+					if (panel.getImageResolutionTextArea().isEditable()) {
+						panel.getImageResolutionTextArea().setEditable(false);
+						panel.getImageResolutionEditButton().setText("Edit");
+						Double newResolution = null;
+						try {
+							newResolution = Double.parseDouble(panel.getImageResolutionTextArea().getText());
+						} catch (NumberFormatException e) {
+							// Nothing to change
+						}
+						final Double finalResolution = newResolution;
+						resolutionChangeListeners.forEach(l -> l.resolutionChanged(currentImage, finalResolution));
 
-					String resolution;
-					Optional<Double> resolutionValue = getCurrentImage().getResolution();
-					if (resolutionValue.isPresent()) {
-						resolution = String.format("%f \u00B5m/px", resolutionValue.get());
+						String resolution;
+						Optional<Double> resolutionValue = getCurrentImage().getResolution();
+						if (resolutionValue.isPresent()) {
+							resolution = String.format("%f \u00B5m/px", resolutionValue.get());
+						} else {
+							resolution = "Not specified";
+						}
+						panel.getImageResolutionTextArea().setText(resolution);
 					} else {
-						resolution = "Not specified";
+						Long originalUserId = currentImage.getOriginalUserId();
+						if (!Objects.equal(currentImage.getClient().getCurrentUser().getId(), originalUserId)) {
+							MessageDialog.showDialog("You must be the original uploader of the image to edit this field.",
+									MessageDialog.ERROR_MESSAGE);
+						} else {
+							panel.getImageResolutionTextArea().setText(currentImage.getResolution().orElse(1d).toString());
+							panel.getImageResolutionEditButton().setText("Save");
+							panel.getImageResolutionTextArea().setEditable(true);
+						}
 					}
-					panel.getImageResolutionTextArea().setText(resolution);
-				} else {
-					panel.getImageResolutionTextArea().setText(currentImage.getResolution().orElse(1d).toString());
-					panel.getImageResolutionEditButton().setText("Save");
-					panel.getImageResolutionTextArea().setEditable(true);
+					event.consume();
 				}
 			}
 		};

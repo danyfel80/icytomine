@@ -697,7 +697,7 @@ public class CytomineClient implements AutoCloseable {
 		}
 	}
 
-	public JSONArray getAnnotationUsersByTerm(Annotation annotation) throws CytomineException {
+	public JSONArray getAnnotationUsersByTerm(Annotation annotation) throws CytomineClientException {
 		try {
 			return getInternalClient().getTermsByAnnotation(annotation.getId()).getList();
 		} catch (CytomineException e) {
@@ -706,7 +706,7 @@ public class CytomineClient implements AutoCloseable {
 		}
 	}
 
-	public void updateImageMagnfication(Image image, Integer newMagnification) {
+	public void updateImageMagnfication(Image image, Integer newMagnification) throws CytomineClientException {
 		try {
 			AbstractImage abstractImage = getInternalClient().getAbstractImage(image.getAbstractImageId().get());
 			abstractImage.set("magnification", newMagnification);
