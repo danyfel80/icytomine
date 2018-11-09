@@ -172,11 +172,17 @@ public class AnnotationTable extends JScrollPane {
 	public void setSelectedAnnotations(Set<Annotation> selectedAnnotations) {
 		int numAnnotations = annotationTableModel.getRowCount();
 		annotationTable.getSelectionModel().clearSelection();
+		boolean firstFound = true;
 		for (int row = 0; row < numAnnotations; row++) {
 			Annotation annotationAtRow = annotationTableModel.getAnnotationAt(row);
 			if (selectedAnnotations.contains(annotationAtRow)) {
 				annotationTable.getSelectionModel().addSelectionInterval(row, row);
+				if (firstFound) {
+					annotationTable.scrollRectToVisible(annotationTable.getCellRect(row, 0, true));
+					firstFound = false;
+				}
 			}
 		}
+
 	}
 }
