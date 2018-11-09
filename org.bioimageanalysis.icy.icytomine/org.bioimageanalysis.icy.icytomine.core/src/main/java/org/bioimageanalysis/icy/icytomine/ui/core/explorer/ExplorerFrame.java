@@ -21,8 +21,6 @@ package org.bioimageanalysis.icy.icytomine.ui.core.explorer;
 import javax.swing.JFrame;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
-import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImageDetailsPanelController.ImageMagnificationChangeListener;
-import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImageDetailsPanelController.ImageResolutionChangeListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImagePanel.ImageSelectionListener;
 
 import icy.gui.frame.IcyFrame;

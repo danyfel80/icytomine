@@ -16,8 +16,6 @@ import javax.swing.SwingConstants;
 import javax.swing.border.EtchedBorder;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
-import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImageDetailsPanelController.ImageMagnificationChangeListener;
-import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImageDetailsPanelController.ImageResolutionChangeListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImagePanel.ImageSelectionListener;
 
 public class ExplorerPanel extends JPanel {
