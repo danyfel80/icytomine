@@ -90,7 +90,7 @@ public class ImagePanelController {
 	private void applySearchCriterion() {
 		Pattern searchPattern = getSearchPattern();
 		availableImages = getProjectImages().stream()
-				.filter(p -> searchPattern.matcher(p.getName().orElse("not available").toLowerCase()).matches())
+				.filter(p -> searchPattern.matcher(p.getName().orElse("not available").toLowerCase()).matches() || searchPattern.matcher(p.getId().toString()).matches())
 				.collect(Collectors.toSet());
 	}
 

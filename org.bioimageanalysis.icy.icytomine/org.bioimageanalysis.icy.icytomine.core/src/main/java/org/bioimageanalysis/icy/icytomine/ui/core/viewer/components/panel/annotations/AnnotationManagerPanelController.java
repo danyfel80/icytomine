@@ -201,6 +201,7 @@ public class AnnotationManagerPanelController {
 				Image image = anAnnotation.getImage();
 				try {
 					image.removeAnnotations(selectedAnnotations);
+					System.out.format("Erased %s annotations\n", selectedAnnotations.size());
 				} catch (CytomineClientException e) {
 					e.printStackTrace();
 					MessageDialog.showDialog("Deleting annotations - Icytomine", "Could not remove annotations.",

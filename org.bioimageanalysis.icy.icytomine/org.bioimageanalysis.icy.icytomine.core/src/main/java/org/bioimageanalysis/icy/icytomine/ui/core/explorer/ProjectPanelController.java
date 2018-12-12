@@ -81,7 +81,8 @@ public class ProjectPanelController {
 	private void applySearchCriterion() {
 		Pattern searchPattern = getSearchPattern();
 		availableProjects = getClientProjects().stream()
-				.filter(p -> searchPattern.matcher(p.getName().orElse("not available").toLowerCase()).matches())
+				.filter(p -> searchPattern.matcher(p.getName().orElse("not available").toLowerCase()).matches()
+						|| searchPattern.matcher(p.getId().toString()).matches())
 				.collect(Collectors.toSet());
 	}
 
