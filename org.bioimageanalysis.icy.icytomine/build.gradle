@@ -55,6 +55,7 @@ subprojects {
 		//implementation 'com.github.kirill-grouchnikov:flamingo:v5.1.01' // Ribbon UI
 		
 		implementation files("${System.env.ICY_HOME}/icy.jar") // Icy core
+		implementation files("${System.env.ICY_HOME}/resources.jar") // Icy resources
 		implementation files("${System.env.ICY_HOME}/lib/substance.jar") // substance UI
 		implementation files("${System.env.ICY_HOME}/lib/flamingo.jar") // substance UI
 		implementation files("${System.env.ICY_HOME}/lib/jai_core.jar") // substance UI

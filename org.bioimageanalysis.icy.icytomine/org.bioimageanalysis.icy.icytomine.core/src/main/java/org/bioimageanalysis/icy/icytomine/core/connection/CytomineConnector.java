@@ -47,6 +47,25 @@ public class CytomineConnector {
 		credentials.put(url.toString(), new HashMap<>());
 	}
 
+	public static boolean removeHost(URL url) {
+		if (url != null && url.toString().equals(Preferences.getInstance().getDefaultHostURL())) {
+			Preferences.getInstance().setDefaultHost(null);
+			Preferences.getInstance().setDefaultUser(null);
+		}
+
+		return Preferences.getInstance().getAvailableCytomineCredentials().remove(url.toString()) != null;
+	}
+
+	public static void updateHost(URL currentUrl, URL newUrl) {
+		HashMap<String, UserCredential> currentHostUsers = Preferences.getInstance().getAvailableCytomineCredentials().get(currentUrl.toString());
+		if (currentHostUsers != null) {
+			Preferences.getInstance().getAvailableCytomineCredentials().remove(currentUrl.toString());
+			addHostIfAbsent(newUrl);
+			HashMap<String, UserCredential> newHostUsers = Preferences.getInstance().getAvailableCytomineCredentials().get(newUrl.toString());
+			newHostUsers.putAll(currentHostUsers);
+		}
+	}
+
 	public static void addUser(URL url, String userName, String publicKey, String privateKey)
 			throws IllegalArgumentException {
 		Map<String, UserCredential> users = Preferences.getInstance().getAvailableCytomineCredentials().get(url.toString());
@@ -73,15 +92,6 @@ public class CytomineConnector {
 
 	public static void addHostIfAbsent(URL url) {
 		Preferences.getInstance().getAvailableCytomineCredentials().putIfAbsent(url.toString(), new HashMap<>());
-	}
-
-	public static boolean removeHost(URL url) {
-		if (url != null && url.toString().equals(Preferences.getInstance().getDefaultHostURL())) {
-			Preferences.getInstance().setDefaultHost(null);
-			Preferences.getInstance().setDefaultUser(null);
-		}
-
-		return Preferences.getInstance().getAvailableCytomineCredentials().remove(url.toString()) != null;
 	}
 
 	public static boolean removeUser(URL url, String userName) throws IllegalArgumentException {

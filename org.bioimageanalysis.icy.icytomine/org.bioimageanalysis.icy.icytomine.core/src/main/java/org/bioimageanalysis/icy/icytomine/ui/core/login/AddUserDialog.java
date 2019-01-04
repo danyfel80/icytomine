@@ -1,34 +1,39 @@
 package org.bioimageanalysis.icy.icytomine.ui.core.login;
 
+import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.io.IOException;
-import java.net.URL;
+import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-
-import org.bioimageanalysis.icy.icytomine.core.connection.CytomineConnector;
-import org.bioimageanalysis.icy.icytomine.core.connection.persistence.Preferences;
+import javax.swing.SwingConstants;
 
 import icy.gui.dialog.MessageDialog;
 
+@SuppressWarnings("serial")
 public class AddUserDialog extends JDialog {
-	private static final long serialVersionUID = 9028893545489525619L;
 
-	private JTextField tFieldHost;
-	private JTextField tFieldUser;
-	private JTextField tFieldPublicKey;
-	private JTextField tFieldPrivateKey;
+	public interface UserAdditionListener {
+		public void requestAddition(String hostName, String userName, String publicKey, String privateKey)
+				throws RuntimeException;
+	}
+
+	private String targetHostName;
+	private Container contentPane;
+	private JTextField userTextField;
+	private JTextField publicKeyTextField;
+	private JTextField privateKeyTextField;
+	private JButton addButton;
+	private JButton cancelButton;
+	private ActionListener addUserButtonListener;
 
 	/**
 	 * Create the dialog.
@@ -37,140 +42,205 @@ public class AddUserDialog extends JDialog {
 	 * @param userName
 	 * @param owner
 	 */
-	public AddUserDialog(Frame owner) {
+	public AddUserDialog(Frame owner, String hostName) {
 		super(owner, "Add User - Icytomine", true);
-		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+		targetHostName = hostName;
+		contentPane = getContentPane();
 
-		getContentPane().setPreferredSize(new Dimension(300, 210));
+		setPreferredSize(new Dimension(300, 210));
+		setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 		setModal(true);
 		setResizable(false);
-		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[] { 70, 150 };
-		gridBagLayout.rowHeights = new int[] { 0, 0, 0, 0, 0 };
-		gridBagLayout.columnWeights = new double[] { 0.0, 0.0 };
-		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 0.0 };
-		getContentPane().setLayout(gridBagLayout);
 
-		JLabel lblHost = new JLabel("Host");
-		GridBagConstraints gbc_lblHost = new GridBagConstraints();
-		gbc_lblHost.insets = new Insets(0, 0, 5, 5);
-		gbc_lblHost.anchor = GridBagConstraints.EAST;
-		gbc_lblHost.gridx = 0;
-		gbc_lblHost.gridy = 0;
-		getContentPane().add(lblHost, gbc_lblHost);
+		adjustLayout();
+		setHostNameLabel();
+		setUserNameLabel();
+		setUserNameTextField();
+		setPublicKeyLabel();
+		setPublicKeyTextField();
+		setPrivateKeyLabel();
+		setPrivateKeyTextField();
+		setActionButtonsPanel();
 
-		tFieldHost = new JTextField();
-		GridBagConstraints gbc_tFieldHost = new GridBagConstraints();
-		gbc_tFieldHost.insets = new Insets(0, 0, 5, 0);
-		gbc_tFieldHost.fill = GridBagConstraints.HORIZONTAL;
-		gbc_tFieldHost.gridx = 1;
-		gbc_tFieldHost.gridy = 0;
-		getContentPane().add(tFieldHost, gbc_tFieldHost);
-		tFieldHost.setColumns(10);
-		tFieldHost.setText("");
-
-		JLabel lblUser = new JLabel("User");
-		GridBagConstraints gbc_lblUser = new GridBagConstraints();
-		gbc_lblUser.anchor = GridBagConstraints.EAST;
-		gbc_lblUser.insets = new Insets(0, 0, 5, 5);
-		gbc_lblUser.gridx = 0;
-		gbc_lblUser.gridy = 1;
-		getContentPane().add(lblUser, gbc_lblUser);
-
-		tFieldUser = new JTextField();
-		GridBagConstraints gbc_tFieldUser = new GridBagConstraints();
-		gbc_tFieldUser.insets = new Insets(0, 0, 5, 0);
-		gbc_tFieldUser.fill = GridBagConstraints.HORIZONTAL;
-		gbc_tFieldUser.gridx = 1;
-		gbc_tFieldUser.gridy = 1;
-		getContentPane().add(tFieldUser, gbc_tFieldUser);
-		tFieldUser.setColumns(10);
-		tFieldUser.setText("");
-
-		JLabel lblPublicKey = new JLabel("Public Key");
-		GridBagConstraints gbc_lblPublicKey = new GridBagConstraints();
-		gbc_lblPublicKey.anchor = GridBagConstraints.EAST;
-		gbc_lblPublicKey.insets = new Insets(0, 0, 5, 5);
-		gbc_lblPublicKey.gridx = 0;
-		gbc_lblPublicKey.gridy = 2;
-		getContentPane().add(lblPublicKey, gbc_lblPublicKey);
-
-		tFieldPublicKey = new JTextField();
-		GridBagConstraints gbc_tFieldPublicKey = new GridBagConstraints();
-		gbc_tFieldPublicKey.insets = new Insets(0, 0, 5, 0);
-		gbc_tFieldPublicKey.fill = GridBagConstraints.HORIZONTAL;
-		gbc_tFieldPublicKey.gridx = 1;
-		gbc_tFieldPublicKey.gridy = 2;
-		getContentPane().add(tFieldPublicKey, gbc_tFieldPublicKey);
-		tFieldPublicKey.setColumns(10);
-		tFieldPublicKey.setText("");
-
-		JLabel lblPrivateKey = new JLabel("Private Key");
-		GridBagConstraints gbc_lblPrivateKey = new GridBagConstraints();
-		gbc_lblPrivateKey.anchor = GridBagConstraints.EAST;
-		gbc_lblPrivateKey.insets = new Insets(0, 0, 5, 5);
-		gbc_lblPrivateKey.gridx = 0;
-		gbc_lblPrivateKey.gridy = 3;
-		getContentPane().add(lblPrivateKey, gbc_lblPrivateKey);
-
-		tFieldPrivateKey = new JTextField();
-		GridBagConstraints gbc_tFieldPrivateKey = new GridBagConstraints();
-		gbc_tFieldPrivateKey.insets = new Insets(0, 0, 5, 0);
-		gbc_tFieldPrivateKey.fill = GridBagConstraints.HORIZONTAL;
-		gbc_tFieldPrivateKey.gridx = 1;
-		gbc_tFieldPrivateKey.gridy = 3;
-		getContentPane().add(tFieldPrivateKey, gbc_tFieldPrivateKey);
-		tFieldPrivateKey.setColumns(10);
-		tFieldPrivateKey.setText("");
-
-		JPanel panel = new JPanel();
-		GridBagConstraints gbc_panel = new GridBagConstraints();
-		gbc_panel.insets = new Insets(5, 0, 0, 0);
-		gbc_panel.anchor = GridBagConstraints.EAST;
-		gbc_panel.gridwidth = 2;
-		gbc_panel.gridx = 0;
-		gbc_panel.gridy = 4;
-		getContentPane().add(panel, gbc_panel);
-		panel.setLayout(new GridLayout(0, 2, 10, 0));
-
-		JButton btnAdd = new JButton("Add");
-		btnAdd.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				String host = tFieldHost.getText();
-				String userName = tFieldUser.getText();
-				String publicKey = tFieldPublicKey.getText();
-				String privateKey = tFieldPrivateKey.getText();
-
-				try {
-					CytomineConnector.addHostIfAbsent(new URL(host));
-					CytomineConnector.addUser(new URL(host), userName, publicKey, privateKey);
-					Preferences.save();
-					setVisible(false);
-					dispose();
-				} catch (IllegalArgumentException | IOException e1) {
-					e1.printStackTrace();
-					MessageDialog.showDialog("Error", e1.getMessage(), MessageDialog.ERROR_MESSAGE);
-				}
-
-			}
-		});
-		panel.add(btnAdd);
-
-		JButton btnCancel = new JButton("Cancel");
-		btnCancel.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				setVisible(false);
-				dispose();
-			}
-		});
-		panel.add(btnCancel);
+		setCancelButtonHandler();
 
 		pack();
 		setLocationRelativeTo(owner);
-		setVisible(true);
-
 	}
 
+	private void adjustLayout() {
+		getContentPane().setPreferredSize(new Dimension(300, 210));
+
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWidths = new int[] {70, 150};
+		gridBagLayout.rowHeights = new int[] {0, 0, 0, 0, 0};
+		gridBagLayout.columnWeights = new double[] {0.0, 0.0};
+		gridBagLayout.rowWeights = new double[] {0.0, 0.0, 0.0, 0.0, 0.0};
+
+		contentPane.setLayout(gridBagLayout);
+	}
+
+	private void setHostNameLabel() {
+		JLabel hostLabel = new JLabel("Target host: " + targetHostName);
+		hostLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		GridBagConstraints hostLabelConstraints = new GridBagConstraints();
+		hostLabelConstraints.gridx = 0;
+		hostLabelConstraints.gridy = 0;
+		hostLabelConstraints.gridwidth = 2;
+		hostLabelConstraints.insets = new Insets(0, 0, 7, 0);
+
+		contentPane.add(hostLabel, hostLabelConstraints);
+	}
+
+	private void setUserNameLabel() {
+		JLabel userLabel = new JLabel("User");
+
+		GridBagConstraints userLabelConstraints = new GridBagConstraints();
+		userLabelConstraints.anchor = GridBagConstraints.EAST;
+		userLabelConstraints.insets = new Insets(0, 0, 5, 5);
+		userLabelConstraints.gridx = 0;
+		userLabelConstraints.gridy = 1;
+
+		contentPane.add(userLabel, userLabelConstraints);
+	}
+
+	private void setUserNameTextField() {
+		userTextField = new JTextField();
+		userTextField.setColumns(10);
+		userTextField.setText("");
+
+		GridBagConstraints userTextFieldConstraints = new GridBagConstraints();
+		userTextFieldConstraints.insets = new Insets(0, 0, 5, 0);
+		userTextFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+		userTextFieldConstraints.gridx = 1;
+		userTextFieldConstraints.gridy = 1;
+
+		contentPane.add(userTextField, userTextFieldConstraints);
+	}
+
+	private void setPublicKeyLabel() {
+		JLabel publicKeyLabel = new JLabel("Public Key");
+
+		GridBagConstraints publicKeyLabelConstraints = new GridBagConstraints();
+		publicKeyLabelConstraints.anchor = GridBagConstraints.EAST;
+		publicKeyLabelConstraints.insets = new Insets(0, 0, 5, 5);
+		publicKeyLabelConstraints.gridx = 0;
+		publicKeyLabelConstraints.gridy = 2;
+
+		contentPane.add(publicKeyLabel, publicKeyLabelConstraints);
+	}
+
+	private void setPublicKeyTextField() {
+		publicKeyTextField = new JTextField();
+		publicKeyTextField.setColumns(10);
+		publicKeyTextField.setText("");
+
+		GridBagConstraints publicKeyTextFieldConstraints = new GridBagConstraints();
+		publicKeyTextFieldConstraints.insets = new Insets(0, 0, 5, 0);
+		publicKeyTextFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+		publicKeyTextFieldConstraints.gridx = 1;
+		publicKeyTextFieldConstraints.gridy = 2;
+
+		contentPane.add(publicKeyTextField, publicKeyTextFieldConstraints);
+	}
+
+	private void setPrivateKeyLabel() {
+		JLabel privateKeyLabel = new JLabel("Private Key");
+
+		GridBagConstraints privateKeyLabelConstraints = new GridBagConstraints();
+		privateKeyLabelConstraints.anchor = GridBagConstraints.EAST;
+		privateKeyLabelConstraints.insets = new Insets(0, 0, 10, 5);
+		privateKeyLabelConstraints.gridx = 0;
+		privateKeyLabelConstraints.gridy = 3;
+
+		contentPane.add(privateKeyLabel, privateKeyLabelConstraints);
+	}
+
+	private void setPrivateKeyTextField() {
+		privateKeyTextField = new JTextField();
+		privateKeyTextField.setColumns(10);
+		privateKeyTextField.setText("");
+
+		GridBagConstraints privateKeyTextFieldConstraints = new GridBagConstraints();
+		privateKeyTextFieldConstraints.insets = new Insets(0, 0, 10, 0);
+		privateKeyTextFieldConstraints.fill = GridBagConstraints.HORIZONTAL;
+		privateKeyTextFieldConstraints.gridx = 1;
+		privateKeyTextFieldConstraints.gridy = 3;
+
+		contentPane.add(privateKeyTextField, privateKeyTextFieldConstraints);
+	}
+
+	private void setActionButtonsPanel() {
+		JPanel actionButtonsPanel = new JPanel();
+		actionButtonsPanel.setLayout(new GridLayout(0, 2, 10, 0));
+
+		GridBagConstraints actionButtonsPanelConstraints = new GridBagConstraints();
+		actionButtonsPanelConstraints.insets = new Insets(5, 0, 0, 0);
+		actionButtonsPanelConstraints.gridwidth = 2;
+		actionButtonsPanelConstraints.gridx = 0;
+		actionButtonsPanelConstraints.gridy = 4;
+
+		getContentPane().add(actionButtonsPanel, actionButtonsPanelConstraints);
+
+		addButton = new JButton("Add");
+		actionButtonsPanel.add(addButton);
+
+		cancelButton = new JButton("Cancel");
+		actionButtonsPanel.add(cancelButton);
+	}
+
+	public void setUserAdditionListener(UserAdditionListener listener) {
+		if (addUserButtonListener == null) {
+			addUserButtonListener = (e) -> {
+				String userName = userTextField.getText();
+				String publicKey = publicKeyTextField.getText();
+				String privateKey = privateKeyTextField.getText();
+
+				try {
+					listener.requestAddition(targetHostName, userName, publicKey, privateKey);
+					AddUserDialog.this.setVisible(false);
+					AddUserDialog.this.dispose();
+				} catch (RuntimeException ex) {
+					MessageDialog.showDialog("Error adding user", ex.getMessage(), MessageDialog.ERROR_MESSAGE);
+				}
+			};
+		}
+		addButton.addActionListener(addUserButtonListener);
+	}
+
+	public void unsetHostAdditionListener() {
+		if (addUserButtonListener != null) {
+			addButton.removeActionListener(addUserButtonListener);
+		}
+	}
+
+	private void setCancelButtonHandler() {
+		cancelButton.addActionListener((e) -> {
+			AddUserDialog.this.setVisible(false);
+			AddUserDialog.this.dispose();
+		});
+	}
+
+	//	
+	//	addButton.addMouseListener(new MouseAdapter() {
+	//		@Override
+	//		public void mouseClicked(MouseEvent e) {
+	//			String host = targetHostName;
+	//			String userName = userTextField.getText();
+	//			String publicKey = publicKeyTextField.getText();
+	//			String privateKey = privateKeyTextField.getText();
+	//
+	//			try {
+	//				CytomineConnector.addHostIfAbsent(new URL(host));
+	//				CytomineConnector.addUser(new URL(host), userName, publicKey, privateKey);
+	//				Preferences.save();
+	//				setVisible(false);
+	//				dispose();
+	//			} catch (IllegalArgumentException | IOException e1) {
+	//				e1.printStackTrace();
+	//				MessageDialog.showDialog("Error", e1.getMessage(), MessageDialog.ERROR_MESSAGE);
+	//			}
+	//
+	//		}
+	//	});
 }

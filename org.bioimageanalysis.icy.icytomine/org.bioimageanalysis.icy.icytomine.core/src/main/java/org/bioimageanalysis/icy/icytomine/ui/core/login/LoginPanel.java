@@ -4,9 +4,8 @@ import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.SystemColor;
+import java.awt.event.ActionListener;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseListener;
 import java.util.Optional;
@@ -25,11 +24,9 @@ public class LoginPanel extends JPanel {
 	private static final long serialVersionUID = 885665565700074663L;
 
 	private JComboBox<String> hostComboBox;
+	private CredentialManagementTools hostCredentialsManagementTools;
 	private JComboBox<String> userComboBox;
-	private JPanel credentialsManagementPanel;
-	private JButton addUserButton;
-	private JButton editUserButton;
-	private JButton removeUserButton;
+	private CredentialManagementTools userCredentialsManagementTools;
 	private JButton loginButton;
 
 	private LoginPanelController controller;
@@ -52,21 +49,20 @@ public class LoginPanel extends JPanel {
 	}
 
 	private void setView() {
-		this.setPreferredSize(new Dimension(320, 150));
-		this.setMinimumSize(new Dimension(320, 150));
+		this.setPreferredSize(new Dimension(340, 150));
+		this.setMinimumSize(new Dimension(340, 150));
 		setGridBagLayout();
 		setHostServerField();
 		setUserField();
 		setLoginButton();
-		setCredentialsManagementPanel();
 	}
 
 	private void setGridBagLayout() {
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.columnWidths = new int[] { 40, 100, 110 };
-		gridBagLayout.rowHeights = new int[] { 30, 30, 30, 0 };
-		gridBagLayout.columnWeights = new double[] { 0.0, 0.0, 0.0 };
-		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0 };
+		gridBagLayout.columnWidths = new int[] {40, 100, 110, 66};
+		gridBagLayout.rowHeights = new int[] {30, 30, 25};
+		gridBagLayout.columnWeights = new double[] {0.0, 0.0, 0.0, 0.0};
+		gridBagLayout.rowWeights = new double[] {0.0, 0.0, 0.0};
 		setLayout(gridBagLayout);
 	}
 
@@ -86,13 +82,28 @@ public class LoginPanel extends JPanel {
 		hostLabel.setLabelFor(hostComboBox);
 
 		GridBagConstraints hostComboBoxConstraints = new GridBagConstraints();
-		hostComboBoxConstraints.insets = new Insets(0, 0, 10, 0);
+		hostComboBoxConstraints.insets = new Insets(0, 0, 10, 5);
 		hostComboBoxConstraints.fill = GridBagConstraints.BOTH;
 		hostComboBoxConstraints.gridwidth = 2;
 		hostComboBoxConstraints.gridx = 1;
 		hostComboBoxConstraints.gridy = 0;
 
 		add(hostComboBox, hostComboBoxConstraints);
+
+		hostCredentialsManagementTools = new CredentialManagementTools();
+		hostCredentialsManagementTools.setAddToolTip("Add a new host");
+		hostCredentialsManagementTools.setRemoveToolTip("Remove current host");
+		hostCredentialsManagementTools.setEditToolTip("Edit current host");
+
+		GridBagConstraints hostCredentialsManagementToolsConstraints = new GridBagConstraints();
+		hostCredentialsManagementToolsConstraints.anchor = GridBagConstraints.WEST;
+		hostCredentialsManagementToolsConstraints.insets = new Insets(0, 0, 10, 0);
+		hostLabelConstraints.fill = GridBagConstraints.HORIZONTAL;
+		hostLabelConstraints.insets = new Insets(0, 0, 10, 0);
+		hostLabelConstraints.gridx = 3;
+		hostLabelConstraints.gridy = 0;
+
+		add(hostCredentialsManagementTools, hostCredentialsManagementToolsConstraints);
 	}
 
 	private void setUserField() {
@@ -111,70 +122,38 @@ public class LoginPanel extends JPanel {
 
 		GridBagConstraints userComboBoxConstraints = new GridBagConstraints();
 		userComboBoxConstraints.gridwidth = 2;
-		userComboBoxConstraints.insets = new Insets(0, 0, 10, 0);
+		userComboBoxConstraints.insets = new Insets(0, 0, 10, 5);
 		userComboBoxConstraints.fill = GridBagConstraints.BOTH;
 		userComboBoxConstraints.gridx = 1;
 		userComboBoxConstraints.gridy = 1;
 
 		add(userComboBox, userComboBoxConstraints);
+
+		userCredentialsManagementTools = new CredentialManagementTools();
+		userCredentialsManagementTools.setAddToolTip("Add a new user");
+		userCredentialsManagementTools.setRemoveToolTip("Remove current user");
+		userCredentialsManagementTools.setEditToolTip("Edit current user");
+
+		GridBagConstraints userCredentialsManagementToolsConstraints = new GridBagConstraints();
+		userCredentialsManagementToolsConstraints.anchor = GridBagConstraints.WEST;
+		userCredentialsManagementToolsConstraints.insets = new Insets(0, 0, 10, 0);
+		userLabelConstraints.anchor = GridBagConstraints.WEST;
+		userCredentialsManagementToolsConstraints.gridx = 3;
+		userCredentialsManagementToolsConstraints.gridy = 1;
+
+		add(userCredentialsManagementTools, userCredentialsManagementToolsConstraints);
 	}
 
 	private void setLoginButton() {
 		loginButton = new JButton("Login");
 
 		GridBagConstraints loginButtonConstraints = new GridBagConstraints();
-		loginButtonConstraints.fill = GridBagConstraints.HORIZONTAL;
-		loginButtonConstraints.gridx = 2;
-		loginButtonConstraints.gridy = 3;
+		loginButtonConstraints.gridwidth = 4;
+		loginButtonConstraints.insets = new Insets(0, 0, 0, 0);
+		loginButtonConstraints.gridx = 0;
+		loginButtonConstraints.gridy = 2;
 
 		add(loginButton, loginButtonConstraints);
-	}
-
-	private void setCredentialsManagementPanel() {
-		credentialsManagementPanel = new JPanel();
-		credentialsManagementPanel.setLayout(new GridLayout(1, 0, 0, 0));
-		setAddUserButton();
-		setEditUserButton();
-		setRemoveUserButton();
-
-		GridBagConstraints credentialManagementPanelConstraints = new GridBagConstraints();
-		credentialManagementPanelConstraints.fill = GridBagConstraints.HORIZONTAL;
-		credentialManagementPanelConstraints.anchor = GridBagConstraints.EAST;
-		credentialManagementPanelConstraints.gridwidth = 3;
-		credentialManagementPanelConstraints.gridx = 0;
-		credentialManagementPanelConstraints.gridy = 2;
-
-		add(credentialsManagementPanel, credentialManagementPanelConstraints);
-	}
-
-	private void setAddUserButton() {
-		addUserButton = new JButton("Add user");
-
-		addUserButton.setForeground(SystemColor.textHighlight);
-		addUserButton.setContentAreaFilled(false);
-		addUserButton.setBorderPainted(false);
-
-		credentialsManagementPanel.add(addUserButton);
-	}
-
-	private void setEditUserButton() {
-		editUserButton = new JButton("Edit user");
-
-		editUserButton.setForeground(SystemColor.textHighlight);
-		editUserButton.setContentAreaFilled(false);
-		editUserButton.setBorderPainted(false);
-
-		credentialsManagementPanel.add(editUserButton);
-	}
-
-	private void setRemoveUserButton() {
-		removeUserButton = new JButton("Remove user");
-
-		removeUserButton.setForeground(SystemColor.textHighlight);
-		removeUserButton.setContentAreaFilled(false);
-		removeUserButton.setBorderPainted(false);
-
-		credentialsManagementPanel.add(removeUserButton);
 	}
 
 	private void setController() {
@@ -189,33 +168,45 @@ public class LoginPanel extends JPanel {
 		loginButton.addMouseListener(listener);
 	}
 
-	public void addAddUserButtonListener(MouseListener listener) {
-		addUserButton.addMouseListener(listener);
+	public void addAddHostButtonListener(ActionListener listener) {
+		hostCredentialsManagementTools.addAddButtonActionListener(listener);
 	}
 
-	public void addEditUserButtonListener(MouseListener listener) {
-		editUserButton.addMouseListener(listener);
+	public void addRemoveHostButtonListener(ActionListener listener) {
+		hostCredentialsManagementTools.addRemoveButtonActionListener(listener);
 	}
 
-	public void addRemoveUserButtonListener(MouseListener listener) {
-		removeUserButton.addMouseListener(listener);
+	public void addEditHostButtonListener(ActionListener listener) {
+		hostCredentialsManagementTools.addEditButtonActionListener(listener);
+	}
+
+	public void addAddUserButtonListener(ActionListener listener) {
+		userCredentialsManagementTools.addAddButtonActionListener(listener);
+	}
+
+	public void addRemoveUserButtonListener(ActionListener listener) {
+		userCredentialsManagementTools.addRemoveButtonActionListener(listener);
+	}
+
+	public void addEditUserButtonListener(ActionListener listener) {
+		userCredentialsManagementTools.addEditButtonActionListener(listener);
 	}
 
 	protected void setHosts(Set<String> hosts, Optional<String> selection) {
 		hostComboBox.removeAllItems();
 		userComboBox.removeAllItems();
-		for (String host : hosts) {
+		for (String host: hosts) {
 			hostComboBox.addItem(host);
 		}
 		if (selection.isPresent())
 			hostComboBox.setSelectedItem(selection.get());
-		
+
 		hostComboBox.updateUI();
 	}
 
 	protected void setUsers(Set<String> users, Optional<String> selection) {
 		userComboBox.removeAllItems();
-		for (String user : users) {
+		for (String user: users) {
 			userComboBox.addItem(user);
 		}
 		if (selection.isPresent())
