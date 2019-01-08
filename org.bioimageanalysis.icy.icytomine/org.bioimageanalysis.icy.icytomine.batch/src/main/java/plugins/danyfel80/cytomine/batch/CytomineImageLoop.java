@@ -195,7 +195,8 @@ public class CytomineImageLoop extends Loop {
 
 	private void setCurrentTileSequence(BufferedImage tileImage) {
 		currentTileSequence = new Sequence(tileImage);
-		currentTileSequence.setName(targetImageInstance.getName().orElse("Imported image") + " Tile " + currentTileIndex);
+		currentTileSequence.setName(targetImageInstance.getName().orElse("Imported_image") + "_" + currentTileArea.getX()
+				+ "_" + currentTileArea.getY());
 	}
 
 	private void setCurrentTileSequenceLocation(Rectangle2D tileArea) {
