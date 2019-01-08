@@ -79,10 +79,10 @@ public class AnnotationInserter {
 
 	private ROI2DPoint createPoint(Point geometry, Annotation annotation) throws CytomineClientException {
 		int maxY = annotation.getImage().getSizeY().get();
-		int x = (int) MagnitudeResolutionConverter.convertMagnitude(geometry.getX() - viewBoundsAtZeroResolution.getMinX(),
+		double x = MagnitudeResolutionConverter.convertMagnitude(geometry.getCoordinate().x - viewBoundsAtZeroResolution.getMinX(),
 				0d, sequenceResolution);
-		int y = (int) MagnitudeResolutionConverter
-				.convertMagnitude((maxY - geometry.getY()) - viewBoundsAtZeroResolution.getMinY(), 0d, sequenceResolution);
+		double y = MagnitudeResolutionConverter
+				.convertMagnitude((maxY - geometry.getCoordinate().y) - viewBoundsAtZeroResolution.getMinY(), 0d, sequenceResolution);
 		return new ROI2DPoint(x, y);
 	}
 
@@ -94,10 +94,10 @@ public class AnnotationInserter {
 
 		List<Point2D> points = IntStream.range(0, size).mapToObj(i -> {
 			Coordinate coordinate = coordinates.getCoordinate(i);
-			double x = MagnitudeResolutionConverter.convertMagnitude(coordinate.x - viewBoundsAtZeroResolution.getMinX(), 0,
+			double x = MagnitudeResolutionConverter.convertMagnitude(coordinate.x - viewBoundsAtZeroResolution.getMinX(), 0d,
 					sequenceResolution);
 			double y = MagnitudeResolutionConverter
-					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, sequenceResolution);
+					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0d, sequenceResolution);
 			return new Point2D.Double(x, y);
 		}).collect(Collectors.toList());
 
@@ -112,10 +112,10 @@ public class AnnotationInserter {
 
 		List<Point2D> points = IntStream.range(0, size - 1).mapToObj(i -> {
 			Coordinate coordinate = coordinates[i];
-			double x = MagnitudeResolutionConverter.convertMagnitude(coordinate.x - viewBoundsAtZeroResolution.getMinX(), 0,
+			double x = MagnitudeResolutionConverter.convertMagnitude(coordinate.x - viewBoundsAtZeroResolution.getMinX(), 0d,
 					sequenceResolution);
 			double y = MagnitudeResolutionConverter
-					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0, sequenceResolution);
+					.convertMagnitude((maxY - coordinate.y) - viewBoundsAtZeroResolution.getMinY(), 0d, sequenceResolution);
 			return new Point2D.Double(x, y);
 		}).collect(Collectors.toList());
 

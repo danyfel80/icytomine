@@ -179,6 +179,7 @@ public class CytomineToIcyPanelController {
 		panel.setProgressIdle();
 		panel.setStartButtonEnabled(true);
 		panel.setMagnificationEnabled(true);
+		requestDialogClose();
 	}
 
 	private Dimension2D getPixelSizeAtZeroResolution() {

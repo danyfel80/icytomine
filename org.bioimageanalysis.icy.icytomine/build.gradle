@@ -46,6 +46,7 @@ subprojects {
 		extraLibs 'javax.cache:cache-api:1.1.0' // JCache
 		extraLibs 'org.ehcache:ehcache:3.4.0' // Ehcache (JCache implementation)
 		extraLibs 'org.geotools:gt-main:18.2' // GeoTools
+		extraLibs 'org.japura:japura-gui:7.5.2' // Japura GUI
 		
 		configurations.implementation.extendsFrom(configurations.extraLibs)
 		

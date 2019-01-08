@@ -90,6 +90,7 @@ public class IcyFileToCytominePanelController {
 				List<Annotation> createdAnnotations = sender.send();
 				viewController.getImageInformation().getAnnotations(false).addAll(createdAnnotations);
 				notifySuccess(createdAnnotations);
+				notifyCloseListener();
 			} catch (Exception e) {
 				notifyFailure(e);
 			}
