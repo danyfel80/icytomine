@@ -21,6 +21,7 @@ import javax.swing.UIManager;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImageDetailsPanelController.ImageMagnificationChangeListener;
 import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImageDetailsPanelController.ImageResolutionChangeListener;
+import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImagePanel.ImageSelectionListener;
 import org.ehcache.Cache;
 
 public class ImageDetailsPanel extends JPanel {
@@ -73,15 +74,16 @@ public class ImageDetailsPanel extends JPanel {
 
 	private void addImageDetailsPanel() {
 		scrollPaneDetails = new JScrollPane();
+		scrollPaneDetails.setMinimumSize(new Dimension(100, 23));
 		add(scrollPaneDetails);
 
 		imageDetailsPanel = new JPanel();
 		imageDetailsPanel.setBackground(UIManager.getColor("Panel.background"));
 		GridBagLayout imageDetailsPanelLayout = new GridBagLayout();
-		imageDetailsPanelLayout.columnWidths = new int[] {40, 79, 45};
-		imageDetailsPanelLayout.rowHeights = new int[] {28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		imageDetailsPanelLayout.columnWidths = new int[] {0, 0, 0};
+		imageDetailsPanelLayout.rowHeights = new int[] {30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 30};
 		imageDetailsPanelLayout.columnWeights = new double[] {0.0, 0.0, 0.0};
-		imageDetailsPanelLayout.rowWeights = new double[] {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0};
+		imageDetailsPanelLayout.rowWeights = new double[] {Double.MIN_VALUE, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
 		imageDetailsPanel.setLayout(imageDetailsPanelLayout);
 		scrollPaneDetails.setViewportView(imageDetailsPanel);
 
@@ -100,13 +102,13 @@ public class ImageDetailsPanel extends JPanel {
 
 	private void addImageTitle() {
 		fileNameLabel = new JTextArea("ImageFileName...longName");
-		fileNameLabel.setMinimumSize(new Dimension(80, 22));
+		fileNameLabel.setMinimumSize(new Dimension(220, 22));
 		fileNameLabel.setLineWrap(true);
 		fileNameLabel.setOpaque(false);
 		fileNameLabel.setFont(new Font("Tahoma", Font.BOLD, 15));
 
-		GridBagConstraints fileNameLabelConstraints = new GridBagConstraints(0, 0, 3, 1, 0, 0, GridBagConstraints.CENTER,
-				GridBagConstraints.BOTH, new Insets(10, 10, 10, 10), 0, 0);
+		GridBagConstraints fileNameLabelConstraints = new GridBagConstraints(0, 1, 3, 1, 0, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.BOTH, new Insets(0, 10, 10, 10), 0, 0);
 
 		imageDetailsPanel.add(fileNameLabel, fileNameLabelConstraints);
 
@@ -120,7 +122,7 @@ public class ImageDetailsPanel extends JPanel {
 		previewLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		previewLabel.setIcon(defaultIcon);
 
-		GridBagConstraints previewLabelConstraints = new GridBagConstraints(0, 1, 3, 1, 0, 0, GridBagConstraints.CENTER,
+		GridBagConstraints previewLabelConstraints = new GridBagConstraints(0, 2, 3, 1, 0, 0, GridBagConstraints.CENTER,
 				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(previewLabel, previewLabelConstraints);
@@ -132,7 +134,7 @@ public class ImageDetailsPanel extends JPanel {
 		imageIdLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		imageIdLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		GridBagConstraints gbc_lblId = new GridBagConstraints(0, 2, 1, 1, 0, 0, GridBagConstraints.EAST,
+		GridBagConstraints gbc_lblId = new GridBagConstraints(0, 3, 1, 1, 0, 0, GridBagConstraints.EAST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
 
 		imageDetailsPanel.add(imageIdLabel, gbc_lblId);
@@ -144,8 +146,8 @@ public class ImageDetailsPanel extends JPanel {
 		imageIdTextArea.setOpaque(false);
 		imageIdTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 
-		GridBagConstraints gbc_lblIdValue = new GridBagConstraints(1, 2, 2, 1, 0, 0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+		GridBagConstraints gbc_lblIdValue = new GridBagConstraints(1, 3, 2, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.VERTICAL, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(imageIdTextArea, gbc_lblIdValue);
 	}
@@ -156,7 +158,7 @@ public class ImageDetailsPanel extends JPanel {
 		dimensionLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		dimensionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		GridBagConstraints dimensionLabelConstraints = new GridBagConstraints(0, 3, 1, 1, 0, 0, GridBagConstraints.EAST,
+		GridBagConstraints dimensionLabelConstraints = new GridBagConstraints(0, 4, 1, 1, 0, 0, GridBagConstraints.EAST,
 				GridBagConstraints.EAST, new Insets(0, 0, 5, 10), 0, 0);
 
 		imageDetailsPanel.add(dimensionLabel, dimensionLabelConstraints);
@@ -168,8 +170,8 @@ public class ImageDetailsPanel extends JPanel {
 		imageDimensionTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		imageDimensionTextArea.setOpaque(false);
 
-		GridBagConstraints dimensionTextAreaConstraints = new GridBagConstraints(1, 3, 2, 1, 0, 0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+		GridBagConstraints dimensionTextAreaConstraints = new GridBagConstraints(1, 4, 2, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.VERTICAL, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(imageDimensionTextArea, dimensionTextAreaConstraints);
 	}
@@ -180,7 +182,7 @@ public class ImageDetailsPanel extends JPanel {
 		magnificationLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 		magnificationLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		GridBagConstraints magnificationLabelConstraints = new GridBagConstraints(0, 4, 1, 1, 0, 0, GridBagConstraints.EAST,
+		GridBagConstraints magnificationLabelConstraints = new GridBagConstraints(0, 5, 1, 1, 0, 0, GridBagConstraints.EAST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
 
 		imageDetailsPanel.add(magnificationLabel, magnificationLabelConstraints);
@@ -192,14 +194,14 @@ public class ImageDetailsPanel extends JPanel {
 		imageMagnificationTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		imageMagnificationTextArea.setOpaque(false);
 
-		GridBagConstraints magnificationTextAreaConstraints = new GridBagConstraints(1, 4, 1, 1, 0, 0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 5, 5), 0, 0);
+		GridBagConstraints magnificationTextAreaConstraints = new GridBagConstraints(1, 5, 1, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.VERTICAL, new Insets(0, 0, 5, 5), 0, 0);
 
 		imageDetailsPanel.add(imageMagnificationTextArea, magnificationTextAreaConstraints);
 
 		imageMagnificationEditButton = new JButton("Edit");
 
-		GridBagConstraints magnificationEditButtonConstraints = new GridBagConstraints(2, 4, 1, 1, 0, 0,
+		GridBagConstraints magnificationEditButtonConstraints = new GridBagConstraints(2, 5, 1, 1, 0, 0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(imageMagnificationEditButton, magnificationEditButtonConstraints);
@@ -212,7 +214,7 @@ public class ImageDetailsPanel extends JPanel {
 		numberOfAlgoAnnotationsLabel.setMaximumSize(new Dimension(80, 22));
 		numberOfAlgoAnnotationsLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 
-		GridBagConstraints numberOfAlgoAnnotationLabelConstraints = new GridBagConstraints(0, 5, 1, 1, 0, 0,
+		GridBagConstraints numberOfAlgoAnnotationLabelConstraints = new GridBagConstraints(0, 6, 1, 1, 0, 0,
 				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
 
 		imageDetailsPanel.add(numberOfAlgoAnnotationsLabel, numberOfAlgoAnnotationLabelConstraints);
@@ -224,8 +226,8 @@ public class ImageDetailsPanel extends JPanel {
 		numberOfAlgoAnnotationsTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 		numberOfAlgoAnnotationsTextArea.setOpaque(false);
 
-		GridBagConstraints numberOfAlgoAnnotationsTextAreaConstraints = new GridBagConstraints(1, 5, 2, 1, 0, 0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+		GridBagConstraints numberOfAlgoAnnotationsTextAreaConstraints = new GridBagConstraints(1, 6, 2, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.VERTICAL, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(numberOfAlgoAnnotationsTextArea, numberOfAlgoAnnotationsTextAreaConstraints);
 	}
@@ -237,7 +239,7 @@ public class ImageDetailsPanel extends JPanel {
 		numberOfUserAnnotationsLabel.setMaximumSize(new Dimension(80, 22));
 		numberOfUserAnnotationsLabel.setFont(new Font("Tahoma", Font.BOLD, 12));
 
-		GridBagConstraints numberOfUserAnnotationLabelConstraints = new GridBagConstraints(0, 6, 1, 1, 0, 0,
+		GridBagConstraints numberOfUserAnnotationLabelConstraints = new GridBagConstraints(0, 7, 1, 1, 0, 0,
 				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
 
 		imageDetailsPanel.add(numberOfUserAnnotationsLabel, numberOfUserAnnotationLabelConstraints);
@@ -249,8 +251,8 @@ public class ImageDetailsPanel extends JPanel {
 		numberOfUserAnnotationsTextArea.setOpaque(false);
 		numberOfUserAnnotationsTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 
-		GridBagConstraints numberOfUserAnnotationsTextAreaConstraints = new GridBagConstraints(1, 6, 2, 1, 0, 0,
-				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+		GridBagConstraints numberOfUserAnnotationsTextAreaConstraints = new GridBagConstraints(1, 7, 2, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.VERTICAL, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(numberOfUserAnnotationsTextArea, numberOfUserAnnotationsTextAreaConstraints);
 	}
@@ -261,7 +263,7 @@ public class ImageDetailsPanel extends JPanel {
 		imageSizeLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 		imageSizeLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
 
-		GridBagConstraints imageSizeLabelConstraints = new GridBagConstraints(0, 7, 1, 1, 0, 0, GridBagConstraints.EAST,
+		GridBagConstraints imageSizeLabelConstraints = new GridBagConstraints(0, 8, 1, 1, 0, 0, GridBagConstraints.EAST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
 
 		imageDetailsPanel.add(imageSizeLabel, imageSizeLabelConstraints);
@@ -273,8 +275,8 @@ public class ImageDetailsPanel extends JPanel {
 		imageSizeTextArea.setOpaque(false);
 		imageSizeTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 
-		GridBagConstraints imageSizeTextAreaConstraints = new GridBagConstraints(1, 7, 2, 1, 0, 0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+		GridBagConstraints imageSizeTextAreaConstraints = new GridBagConstraints(1, 8, 2, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.VERTICAL, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(imageSizeTextArea, imageSizeTextAreaConstraints);
 	}
@@ -285,13 +287,13 @@ public class ImageDetailsPanel extends JPanel {
 		imageResolutionLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
 		imageResolutionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		GridBagConstraints imageResolutionLabelConstraints = new GridBagConstraints(0, 8, 1, 1, 0, 0,
+		GridBagConstraints imageResolutionLabelConstraints = new GridBagConstraints(0, 9, 1, 1, 0, 0,
 				GridBagConstraints.EAST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
 
 		imageDetailsPanel.add(imageResolutionLabel, imageResolutionLabelConstraints);
 
 		imageResolutionTextArea = new JTextArea("2.8 \u00B5m/px");
-		imageResolutionTextArea.setPreferredSize(new Dimension(60, 22));
+		imageResolutionTextArea.setPreferredSize(new Dimension(80, 22));
 		imageResolutionTextArea.setMinimumSize(new Dimension(60, 22));
 		imageResolutionTextArea.setEditable(false);
 		imageResolutionTextArea.setLineWrap(true);
@@ -299,13 +301,13 @@ public class ImageDetailsPanel extends JPanel {
 		imageResolutionTextArea.setOpaque(false);
 		imageResolutionTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 
-		GridBagConstraints imageResolutionTextAreaConstraints = new GridBagConstraints(1, 8, 1, 1, 0, 0,
-				GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 5, 5), 0, 0);
+		GridBagConstraints imageResolutionTextAreaConstraints = new GridBagConstraints(1, 9, 1, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.VERTICAL, new Insets(0, 0, 5, 5), 0, 0);
 
 		imageDetailsPanel.add(imageResolutionTextArea, imageResolutionTextAreaConstraints);
 
 		imageResolutionEditButton = new JButton("Edit");
-		GridBagConstraints imageResolutionEditButtonConstraints = new GridBagConstraints(2, 8, 1, 1, 0, 0,
+		GridBagConstraints imageResolutionEditButtonConstraints = new GridBagConstraints(2, 9, 1, 1, 0, 0,
 				GridBagConstraints.WEST, GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(imageResolutionEditButton, imageResolutionEditButtonConstraints);
@@ -317,7 +319,7 @@ public class ImageDetailsPanel extends JPanel {
 		imageDepthLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
 		imageDepthLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		GridBagConstraints imageDepthLabelConstraints = new GridBagConstraints(0, 9, 1, 1, 0, 0, GridBagConstraints.EAST,
+		GridBagConstraints imageDepthLabelConstraints = new GridBagConstraints(0, 10, 1, 1, 0, 0, GridBagConstraints.EAST,
 				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
 
 		imageDetailsPanel.add(imageDepthLabel, imageDepthLabelConstraints);
@@ -329,8 +331,8 @@ public class ImageDetailsPanel extends JPanel {
 		imageDepthTextArea.setOpaque(false);
 		imageDepthTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 
-		GridBagConstraints imageDepthTextAreaConstraints = new GridBagConstraints(1, 9, 2, 1, 0, 0, GridBagConstraints.WEST,
-				GridBagConstraints.BOTH, new Insets(0, 0, 5, 0), 0, 0);
+		GridBagConstraints imageDepthTextAreaConstraints = new GridBagConstraints(1, 10, 2, 1, 0, 0, GridBagConstraints.WEST,
+				GridBagConstraints.VERTICAL, new Insets(0, 0, 5, 0), 0, 0);
 
 		imageDetailsPanel.add(imageDepthTextArea, imageDepthTextAreaConstraints);
 	}
@@ -341,8 +343,8 @@ public class ImageDetailsPanel extends JPanel {
 		imageCreationDateLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
 		imageCreationDateLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-		GridBagConstraints gbc_lblDateCreation = new GridBagConstraints(0, 10, 1, 1, 0, 1.0, GridBagConstraints.NORTHEAST,
-				GridBagConstraints.BOTH, new Insets(0, 0, 5, 10), 0, 0);
+		GridBagConstraints gbc_lblDateCreation = new GridBagConstraints(0, 11, 1, 1, 0, 0, GridBagConstraints.NORTHEAST,
+				GridBagConstraints.BOTH, new Insets(0, 0, 0, 10), 0, 0);
 
 		imageDetailsPanel.add(imageCreationDateLabel, gbc_lblDateCreation);
 
@@ -353,8 +355,8 @@ public class ImageDetailsPanel extends JPanel {
 		imageCreationDateTextArea.setOpaque(false);
 		imageCreationDateTextArea.setFont(new Font("Tahoma", Font.PLAIN, 11));
 
-		GridBagConstraints gbc_lblDateCreationValue = new GridBagConstraints(1, 10, 2, 1, 0, 1.0,
-				GridBagConstraints.NORTHWEST, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0);
+		GridBagConstraints gbc_lblDateCreationValue = new GridBagConstraints(1, 11, 2, 1, 0, 0,
+				GridBagConstraints.WEST, GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0);
 
 		imageDetailsPanel.add(imageCreationDateTextArea, gbc_lblDateCreationValue);
 	}
@@ -373,6 +375,10 @@ public class ImageDetailsPanel extends JPanel {
 
 	public void setPreviewCache(Cache<Long, BufferedImage> cache) {
 		controller.setPreviewCache(cache);
+	}
+	
+	public void addImagePreviewDoubleClickListener(ImageSelectionListener listener) {
+		controller.addImagePreviewDoubleClickListener(listener);
 	}
 
 	public void addImageMagnificationChangeListener(ImageMagnificationChangeListener listener) {

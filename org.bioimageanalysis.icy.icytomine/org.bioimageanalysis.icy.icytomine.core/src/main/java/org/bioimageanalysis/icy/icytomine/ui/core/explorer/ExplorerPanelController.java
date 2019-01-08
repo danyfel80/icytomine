@@ -111,6 +111,9 @@ public class ExplorerPanelController {
 		panel.getImagePanel().addImageDoubleClickListener(image -> {
 			viewerRequestListeners.forEach(listener -> listener.imageSelected(image));
 		});
+		panel.getImageDetailsPanel().addImagePreviewDoubleClickListener(image -> {
+			viewerRequestListeners.forEach(listener -> listener.imageSelected(image));
+		});
 	}
 
 	private void setCacheManagement() {
@@ -146,7 +149,7 @@ public class ExplorerPanelController {
 	}
 
 	public void setClient(CytomineClient client) {
-		panel.getHostAddressLabel().setText(client.getHost());
+		panel.getHostAddressLabel().setText(client.getCurrentUser().getName().orElse("no username") + " @ " + client.getHost());
 		panel.getProjectPanel().setClient(client);
 
 		updateProjects();

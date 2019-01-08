@@ -5,11 +5,9 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.Insets;
 import java.awt.SystemColor;
 
 import javax.swing.JLabel;
-import javax.swing.JMenuBar;
 import javax.swing.JPanel;
 import javax.swing.JSplitPane;
 import javax.swing.SwingConstants;
@@ -47,7 +45,6 @@ public class ExplorerPanel extends JPanel {
 		setPreferredSize(new Dimension(730, 410));
 
 		setGridBagLayout();
-		setMenuBar();
 		setMainPanel();
 	}
 
@@ -58,19 +55,6 @@ public class ExplorerPanel extends JPanel {
 		gridBagLayout.columnWeights = new double[] {1.0};
 		gridBagLayout.rowWeights = new double[] {0.0, 1.0};
 		setLayout(gridBagLayout);
-	}
-
-	private void setMenuBar() {
-		JMenuBar menuBar = new JMenuBar();
-		menuBar.setMinimumSize(new Dimension(0, 20));
-
-		GridBagConstraints menuBarConstraints = new GridBagConstraints();
-		menuBarConstraints.anchor = GridBagConstraints.NORTH;
-		menuBarConstraints.fill = GridBagConstraints.BOTH;
-		menuBarConstraints.gridx = 0;
-		menuBarConstraints.gridy = 0;
-
-		add(menuBar, menuBarConstraints);
 	}
 
 	private void setMainPanel() {
@@ -98,7 +82,7 @@ public class ExplorerPanel extends JPanel {
 	}
 
 	private void setHostComponents() {
-		JLabel hostTitleLabel = new JLabel("Cytomine host address");
+		JLabel hostTitleLabel = new JLabel("Connected as ");
 		hostTitleLabel.setFont(new Font("Tahoma", Font.BOLD, 11));
 		hostTitleLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 		hostTitleLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
@@ -107,7 +91,6 @@ public class ExplorerPanel extends JPanel {
 		GridBagConstraints hostTitleLabelConstraints = new GridBagConstraints();
 		hostTitleLabelConstraints.fill = GridBagConstraints.BOTH;
 		hostTitleLabelConstraints.anchor = GridBagConstraints.EAST;
-		hostTitleLabelConstraints.insets = new Insets(0, 0, 0, 5);
 		hostTitleLabelConstraints.gridx = 0;
 		hostTitleLabelConstraints.gridy = 0;
 		mainPanel.add(hostTitleLabel, hostTitleLabelConstraints);

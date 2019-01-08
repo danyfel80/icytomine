@@ -3,6 +3,7 @@ package org.bioimageanalysis.icy.icytomine.ui.core.explorer;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -17,6 +18,7 @@ import javax.swing.ImageIcon;
 
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientException;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
+import org.bioimageanalysis.icy.icytomine.ui.core.explorer.ImagePanel.ImageSelectionListener;
 import org.ehcache.Cache;
 
 import com.google.common.base.Objects;
@@ -310,5 +312,21 @@ public class ImageDetailsPanelController {
 
 	public void addImageResolutionChangeListener(ImageResolutionChangeListener listener) {
 		this.resolutionChangeListeners.add(listener);
+	}
+
+	public void addImagePreviewDoubleClickListener(ImageSelectionListener listener) {
+		MouseListener listDoubleClickListener = createListDoubleClickListener(listener);
+		this.panel.getPreviewLabel().addMouseListener(listDoubleClickListener);
+	}
+
+	private MouseListener createListDoubleClickListener(ImageSelectionListener listener) {
+		return new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					listener.imageSelected(currentImage);
+				}
+			}
+		};
 	}
 }
