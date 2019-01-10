@@ -5,11 +5,11 @@ import java.awt.geom.Dimension2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -45,7 +45,7 @@ public class CytomineAnnotationLoop extends Loop {
 	private List<Annotation> targetImageAnnotations;
 	private Integer targetResolution;
 	private Dimension targetPaddingSize;
-	private String targetTermName;
+	private String[] targetTermNames;
 
 	private ListIterator<Annotation> currentAnnotationIterator;
 	private int currentAnnotationIndex;
@@ -86,7 +86,7 @@ public class CytomineAnnotationLoop extends Loop {
 	@Override
 	public void declareOutput(VarList outputMap) {
 		super.declareOutput(outputMap);
-		for (Var<?> var : inputMap) {
+		for (Var<?> var: inputMap) {
 			outputMap.add(var.getName(), var);
 		}
 		currentAnnotationSequenceVar = new VarSequence("Current annotation sequence", null);
@@ -96,7 +96,7 @@ public class CytomineAnnotationLoop extends Loop {
 
 	@Override
 	public void declareLoopVariables(List<Var<?>> loopVariables) {
-		for (Var<?> var : inputMap) {
+		for (Var<?> var: inputMap) {
 			loopVariables.add(var);
 		}
 		loopVariables.add(currentAnnotationSequenceVar);
@@ -113,7 +113,8 @@ public class CytomineAnnotationLoop extends Loop {
 		targetImageInstance = imageVar.getValue(true);
 		targetResolution = resolutionLevelVar.getValue(true);
 		targetPaddingSize = paddingSizeVar.getValue();
-		targetTermName = termNameVar.getValue(true);
+		targetTermNames = termNameVar.getValue(true).split(",+");
+		System.out.println(Arrays.toString(targetTermNames));
 
 		if (targetPaddingSize == null)
 			targetPaddingSize = new Dimension();
@@ -123,12 +124,16 @@ public class CytomineAnnotationLoop extends Loop {
 		targetImageAnnotations = new ArrayList<>(targetImageInstance.getAnnotationsWithGeometry(false));
 
 		Set<Term> availableTerms = targetImageInstance.getProject().getOntology().getTerms(false);
-		Optional<Term> searchedTerm = availableTerms.stream()
-				.filter(t -> Objects.equals(t.getName().orElse("Not available").toLowerCase(), targetTermName.toLowerCase()))
-				.findAny();
-		if (searchedTerm.isPresent()) {
+		Set<Term> searchedTerms = availableTerms.stream()
+				.filter(t -> Arrays.stream(targetTermNames).anyMatch(targetTermName -> Objects
+						.equals(t.getName().orElse("Not available").toLowerCase(), targetTermName.toLowerCase())))
+				.collect(Collectors.toSet());
+		System.out.println(searchedTerms);
+		
+		if (!searchedTerms.isEmpty()) {
 			targetImageAnnotations = targetImageAnnotations.stream()
-					.filter(a -> a.getAssociatedTerms().contains(searchedTerm.get())).collect(Collectors.toList());
+					.filter(a -> a.getAssociatedTerms().stream().anyMatch(aTerm -> searchedTerms.contains(aTerm)))
+					.collect(Collectors.toList());
 		}
 	}
 
@@ -151,8 +156,10 @@ public class CytomineAnnotationLoop extends Loop {
 
 	private Rectangle2D getCurrentAnnotationPaddedBounds() {
 		Rectangle2D annotationBounds = getCurrentAnnotationBounds();
-		Dimension2D targetPaddinSizeAtResolutionZero = MagnitudeResolutionConverter.convertDimension2D(targetPaddingSize, targetResolution, 0);
-		Rectangle2D annotationPaddedBounds = new Rectangle2D.Double(annotationBounds.getX() - targetPaddinSizeAtResolutionZero.getWidth(),
+		Dimension2D targetPaddinSizeAtResolutionZero = MagnitudeResolutionConverter.convertDimension2D(targetPaddingSize,
+				targetResolution, 0);
+		Rectangle2D annotationPaddedBounds = new Rectangle2D.Double(
+				annotationBounds.getX() - targetPaddinSizeAtResolutionZero.getWidth(),
 				annotationBounds.getY() - targetPaddinSizeAtResolutionZero.getHeight(),
 				annotationBounds.getWidth() + 2 * targetPaddinSizeAtResolutionZero.getWidth(),
 				annotationBounds.getHeight() + 2 * targetPaddinSizeAtResolutionZero.getHeight());
@@ -200,7 +207,7 @@ public class CytomineAnnotationLoop extends Loop {
 		currentAnnotationSequence.setPixelSizeX(pixelSizeAtTargetResolution);
 		currentAnnotationSequence.setPixelSizeY(pixelSizeAtTargetResolution);
 		currentAnnotationSequence
-		.setName(targetImageInstance.getName().orElse("Imported image") + " Annotation " + currentAnnotation.getId());
+				.setName(targetImageInstance.getName().orElse("Imported image") + " Annotation " + currentAnnotation.getId());
 	}
 
 	private double getPixelSizeAtTargetResolution() {
