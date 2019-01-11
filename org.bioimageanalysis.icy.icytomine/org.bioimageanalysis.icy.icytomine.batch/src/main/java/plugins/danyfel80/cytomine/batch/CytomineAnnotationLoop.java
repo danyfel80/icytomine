@@ -40,17 +40,23 @@ public class CytomineAnnotationLoop extends Loop {
 	private VarInteger resolutionLevelVar;
 	private VarDimension paddingSizeVar;
 	private VarString termNameVar;
+	private VarString includedTermsPerResultVar;
 
 	private Image targetImageInstance;
 	private List<Annotation> targetImageAnnotations;
 	private Integer targetResolution;
 	private Dimension targetPaddingSize;
 	private String[] targetTermNames;
+	private boolean searchNoTerm;
+	private String[] targetIncludedTermNames;
+	private boolean addAdditionalNoTerm;
 
 	private ListIterator<Annotation> currentAnnotationIterator;
 	private int currentAnnotationIndex;
 	private Annotation currentAnnotation;
 	private Rectangle2D currentAnnotationPaddedBounds;
+	private Set<Term> additionalTerms;
+	private Set<Annotation> additionalAnnotations;
 
 	// iteration output variables
 	private VarSequence currentAnnotationSequenceVar;
@@ -74,6 +80,7 @@ public class CytomineAnnotationLoop extends Loop {
 		resolutionLevelVar = new VarInteger("Resolution level", 0);
 		paddingSizeVar = new VarDimension("Padding size");
 		termNameVar = new VarString("Term name", "No Term");
+		includedTermsPerResultVar = new VarString("Addition annotations with terms", "");
 	}
 
 	private void addInputVariables() {
@@ -81,6 +88,7 @@ public class CytomineAnnotationLoop extends Loop {
 		inputMap.add(resolutionLevelVar.getName(), resolutionLevelVar);
 		inputMap.add(paddingSizeVar.getName(), paddingSizeVar);
 		inputMap.add(termNameVar.getName(), termNameVar);
+		inputMap.add(includedTermsPerResultVar.getName(), includedTermsPerResultVar);
 	}
 
 	@Override
@@ -114,26 +122,37 @@ public class CytomineAnnotationLoop extends Loop {
 		targetResolution = resolutionLevelVar.getValue(true);
 		targetPaddingSize = paddingSizeVar.getValue();
 		targetTermNames = termNameVar.getValue(true).split(",+");
+		targetIncludedTermNames = includedTermsPerResultVar.getValue(true).split(" *, *");
 		System.out.println(Arrays.toString(targetTermNames));
+		System.out.println(Arrays.toString(targetIncludedTermNames));
 
 		if (targetPaddingSize == null)
 			targetPaddingSize = new Dimension();
 	}
 
 	private void computeAnnotationsToLoad() {
-		targetImageAnnotations = new ArrayList<>(targetImageInstance.getAnnotationsWithGeometry(false));
-
 		Set<Term> availableTerms = targetImageInstance.getProject().getOntology().getTerms(false);
+
 		Set<Term> searchedTerms = availableTerms.stream()
 				.filter(t -> Arrays.stream(targetTermNames).anyMatch(targetTermName -> Objects
 						.equals(t.getName().orElse("Not available").toLowerCase(), targetTermName.toLowerCase())))
 				.collect(Collectors.toSet());
-		System.out.println(searchedTerms);
-		
-		if (!searchedTerms.isEmpty()) {
-			targetImageAnnotations = targetImageAnnotations.stream()
-					.filter(a -> a.getAssociatedTerms().stream().anyMatch(aTerm -> searchedTerms.contains(aTerm)))
-					.collect(Collectors.toList());
+		searchNoTerm = Arrays.stream(targetTermNames).anyMatch(name -> name.toLowerCase().equals("no term"));
+
+		additionalTerms = availableTerms.stream()
+				.filter(t -> Arrays.stream(targetIncludedTermNames).anyMatch(targetTermName -> Objects
+						.equals(t.getName().orElse("No Term").toLowerCase(), targetTermName.toLowerCase())))
+				.collect(Collectors.toSet());
+		addAdditionalNoTerm = Arrays.stream(targetIncludedTermNames).anyMatch(name -> name.toLowerCase().equals("no term"));
+
+		System.out.println("Target Terms=" + searchedTerms + ", Additional Terms=" + additionalTerms);
+
+		targetImageAnnotations = new ArrayList<>(targetImageInstance.getAnnotationsWithGeometry(false));
+		if (!searchedTerms.isEmpty() || searchNoTerm) {
+			targetImageAnnotations = targetImageAnnotations.stream().filter(a -> {
+				boolean isMatch = a.getAssociatedTerms().stream().anyMatch(aTerm -> searchedTerms.contains(aTerm));
+				return isMatch || (a.getAssociatedTerms().isEmpty() && searchNoTerm);
+			}).collect(Collectors.toList());
 		}
 	}
 
@@ -151,6 +170,7 @@ public class CytomineAnnotationLoop extends Loop {
 	private void importCurrentAnnotationTile() {
 		currentAnnotation = currentAnnotationIterator.next();
 		currentAnnotationPaddedBounds = getCurrentAnnotationPaddedBounds();
+		computeAdditionalAnnotations();
 		computeCurrentAnnotationSequence();
 	}
 
@@ -171,9 +191,19 @@ public class CytomineAnnotationLoop extends Loop {
 		return currentAnnotation.getYAdjustedBounds();
 	}
 
+	private void computeAdditionalAnnotations() {
+		List<Annotation> availableAnnotations = targetImageInstance.getAnnotationsWithGeometry(false);
+		additionalAnnotations = availableAnnotations.stream()
+				.filter(a -> a.getYAdjustedBounds().intersects(currentAnnotationPaddedBounds)).filter(a -> {
+					boolean isMatch = a.getAssociatedTerms().stream()
+							.anyMatch(annotationTerm -> additionalTerms.contains(annotationTerm));
+					return isMatch || (a.getAssociatedTerms().isEmpty() && addAdditionalNoTerm);
+				}).collect(Collectors.toSet());
+	}
+
 	private void computeCurrentAnnotationSequence() {
 		BufferedImage tileImage = importTileArea(currentAnnotationPaddedBounds);
-		setCurrentAnnotationSequence(tileImage);
+		buildCurrentAnnotationSequence(tileImage);
 	}
 
 	private BufferedImage importTileArea(Rectangle2D bounds) {
@@ -186,16 +216,17 @@ public class CytomineAnnotationLoop extends Loop {
 		}
 	}
 
-	private void setCurrentAnnotationSequence(BufferedImage tileImage) {
+	private void buildCurrentAnnotationSequence(BufferedImage tileImage) {
 		currentAnnotationSequence = new Sequence(tileImage);
-		addCurrentAnnotationROIToSequence();
+		addCurrentAnnotationROIsToSequence();
 		addCurrentSequenceMetadata();
 	}
 
-	private void addCurrentAnnotationROIToSequence() {
+	private void addCurrentAnnotationROIsToSequence() {
 		AnnotationInserter inserter = new AnnotationInserter(currentAnnotationSequence);
 		Set<Annotation> annotationSet = new HashSet<>();
 		annotationSet.add(currentAnnotation);
+		annotationSet.addAll(additionalAnnotations);
 		inserter.insertAnnotations(currentAnnotationPaddedBounds, targetResolution, annotationSet);
 	}
 
