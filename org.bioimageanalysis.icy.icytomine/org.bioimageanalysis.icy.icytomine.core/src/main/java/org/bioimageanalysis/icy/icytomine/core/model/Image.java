@@ -307,6 +307,7 @@ public class Image extends Entity {
 		}
 		Set<Long> selectedAnnotationIds = selectedAnnotations.stream().map(a -> a.getId()).collect(Collectors.toSet());
 		if (annotations != null) {
+			@SuppressWarnings("unused")
 			boolean removed = annotations.removeIf(annotation -> selectedAnnotationIds.contains(annotation.getId()));
 		}
 	}

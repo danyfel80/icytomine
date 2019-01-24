@@ -3,4 +3,5 @@ dependencies {
 	implementation files("${System.env.ICY_HOME}/plugins/adufour/ezplug/EzPlug.jar") // EzPlug
 	implementation files("${System.env.ICY_HOME}/plugins/adufour/blocks/Blocks.jar") // Blocks
 	implementation files("${System.env.ICY_HOME}/plugins/adufour/protocols/Protocols.jar") // Protocols
+	implementation files("${System.env.ICY_HOME}/plugins/danyfel80/var/BlockVars.jar") // Block vars
 }
