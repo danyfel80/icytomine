@@ -1,0 +1,275 @@
+<protocol VERSION="4">
+<blocks>
+<block ID="397291579" blockType="plugins.danyfel80.cytomine.CreateCytomineClient" className="plugins.danyfel80.cytomine.CreateCytomineClient" collapsed="false" definedName="Create cytomine client" height="136" keepsResults="true" width="229" xLocation="9" yLocation="4">
+<variables>
+<input>
+<variable ID="Host URL" name="Host URL" runtime="false" value="http://localhost-core/" visible="true"/>
+<variable ID="Public key" name="Public key" runtime="false" value="8d5272e3-a97a-4b50-a365-70fa7aaa0d5a" visible="true"/>
+<variable ID="Private key" name="Private key" runtime="false" value="3a3dbe30-788f-46bd-ab4d-5a71ce4bf9b4" visible="true"/>
+</input>
+<output>
+<variable ID="CytomineClient" name="CytomineClient" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="136842271" blockType="plugins.danyfel80.cytomine.GetCytomineAnnotation" className="plugins.danyfel80.cytomine.GetCytomineAnnotation" collapsed="false" definedName="Get cytomine annotation" height="108" keepsResults="true" width="243" xLocation="285" yLocation="2">
+<variables>
+<input>
+<variable ID="CytomineClient" name="CytomineClient" runtime="false" visible="true"/>
+<variable ID="Annotation id" name="Annotation id" runtime="false" value="927339" visible="true"/>
+</input>
+<output>
+<variable ID="Annotation" name="Annotation" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="197163046" blockType="plugins.danyfel80.geom.DefineDimension" className="plugins.danyfel80.geom.DefineDimension" collapsed="false" definedName="Tile dimension" height="111" keepsResults="true" width="184" xLocation="13" yLocation="158">
+<variables>
+<input>
+<variable ID="Widht" name="Widht" runtime="false" value="512" visible="true"/>
+<variable ID="Height" name="Height" runtime="false" value="512" visible="true"/>
+</input>
+<output>
+<variable ID="Dimension" name="Dimension" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<block CommandLineID="" ID="1033434530" blockType="plugins.adufour.blocks.tools.input.Integer" className="plugins.adufour.blocks.tools.input.Integer" collapsed="true" definedName="Integer" height="64" keepsResults="true" width="142" xLocation="13" yLocation="712">
+<variables>
+<input>
+<variable ID="integer" name="integer" runtime="false" value="2" visible="true"/>
+</input>
+<output/>
+</variables>
+</block>
+<block ID="1532085938" blockType="plugins.danyfel80.geom.DefineDimension" className="plugins.danyfel80.geom.DefineDimension" collapsed="false" definedName="Random interval" height="111" keepsResults="true" width="196" xLocation="9" yLocation="278">
+<variables>
+<input>
+<variable ID="Widht" name="Widht" runtime="false" value="80" visible="true"/>
+<variable ID="Height" name="Height" runtime="false" value="80" visible="true"/>
+</input>
+<output>
+<variable ID="Dimension" name="Dimension" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="254857415" blockType="plugins.ylemontag.mathoperations.MathOperationBinaryBlock" className="plugins.ylemontag.mathoperations.MathOperationPlugin" collapsed="true" definedName="Math operation binary" height="127" keepsResults="true" width="228" xLocation="179" yLocation="688">
+<variables>
+<input>
+<variable ID="Operation" name="op" runtime="false" value="DIVIDE" visible="true"/>
+<variable ID="In 1" name="a" runtime="false" type="int" visible="true"/>
+<variable ID="In 2" name="b" runtime="false" type="int" visible="true"/>
+</input>
+<output>
+<variable ID="Out" name="result" runtime="false" type="java.lang.Double" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="224356825" blockType="plugins.ylemontag.mathoperations.MathOperationBinaryBlock" className="plugins.ylemontag.mathoperations.MathOperationPlugin" collapsed="true" definedName="Math operation binary" height="127" keepsResults="true" width="228" xLocation="179" yLocation="741">
+<variables>
+<input>
+<variable ID="Operation" name="op" runtime="false" value="DIVIDE" visible="true"/>
+<variable ID="In 1" name="a" runtime="false" type="int" visible="true"/>
+<variable ID="In 2" name="b" runtime="false" type="int" visible="true"/>
+</input>
+<output>
+<variable ID="Out" name="result" runtime="false" type="java.lang.Double" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="314377045" blockType="plugins.danyfel80.geom.DefineDimension" className="plugins.danyfel80.geom.DefineDimension" collapsed="true" definedName="Internal random interval" height="111" keepsResults="true" width="200" xLocation="420" yLocation="713">
+<variables>
+<input>
+<variable ID="Widht" name="Widht" runtime="false" visible="true"/>
+<variable ID="Height" name="Height" runtime="false" visible="true"/>
+</input>
+<output>
+<variable ID="Dimension" name="Dimension" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="1639903874" blockType="plugins.ylemontag.mathoperations.MathOperationBinaryBlock" className="plugins.ylemontag.mathoperations.MathOperationPlugin" collapsed="true" definedName="Math operation binary" height="127" keepsResults="true" width="228" xLocation="20" yLocation="404">
+<variables>
+<input>
+<variable ID="Operation" name="op" runtime="false" value="SUBTRACT" visible="true"/>
+<variable ID="In 1" name="a" runtime="false" type="int" visible="true"/>
+<variable ID="In 2" name="b" runtime="false" type="int" visible="true"/>
+</input>
+<output>
+<variable ID="Out" name="result" runtime="false" type="java.lang.Double" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="1104502262" blockType="plugins.ylemontag.mathoperations.MathOperationBinaryBlock" className="plugins.ylemontag.mathoperations.MathOperationPlugin" collapsed="true" definedName="Math operation binary" height="127" keepsResults="true" width="228" xLocation="20" yLocation="440">
+<variables>
+<input>
+<variable ID="Operation" name="op" runtime="false" value="SUBTRACT" visible="true"/>
+<variable ID="In 1" name="a" runtime="false" type="int" visible="true"/>
+<variable ID="In 2" name="b" runtime="false" type="int" visible="true"/>
+</input>
+<output>
+<variable ID="Out" name="result" runtime="false" type="java.lang.Double" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="653020281" blockType="plugins.danyfel80.geom.DefineDimension" className="plugins.danyfel80.geom.DefineDimension" collapsed="true" definedName="Internal time dimension" height="111" keepsResults="true" width="237" xLocation="265" yLocation="422">
+<variables>
+<input>
+<variable ID="Widht" name="Widht" runtime="false" visible="true"/>
+<variable ID="Height" name="Height" runtime="false" visible="true"/>
+</input>
+<output>
+<variable ID="Dimension" name="Dimension" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<workflow ID="900291762" blockType="plugins.danyfel80.cytomine.batch.CytomineAnnotationTiler" className="plugins.danyfel80.cytomine.batch.CytomineAnnotationTiler" collapsed="false" definedName="Cytomine annotation tiler" height="820" keepsResults="false" width="1176" xLocation="678" yLocation="12">
+<blocks>
+<block ID="1588279354" blockType="plugins.danyfel80.geom.DefineRectangle1" className="plugins.danyfel80.geom.DefineRectangle1" collapsed="false" definedName="Define rectangle1" height="105" keepsResults="true" width="397" xLocation="176" yLocation="58">
+<variables>
+<input>
+<variable ID="Position" name="Position" runtime="false" visible="true"/>
+<variable ID="Dimension" name="Dimension" runtime="false" visible="true"/>
+</input>
+<output>
+<variable ID="Rectangle" name="Rectangle" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="1363559348" blockType="plugins.danyfel80.cytomine.GetCytomineImage" className="plugins.danyfel80.cytomine.GetCytomineImage" collapsed="false" definedName="Get cytomine image" height="108" keepsResults="true" width="215" xLocation="158" yLocation="282">
+<variables>
+<input>
+<variable ID="CytomineClient" name="CytomineClient" runtime="false" visible="true"/>
+<variable ID="Image id" name="Image id" runtime="false" value="575844" visible="true"/>
+</input>
+<output>
+<variable ID="Image" name="Image" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="386765111" blockType="plugins.danyfel80.image.generator.TileRandomGenerator" className="plugins.danyfel80.image.generator.TileRandomGenerator" collapsed="false" definedName="Tile random generator" height="105" keepsResults="true" width="326" xLocation="137" yLocation="173">
+<variables>
+<input>
+<variable ID="Base rectangle" name="Base rectangle" runtime="false" visible="true"/>
+<variable ID="Randomizing interval dimension" name="Randomizing interval dimension" runtime="false" visible="true"/>
+</input>
+<output>
+<variable ID="Transformed rectangle" name="Transformed rectangle" runtime="false" visible="true"/>
+</output>
+</variables>
+</block>
+<block ID="1117852688" blockType="plugins.adufour.blocks.tools.Display" className="plugins.adufour.blocks.tools.Display" collapsed="false" definedName="Display" height="82" keepsResults="true" width="384" xLocation="548" yLocation="180">
+<variables>
+<input>
+<variable ID="object" name="object" runtime="false" type="java.awt.Rectangle" visible="true"/>
+</input>
+<output/>
+</variables>
+</block>
+<workflow ID="1576391244" blockType="plugins.danyfel80.cytomine.batch.CytomineImageLoop" className="plugins.danyfel80.cytomine.batch.CytomineImageLoop" collapsed="false" definedName="Cytomine image loop" height="465" keepsResults="true" width="499" xLocation="593" yLocation="287">
+<blocks>
+<block ID="1830777690" blockType="plugins.adufour.blocks.tools.sequence.ShowSequence" className="plugins.adufour.blocks.tools.sequence.ShowSequence" collapsed="false" definedName="Show sequence" height="61" keepsResults="true" width="205" xLocation="179" yLocation="370">
+<variables>
+<input>
+<variable ID="sequence" name="sequence" runtime="false" visible="true"/>
+</input>
+<output/>
+</variables>
+</block>
+</blocks>
+<links>
+<link dstBlockID="1830777690" dstVarID="sequence" srcBlockID="1576391244" srcVarID="Current sequence"/>
+</links>
+<variables>
+<input>
+<variable ID="Image" blockID="1576391244" value="" visible="true"/>
+<variable ID="resolutionLevel" blockID="1576391244" value="0" visible="true"/>
+<variable ID="Loaded area" blockID="1576391244" value="" visible="true"/>
+<variable ID="Tile size" blockID="1576391244" value="" visible="true"/>
+<variable ID="Tile margin" blockID="1576391244" value="" visible="true"/>
+<variable ID="Load annotations" blockID="1576391244" value="false" visible="true"/>
+<variable ID="1830777690:sequence" blockID="1830777690" visible="false"/>
+</input>
+<output>
+<variable ID="iteration" blockID="1576391244" visible="true"/>
+<variable ID="Image" blockID="1576391244" visible="true"/>
+<variable ID="resolutionLevel" blockID="1576391244" visible="true"/>
+<variable ID="Loaded area" blockID="1576391244" visible="true"/>
+<variable ID="Tile size" blockID="1576391244" visible="true"/>
+<variable ID="Tile margin" blockID="1576391244" visible="true"/>
+<variable ID="Load annotations" blockID="1576391244" visible="true"/>
+<variable ID="Current sequence" blockID="1576391244" visible="true"/>
+</output>
+</variables>
+</workflow>
+</blocks>
+<links>
+<link dstBlockID="1588279354" dstVarID="Position" srcBlockID="900291762" srcVarID="Current tile position"/>
+<link dstBlockID="386765111" dstVarID="Base rectangle" srcBlockID="1588279354" srcVarID="Rectangle"/>
+<link dstBlockID="1117852688" dstVarID="object" srcBlockID="386765111" srcVarID="Transformed rectangle"/>
+<link dstBlockID="1576391244" dstVarID="Image" srcBlockID="1363559348" srcVarID="Image"/>
+<link dstBlockID="1576391244" dstVarID="Loaded area" srcBlockID="1117852688" srcVarID="object" srcVarType="java.awt.Rectangle"/>
+<link dstBlockID="1576391244" dstVarID="Tile size" srcBlockID="1588279354" srcVarID="Dimension"/>
+</links>
+<variables>
+<input>
+<variable ID="Annotation" blockID="900291762" value="" visible="true"/>
+<variable ID="Tile size" blockID="900291762" value="" visible="true"/>
+<variable ID="Resolution level" blockID="900291762" value="0" visible="true"/>
+<variable ID="1588279354:Position" blockID="1588279354" value="" visible="false"/>
+<variable ID="1588279354:Dimension" blockID="1588279354" value="" visible="true"/>
+<variable ID="1363559348:CytomineClient" blockID="1363559348" value="" visible="true"/>
+<variable ID="1363559348:Image id" blockID="1363559348" value="575844" visible="false"/>
+<variable ID="386765111:Base rectangle" blockID="386765111" value="" visible="false"/>
+<variable ID="386765111:Randomizing interval dimension" blockID="386765111" value="" visible="true"/>
+<variable ID="1117852688:object" blockID="1117852688" value="" visible="false"/>
+<variable ID="1576391244:Image" blockID="1576391244" value="" visible="false"/>
+<variable ID="1576391244:resolutionLevel" blockID="1576391244" value="0" visible="false"/>
+<variable ID="1576391244:Loaded area" blockID="1576391244" value="" visible="false"/>
+<variable ID="1576391244:Tile size" blockID="1576391244" value="" visible="false"/>
+<variable ID="1576391244:Tile margin" blockID="1576391244" value="" visible="false"/>
+<variable ID="1576391244:Load annotations" blockID="1576391244" value="false" visible="false"/>
+<variable ID="1576391244:1830777690:sequence" blockID="1576391244" visible="false"/>
+</input>
+<output>
+<variable ID="iteration" blockID="900291762" visible="true"/>
+<variable ID="Annotation" blockID="900291762" visible="true"/>
+<variable ID="Tile size" blockID="900291762" visible="true"/>
+<variable ID="Resolution level" blockID="900291762" visible="true"/>
+<variable ID="Current tile position" blockID="900291762" visible="true"/>
+<variable ID="1588279354:Rectangle" blockID="1588279354" visible="false"/>
+<variable ID="1363559348:Image" blockID="1363559348" visible="false"/>
+<variable ID="386765111:Transformed rectangle" blockID="386765111" visible="false"/>
+<variable ID="1576391244:iteration" blockID="1576391244" visible="false"/>
+<variable ID="1576391244:Image" blockID="1576391244" visible="false"/>
+<variable ID="1576391244:resolutionLevel" blockID="1576391244" visible="false"/>
+<variable ID="1576391244:Loaded area" blockID="1576391244" visible="false"/>
+<variable ID="1576391244:Tile size" blockID="1576391244" visible="false"/>
+<variable ID="1576391244:Tile margin" blockID="1576391244" visible="false"/>
+<variable ID="1576391244:Load annotations" blockID="1576391244" visible="false"/>
+<variable ID="1576391244:Current sequence" blockID="1576391244" visible="false"/>
+</output>
+</variables>
+</workflow>
+</blocks>
+<links>
+<link dstBlockID="136842271" dstVarID="CytomineClient" srcBlockID="397291579" srcVarID="CytomineClient"/>
+<link dstBlockID="1639903874" dstVarID="In 1" srcBlockID="197163046" srcVarID="Widht"/>
+<link dstBlockID="1639903874" dstVarID="In 2" srcBlockID="1532085938" srcVarID="Widht"/>
+<link dstBlockID="653020281" dstVarID="Widht" srcBlockID="1639903874" srcVarID="Out" srcVarType="java.lang.Double"/>
+<link dstBlockID="1104502262" dstVarID="In 1" srcBlockID="197163046" srcVarID="Height"/>
+<link dstBlockID="1104502262" dstVarID="In 2" srcBlockID="1532085938" srcVarID="Height"/>
+<link dstBlockID="653020281" dstVarID="Height" srcBlockID="1104502262" srcVarID="Out" srcVarType="java.lang.Double"/>
+<link dstBlockID="900291762" dstVarID="Tile size" srcBlockID="653020281" srcVarID="Dimension"/>
+<link dstBlockID="900291762" dstVarID="1363559348:CytomineClient" srcBlockID="397291579" srcVarID="CytomineClient"/>
+<link dstBlockID="254857415" dstVarID="In 1" srcBlockID="1532085938" srcVarID="Widht"/>
+<link dstBlockID="224356825" dstVarID="In 1" srcBlockID="1532085938" srcVarID="Height"/>
+<link dstBlockID="254857415" dstVarID="In 2" srcBlockID="1033434530" srcVarID="integer"/>
+<link dstBlockID="224356825" dstVarID="In 2" srcBlockID="1033434530" srcVarID="integer"/>
+<link dstBlockID="314377045" dstVarID="Widht" srcBlockID="254857415" srcVarID="Out" srcVarType="java.lang.Double"/>
+<link dstBlockID="314377045" dstVarID="Height" srcBlockID="224356825" srcVarID="Out" srcVarType="java.lang.Double"/>
+<link dstBlockID="900291762" dstVarID="386765111:Randomizing interval dimension" srcBlockID="314377045" srcVarID="Dimension"/>
+<link dstBlockID="900291762" dstVarID="1588279354:Dimension" srcBlockID="197163046" srcVarID="Dimension"/>
+<link dstBlockID="900291762" dstVarID="Annotation" srcBlockID="136842271" srcVarID="Annotation"/>
+</links>
+</protocol>
