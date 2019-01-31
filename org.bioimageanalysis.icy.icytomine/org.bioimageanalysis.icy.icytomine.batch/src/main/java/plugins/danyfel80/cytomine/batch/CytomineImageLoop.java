@@ -180,7 +180,7 @@ public class CytomineImageLoop extends Loop {
 		currentTileArea = new Rectangle2D.Double(xPosition, yPosition,
 				tileDimensionAtZeroResolution.getWidth() + 2d * tileMarginAtZeroResolution.getWidth(),
 				tileDimensionAtZeroResolution.getHeight() + 2d * tileMarginAtZeroResolution.getHeight())
-						.createIntersection(targetArea).createIntersection(new Rectangle(targetImageInstance.getSize().get()));
+						.createIntersection(new Rectangle(targetImageInstance.getSize().get()));
 	}
 
 	private BufferedImage importTileArea(Rectangle2D tileArea) {

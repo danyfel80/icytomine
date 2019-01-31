@@ -19,6 +19,8 @@
 package org.bioimageanalysis.icy.icytomine.core.model;
 
 import java.awt.Color;
+import java.awt.Shape;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +36,9 @@ import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClientE
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.vividsolutions.jts.awt.PointTransformation;
+import com.vividsolutions.jts.awt.ShapeWriter;
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
@@ -180,6 +185,18 @@ public class Annotation extends Entity {
 				throw new CytomineClientException(String.format("Couldn't create geometry for annotation %d", getId()), e);
 			}
 		}
+	}
+
+	public Shape getShapeAtZeroResolution() throws CytomineClientException {
+		int maxY = getImage().getSizeY().get();
+		getGeometryAtZeroResolution(false);
+		ShapeWriter shapeWriter = new ShapeWriter(new PointTransformation() {
+			@Override
+			public void transform(Coordinate src, Point2D dest) {
+				dest.setLocation(src.x, maxY - src.y);
+			}
+		});
+		return shapeWriter.toShape(geometry);
 	}
 
 	/**
