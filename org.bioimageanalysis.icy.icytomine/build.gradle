@@ -16,9 +16,6 @@ subprojects {
 	
 	// In this section you declare where to find the dependencies of your project
 	repositories {
-		// For jai
-		maven { url 'http://download.osgeo.org/webdav/geotools' }
-		
 		// For bioformats
 		maven { url 'https://maven.atlassian.com/3rdparty/' }
 		maven { 
@@ -31,12 +28,15 @@ subprojects {
 		flatDir {
 			dirs "$rootProject.projectDir/libs/cytomine-java-client" // To fix with server when new version arrives
 		}
-		mavenCentral()
-		jcenter()
+		// For jai
+		maven { url 'http://maven.geotoolkit.org' }
 		// For geotools
 		maven { url 'http://repo.boundlessgeo.com/main'}
 		maven { url 'http://maven.geomajas.org'}
 		maven { url 'https://artifacts.openmicroscopy.org/artifactory/maven/' }
+
+		mavenCentral()
+		jcenter()
 	}
 
 
@@ -47,7 +47,7 @@ subprojects {
 		implementation files("${System.env.ICY_HOME}/resources.jar") // Icy resources
 		implementation files("${System.env.ICY_HOME}/lib/substance.jar") // substance UI
 		implementation files("${System.env.ICY_HOME}/lib/flamingo.jar") // substance UI
-		//implementation files("${System.env.ICY_HOME}/lib/jai_core.jar") // substance UI
+		implementation files("${System.env.ICY_HOME}/lib/jai_core.jar") // substance UI
 		implementation files("${System.env.ICY_HOME}/lib/bioformats.jar") // substance UI
 		
 		
