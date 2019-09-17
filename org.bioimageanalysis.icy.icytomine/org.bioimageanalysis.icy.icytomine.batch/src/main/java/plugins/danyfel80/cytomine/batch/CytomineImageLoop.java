@@ -41,6 +41,7 @@ public class CytomineImageLoop extends Loop {
 	private VarDimension tileSizeVar;
 	private VarDimension tileMarginVar;
 	private VarBoolean loadAnnotationsVar;
+	private VarBoolean loadAnnotationsPropertiesVar;
 
 	private Image targetImageInstance;
 	private Rectangle targetArea;
@@ -50,6 +51,7 @@ public class CytomineImageLoop extends Loop {
 	private Rectangle tileGridBounds;
 	private int numberOfTiles;
 	private boolean loadAnnotations;
+	private boolean loadAnnotationProperties;
 
 	// iteration output variables
 	private VarSequence currentTileSequenceVar;
@@ -80,6 +82,7 @@ public class CytomineImageLoop extends Loop {
 		tileSizeVar = new VarDimension("Tile size");
 		tileMarginVar = new VarDimension("Tile margin");
 		loadAnnotationsVar = new VarBoolean("Load annotations", false);
+		loadAnnotationsPropertiesVar = new VarBoolean("Load annotation properties", false);
 	}
 
 	private void addInputVariables() {
@@ -89,6 +92,7 @@ public class CytomineImageLoop extends Loop {
 		inputMap.add(tileSizeVar.getName(), tileSizeVar);
 		inputMap.add(tileMarginVar.getName(), tileMarginVar);
 		inputMap.add(loadAnnotationsVar.getName(), loadAnnotationsVar);
+		inputMap.add(loadAnnotationsPropertiesVar.getName(), loadAnnotationsPropertiesVar);
 	}
 
 	@Override
@@ -148,6 +152,7 @@ public class CytomineImageLoop extends Loop {
 		tileGridBounds = calculator.getTileGridBounds();
 		numberOfTiles = tileGridBounds.width * tileGridBounds.height;
 		loadAnnotations = loadAnnotationsVar.getValue(true);
+		loadAnnotationProperties = loadAnnotationsPropertiesVar.getValue(true);
 	}
 
 	@Override
@@ -216,7 +221,7 @@ public class CytomineImageLoop extends Loop {
 
 	private void insertCurrentTileAnnotationsToCurrentTileSequence() {
 		AnnotationInserter inserter = new AnnotationInserter(currentTileSequence);
-		inserter.insertAnnotations(currentTileArea, targetResolution, new HashSet<>(currentTileAnnotations));
+		inserter.insertAnnotations(currentTileArea, targetResolution, new HashSet<>(currentTileAnnotations), loadAnnotationProperties);
 	}
 
 	@Override

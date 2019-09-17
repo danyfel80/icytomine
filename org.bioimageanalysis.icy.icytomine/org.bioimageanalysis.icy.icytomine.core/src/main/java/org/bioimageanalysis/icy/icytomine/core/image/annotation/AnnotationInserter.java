@@ -31,6 +31,7 @@ import plugins.kernel.roi.roi2d.ROI2DShape;
 public class AnnotationInserter {
 
 	Sequence sequence;
+	boolean retrieveProperties;
 	Rectangle2D viewBoundsAtZeroResolution;
 	double sequenceResolution;
 	Set<Annotation> activeAnnotations;
@@ -40,11 +41,12 @@ public class AnnotationInserter {
 	}
 
 	public void insertAnnotations(Rectangle2D viewBoundsAtZeroResolution, double sequenceResolution,
-			Set<Annotation> activeAnnotations) throws AnnotationInserterException {
+			Set<Annotation> activeAnnotations, boolean retrieveProperties) throws AnnotationInserterException {
 
 		this.viewBoundsAtZeroResolution = viewBoundsAtZeroResolution;
 		this.sequenceResolution = sequenceResolution;
 		this.activeAnnotations = activeAnnotations;
+		this.retrieveProperties = retrieveProperties;
 
 		addAnnotationsToSequence();
 	}
@@ -53,15 +55,25 @@ public class AnnotationInserter {
 		activeAnnotations.forEach(a -> addAnnotationToSequence(a, sequence));
 	}
 
-	private void addAnnotationToSequence(Annotation annotation, Sequence sequence) throws CytomineClientException, AnnotationInserterException {
+	private void addAnnotationToSequence(Annotation annotation, Sequence sequence)
+			throws CytomineClientException, AnnotationInserterException {
 		ROI2DShape roiInView = createRoiInView(annotation);
 		roiInView.setName(Objects.toString(annotation.getId()));
 		roiInView.setProperty("cytomineId", Objects.toString(annotation.getId()));
+		if (retrieveProperties)
+			annotation.getAnnotationProperties(false).forEach(p -> {
+				if (p.getKey().orElse("").equals("ANNOTATION_GROUP_ID")) {
+					roiInView.setName(p.getValue().orElse(Objects.toString(annotation.getId())));
+				}
+				roiInView.setProperty(p.getKey().orElse("Unknown"), p.getValue().orElse("Unknown"));
+			});
+
 		roiInView.setColor(annotation.getColor());
 		sequence.addROI(roiInView);
 	}
 
-	private ROI2DShape createRoiInView(Annotation annotation) throws CytomineClientException, AnnotationInserterException {
+	private ROI2DShape createRoiInView(Annotation annotation)
+			throws CytomineClientException, AnnotationInserterException {
 		Geometry geometry = annotation.getGeometryAtZeroResolution(false);
 		if (geometry instanceof Point) {
 			return createPoint((Point) geometry, annotation);
@@ -79,10 +91,10 @@ public class AnnotationInserter {
 
 	private ROI2DPoint createPoint(Point geometry, Annotation annotation) throws CytomineClientException {
 		int maxY = annotation.getImage().getSizeY().get();
-		double x = MagnitudeResolutionConverter.convertMagnitude(geometry.getCoordinate().x - viewBoundsAtZeroResolution.getMinX(),
-				0d, sequenceResolution);
-		double y = MagnitudeResolutionConverter
-				.convertMagnitude((maxY - geometry.getCoordinate().y) - viewBoundsAtZeroResolution.getMinY(), 0d, sequenceResolution);
+		double x = MagnitudeResolutionConverter
+				.convertMagnitude(geometry.getCoordinate().x - viewBoundsAtZeroResolution.getMinX(), 0d, sequenceResolution);
+		double y = MagnitudeResolutionConverter.convertMagnitude(
+				(maxY - geometry.getCoordinate().y) - viewBoundsAtZeroResolution.getMinY(), 0d, sequenceResolution);
 		return new ROI2DPoint(x, y);
 	}
 
@@ -142,7 +154,7 @@ public class AnnotationInserter {
 			}
 			path.append(internalROI.getShape(), false);
 		}
-		
+
 		return new ROI2DPath(path);
 	}
 }

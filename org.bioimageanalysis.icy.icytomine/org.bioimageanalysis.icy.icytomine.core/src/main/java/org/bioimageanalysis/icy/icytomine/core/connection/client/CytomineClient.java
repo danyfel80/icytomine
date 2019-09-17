@@ -38,6 +38,7 @@ import org.bioimageanalysis.icy.icytomine.core.model.Description;
 import org.bioimageanalysis.icy.icytomine.core.model.Image;
 import org.bioimageanalysis.icy.icytomine.core.model.Ontology;
 import org.bioimageanalysis.icy.icytomine.core.model.Project;
+import org.bioimageanalysis.icy.icytomine.core.model.Property;
 import org.bioimageanalysis.icy.icytomine.core.model.Term;
 import org.bioimageanalysis.icy.icytomine.core.model.User;
 import org.bioimageanalysis.icy.icytomine.core.model.cache.AnnotationCache;
@@ -60,6 +61,7 @@ import be.cytomine.client.CytomineException;
 import be.cytomine.client.collections.AnnotationCollection;
 import be.cytomine.client.collections.ImageInstanceCollection;
 import be.cytomine.client.collections.ProjectCollection;
+import be.cytomine.client.collections.PropertyCollection;
 import be.cytomine.client.collections.TermCollection;
 import be.cytomine.client.collections.UserCollection;
 import be.cytomine.client.models.AbstractImage;
@@ -465,13 +467,15 @@ public class CytomineClient implements AutoCloseable {
 	 */
 	public List<String> getImageServers(Image image) throws CytomineClientException {
 		ImageServers servers;
+		List<String> serverList;
 		try {
 			servers = getInternalClient().getImageInstanceServers(image.getInternalImage());
 		} catch (CytomineException e) {
 			throw new CytomineClientException(String.format("Could not download image servers (image=%s)", image.toString()),
 					e);
 		}
-		return servers.getServerList();
+		serverList = servers.getServerList().stream().map(s -> s.replace(" ", "%20")).collect(Collectors.toList());
+		return serverList;
 	}
 
 	/**
@@ -704,6 +708,22 @@ public class CytomineClient implements AutoCloseable {
 			throw new CytomineClientException(String.format("Could not retrieve annotation %d termUsers", annotation.getId()),
 					e);
 		}
+	}
+
+	public List<Property> getAnnotationProperties(Annotation annotation) {
+		PropertyCollection propertyList;
+		try {
+			propertyList = getInternalClient().getDomainProperties("annotation", annotation.getId());
+		} catch (CytomineException e) {
+			throw new CytomineClientException(
+					String.format("Could not retrieve annotation %d properties", annotation.getId()));
+		}
+
+		List<Property> properties = new ArrayList<>(propertyList.size());
+		for (int i = 0; i < propertyList.size(); i++) {
+			properties.add(new Property(this, propertyList.get(i)));
+		}
+		return properties;
 	}
 
 	public void updateImageMagnfication(Image image, Integer newMagnification) throws CytomineClientException {

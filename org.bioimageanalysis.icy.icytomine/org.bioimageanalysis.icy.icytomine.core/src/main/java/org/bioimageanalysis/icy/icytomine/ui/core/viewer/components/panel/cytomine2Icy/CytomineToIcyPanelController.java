@@ -160,10 +160,10 @@ public class CytomineToIcyPanelController {
 			image.setPositionX(viewBoundsAtZeroResolution.getX() * pixelSizeAtZeroResolution.getWidth());
 			image.setPositionY(viewBoundsAtZeroResolution.getY() * pixelSizeAtZeroResolution.getHeight());
 
-			panel.setProgress(.99);
-
+			panel.setProgress("Adding annotations", .75);
 			AnnotationInserter annotationsInserter = new AnnotationInserter(image);
-			annotationsInserter.insertAnnotations(viewBoundsAtZeroResolution, outputResolution, activeAnnotations);
+			annotationsInserter.insertAnnotations(viewBoundsAtZeroResolution, outputResolution, activeAnnotations, false);
+			panel.setProgress(.99);
 			Icy.getMainInterface().addSequence(image);
 		} catch (CancellationException e) {
 		} catch (AnnotationInserterException | InterruptedException | ExecutionException e) {

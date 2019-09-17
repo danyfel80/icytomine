@@ -70,10 +70,10 @@ public class CytomineToIcyPanel extends JPanel {
 
 	private GridBagLayout createPanelLayout() {
 		GridBagLayout layout = new GridBagLayout();
-		layout.columnWidths = new int[] { 0 };
-		layout.rowHeights = new int[] { 0, 0, 0, 1 };
-		layout.columnWeights = new double[] { 1.0 };
-		layout.rowWeights = new double[] { 0.0, 0.0, 0.0, 1.0 };
+		layout.columnWidths = new int[] {0};
+		layout.rowHeights = new int[] {0, 0, 0, 1};
+		layout.columnWeights = new double[] {1.0};
+		layout.rowWeights = new double[] {0.0, 0.0, 0.0, 1.0};
 		return layout;
 	}
 
@@ -81,10 +81,10 @@ public class CytomineToIcyPanel extends JPanel {
 		JPanel panel = new JPanel();
 
 		GridBagLayout panelLayout = new GridBagLayout();
-		panelLayout.columnWidths = new int[] { 0, 0, 0 };
-		panelLayout.rowHeights = new int[] { 0, 0 };
-		panelLayout.columnWeights = new double[] { 0.0, 1.0, 0.0 };
-		panelLayout.rowWeights = new double[] { 0.0, 0.0 };
+		panelLayout.columnWidths = new int[] {0, 0, 0};
+		panelLayout.rowHeights = new int[] {0, 0};
+		panelLayout.columnWeights = new double[] {0.0, 1.0, 0.0};
+		panelLayout.rowWeights = new double[] {0.0, 0.0};
 		panel.setLayout(panelLayout);
 
 		JLabel magnificationLabel = new JLabel("Magnification");
@@ -147,10 +147,10 @@ public class CytomineToIcyPanel extends JPanel {
 		JPanel panel = new JPanel();
 
 		GridBagLayout panelLayout = new GridBagLayout();
-		panelLayout.columnWidths = new int[] { 0, 0 };
-		panelLayout.rowHeights = new int[] { 1 };
-		panelLayout.columnWeights = new double[] { 0.0, 0.0 };
-		panelLayout.rowWeights = new double[] { 0.0 };
+		panelLayout.columnWidths = new int[] {0, 0};
+		panelLayout.rowHeights = new int[] {1};
+		panelLayout.columnWeights = new double[] {0.0, 0.0};
+		panelLayout.rowWeights = new double[] {0.0};
 		panel.setLayout(panelLayout);
 
 		startButton = new JButton("Start");
@@ -214,12 +214,13 @@ public class CytomineToIcyPanel extends JPanel {
 		startButton.setEnabled(enabled);
 	}
 
-	public void setProgress(double percent) {
+	public void setProgress(String message, double percent) {
 		if (percent == 0d) {
 			EventQueue.invokeLater(() -> {
 				progressBar.setIndeterminate(true);
 				progressBar.setStringPainted(true);
-				progressBar.setString("Initializing...");
+				String fullMessage = (message.isEmpty())? ("Initializing..."): (message + ": Initializing...");
+				progressBar.setString(fullMessage);
 			});
 		} else {
 			EventQueue.invokeLater(() -> {
@@ -227,10 +228,15 @@ public class CytomineToIcyPanel extends JPanel {
 				progressBar.setIndeterminate(false);
 				progressBar.setValue(percentage);
 				progressBar.setStringPainted(true);
-				progressBar.setString(percentage + "%");
+				String fullMessage = (message.isEmpty())? (percentage + "%"): (message + ": " + percentage + "%");
+				progressBar.setString(fullMessage);
 			});
 		}
 
+	}
+
+	public void setProgress(double percent) {
+		setProgress("", percent);
 	}
 
 	public void addCloseListener(ActionListener listener) {
@@ -249,8 +255,7 @@ public class CytomineToIcyPanel extends JPanel {
 	public void setProgressIdle() {
 		try {
 			Thread.sleep(100);
-		} catch (InterruptedException e) {
-		}
+		} catch (InterruptedException e) {}
 		EventQueue.invokeLater(() -> {
 			progressBar.setIndeterminate(false);
 			progressBar.setStringPainted(false);

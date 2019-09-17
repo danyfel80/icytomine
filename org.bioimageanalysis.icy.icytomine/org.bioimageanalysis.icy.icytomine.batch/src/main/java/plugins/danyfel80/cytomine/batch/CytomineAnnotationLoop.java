@@ -227,7 +227,7 @@ public class CytomineAnnotationLoop extends Loop {
 		Set<Annotation> annotationSet = new HashSet<>();
 		annotationSet.add(currentAnnotation);
 		annotationSet.addAll(additionalAnnotations);
-		inserter.insertAnnotations(currentAnnotationPaddedBounds, targetResolution, annotationSet);
+		inserter.insertAnnotations(currentAnnotationPaddedBounds, targetResolution, annotationSet, false);
 	}
 
 	private void addCurrentSequenceMetadata() {

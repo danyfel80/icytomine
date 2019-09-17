@@ -44,7 +44,7 @@ public class CytomineClientSpec {
 	@Test
 	public void givenWrongHostAndKeysWhenConstructionThenCytomineClientException() {
 		thrown.expect(CytomineClientException.class);
-		thrown.expectMessage("User credentials not recognized for public key: ");
+		thrown.expectMessage("Could not connect to server: ");
 		client = CytomineClient.create(host, "something-wrong", "invalid-keys");
 	}
 	

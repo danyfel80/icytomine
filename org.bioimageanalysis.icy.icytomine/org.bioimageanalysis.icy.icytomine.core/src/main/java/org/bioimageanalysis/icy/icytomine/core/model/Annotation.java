@@ -61,6 +61,7 @@ public class Annotation extends Entity {
 	Geometry latestSimplifiedGeometry;
 	int latestSimplifiedGeometryResolution;
 	private List<AnnotationTerm> annotationTerms;
+	private List<Property> annotationProperties;
 	private Map<Long, Set<Long>> termUsers;
 	private Rectangle2D adjustedBounds;
 	private Rectangle2D approximativeBounds;
@@ -302,6 +303,13 @@ public class Annotation extends Entity {
 	public void associateTerms(Map<Term, Boolean> termSelection) throws CytomineClientException {
 		getClient().associateTerms(this, termSelection);
 		updateModel();
+	}
+
+	public List<Property> getAnnotationProperties(boolean recompute) throws CytomineClientException {
+		if (annotationProperties == null || recompute) {
+			annotationProperties = getClient().getAnnotationProperties(this);
+		}
+		return annotationProperties;
 	}
 
 	private void updateModel() {

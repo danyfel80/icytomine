@@ -9,6 +9,7 @@ import icy.plugin.interface_.PluginLibrary;
 import plugins.adufour.blocks.lang.Block;
 import plugins.adufour.blocks.util.VarList;
 import plugins.adufour.ezplug.EzStoppable;
+import plugins.adufour.vars.lang.VarBoolean;
 import plugins.adufour.vars.lang.VarLong;
 import vars.cytomine.VarCytomineAnnotation;
 import vars.cytomine.VarCytomineClient;
@@ -17,6 +18,7 @@ public class GetCytomineAnnotation extends Plugin implements PluginLibrary, Bloc
 
 	VarCytomineClient clientVar;
 	VarLong annotationIdVar;
+	VarBoolean retrieveProperties;
 
 	VarCytomineAnnotation annotationVar;
 
@@ -24,8 +26,10 @@ public class GetCytomineAnnotation extends Plugin implements PluginLibrary, Bloc
 	public void declareInput(VarList inputMap) {
 		clientVar = VarCytomineClient.ofNullable(null);
 		annotationIdVar = new VarLong("Annotation id", 0L);
+		retrieveProperties = new VarBoolean("Include properties", false);
 		inputMap.add(clientVar.getName(), clientVar);
 		inputMap.add(annotationIdVar.getName(), annotationIdVar);
+		inputMap.add(retrieveProperties.getName(), retrieveProperties);
 	}
 
 	@Override
@@ -41,6 +45,7 @@ public class GetCytomineAnnotation extends Plugin implements PluginLibrary, Bloc
 		Annotation annotationInstance;
 		try {
 			annotationInstance = client.getAnnotation(annotationId);
+			annotationInstance.getAnnotationProperties(retrieveProperties.getValue());
 		} catch (CytomineClientException e) {
 			throw new RuntimeException(e);
 		}
