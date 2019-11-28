@@ -69,30 +69,8 @@ subprojects {
   }
   
   eclipse {
-    classpath{
-      file.whenMerged {
-        entries.find { it.path == 'src/main/java' }.output = 'bin/main'
-        def testSrc = entries.find { it.path == 'src/test/java' }
-        if (testSrc != null) { 
-        	testSrc.output = 'bin/test'
-        	testSrc.entryAttributes['test'] = 'true'
-        }
-
-        entries.forEach { entry ->
-        	def entryIn = { it.find { file(entry.path).equals(it) } }
-        	if (entry.kind == 'lib') {
-        		entry.entryAttributes['test'] =
-        			entryIn(configurations.testRuntimeClasspath) &&
-        			!entryIn(configurations.runtimeClasspath)
-        	}
-        }
-      }
-      downloadJavadoc = true
-    }
-
-    project {
-      natures += ['icy.icy4eclipse.core.icynature']
-    }
+    classpath.downloadJavadoc = true
+    project.natures += ['icy.icy4eclipse.core.icynature']
   }
   
   jar {
