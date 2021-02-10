@@ -202,7 +202,6 @@ public class Preferences {
 	 * 
 	 * @param path
 	 *          Path of the file containing the preferences to load.
-	 * @return Preferences loaded from {@code path}.
 	 * @throws IOException
 	 *           If The preferences cannot be loaded from the provided path.
 	 */
@@ -222,7 +221,6 @@ public class Preferences {
 	 * Loads the preferences from the default preferences file specified by
 	 * {@link #getDefaultPreferencesPath()}.
 	 * 
-	 * @return Preferences loaded from {@link #getDefaultPreferencesPath()}.
 	 * @throws IOException
 	 *           If The preferences cannot be loaded from the provided path.
 	 */

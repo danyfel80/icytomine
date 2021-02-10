@@ -21,14 +21,14 @@ package org.bioimageanalysis.icy.icytomine.command.process;
 import java.util.concurrent.Callable;
 
 /**
- * Represents a command that can be called returning an object of type {@link T}
+ * Represents a command that can be called returning an object of type T
  * as a result.
  * 
  * @author Daniel Felipe Gonzalez Obando
  *
  * @param <T>
  *          Type of the object returned when the command process is executed
- *          using the {@link #call()} method.
+ *          using the {@link Callable#call()} method.
  */
 public interface CommandProcess<T> extends Callable<T> {
 

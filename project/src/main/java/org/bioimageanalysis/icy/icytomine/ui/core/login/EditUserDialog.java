@@ -44,9 +44,10 @@ public class EditUserDialog extends JDialog {
 	/**
 	 * Create the dialog.
 	 * 
-	 * @param host
-	 * @param userName
-	 * @param owner
+     * @param owner
+	 * @param targetHost
+	 * @param targetUserName
+	 * @param userCredentials
 	 */
 	public EditUserDialog(Frame owner, String targetHost, String targetUserName, UserCredential userCredentials) {
 		super(owner, "Edit User - Icytomine", true);

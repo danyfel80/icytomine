@@ -38,9 +38,8 @@ public class AddUserDialog extends JDialog {
 	/**
 	 * Create the dialog.
 	 * 
-	 * @param host
-	 * @param userName
-	 * @param owner
+	 * @param owner Owner frame.
+     * @param hostName Host name.
 	 */
 	public AddUserDialog(Frame owner, String hostName) {
 		super(owner, "Add User - Icytomine", true);

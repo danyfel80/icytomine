@@ -25,7 +25,7 @@ import be.cytomine.client.Cytomine;
 
 /**
  * Instances of this class can use the cytomine client during their execution if
- * it has been set using the {@link #setCytomineClient(Cytomine)} method.
+ * it has been set using the {@link #setClient(CytomineClient)} method.
  * 
  * @author Daniel Felipe Gonzalez Obando
  * @param <T>
