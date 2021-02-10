@@ -21,8 +21,6 @@ package org.bioimageanalysis.icy.icytomine.command.process.connected;
 import org.bioimageanalysis.icy.icytomine.command.process.CommandProcess;
 import org.bioimageanalysis.icy.icytomine.core.connection.client.CytomineClient;
 
-import be.cytomine.client.Cytomine;
-
 /**
  * Instances of this class can use the cytomine client during their execution if
  * it has been set using the {@link #setClient(CytomineClient)} method.
