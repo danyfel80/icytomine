@@ -1,0 +1,10 @@
+<root description="System workspace" name="sys">
+<task name="Plugins">
+<band name="Setup"/>
+<band name="New"/>
+<band name="Others">
+<item classname="plugins.danyfel80.icytomine.IcytomineExplorer" priority="low"/>
+<item classname="plugins.adufour.protocols.Protocols" priority="low"/>
+</band>
+</task>
+</root>

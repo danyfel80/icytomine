@@ -1,0 +1,6 @@
+/.settings/
+/preferences/
+/target/
+.project
+.classpath
+setting.xml
